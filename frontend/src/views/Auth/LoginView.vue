@@ -35,6 +35,19 @@
           />
         </div>
 
+        <!-- Remember Me checkbox -->
+        <div class="flex items-center">
+          <input
+            id="rememberMe"
+            v-model="rememberMe"
+            type="checkbox"
+            class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded cursor-pointer"
+          />
+          <label for="rememberMe" class="ml-2 block text-sm text-gray-700 cursor-pointer">
+            Keep me signed in on this device (30 days)
+          </label>
+        </div>
+
         <button
           type="submit"
           :disabled="authStore.isLoading"
@@ -64,12 +77,14 @@ const authStore = useAuthStore();
 
 const email = ref('');
 const password = ref('');
+const rememberMe = ref(false);
 
 async function handleLogin() {
   try {
     await authStore.login({
       email: email.value,
       password: password.value,
+      rememberMe: rememberMe.value,
     });
     router.push('/');
   } catch (error) {

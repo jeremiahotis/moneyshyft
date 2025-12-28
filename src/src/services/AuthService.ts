@@ -1,6 +1,7 @@
 import bcrypt from 'bcrypt';
 import db from '../config/knex';
 import { generateAccessToken, generateRefreshToken, JWTPayload } from '../utils/jwt';
+import { generateInvitationCode } from '../utils/invitationCode';
 import logger from '../utils/logger';
 
 const BCRYPT_ROUNDS = 12;
@@ -16,6 +17,7 @@ export interface SignupData {
 export interface LoginData {
   email: string;
   password: string;
+  rememberMe?: boolean;
 }
 
 export interface UserResponse {
@@ -32,6 +34,7 @@ export interface AuthResponse {
   user: UserResponse;
   accessToken: string;
   refreshToken: string;
+  invitationCode?: string; // Only returned on signup when household is created
 }
 
 class AuthService {
@@ -53,12 +56,40 @@ class AuthService {
     // Use transaction to create user and optionally household
     const result = await db.transaction(async (trx) => {
       let householdId: string | null = null;
+      let invitationCode: string | null = null;
 
       // Create household if name provided
       if (householdName) {
+        // Generate unique invitation code
+        let code = generateInvitationCode();
+        let isUnique = false;
+        let attempts = 0;
+        const maxAttempts = 100;
+
+        // Ensure uniqueness (with retry logic)
+        while (!isUnique && attempts < maxAttempts) {
+          const existing = await trx('households')
+            .where({ invitation_code: code })
+            .first();
+
+          if (!existing) {
+            isUnique = true;
+          } else {
+            code = generateInvitationCode();
+            attempts++;
+          }
+        }
+
+        if (attempts >= maxAttempts) {
+          throw new Error('Failed to generate unique invitation code');
+        }
+
+        invitationCode = code;
+
         const [household] = await trx('households')
           .insert({
             name: householdName,
+            invitation_code: invitationCode,
           })
           .returning('*');
         householdId = household.id;
@@ -76,34 +107,41 @@ class AuthService {
         })
         .returning('*');
 
-      return user;
+      return { user, invitationCode };
     });
 
     logger.info(`New user signed up: ${email}`);
 
     // Generate tokens
     const payload: JWTPayload = {
-      userId: result.id,
-      email: result.email,
-      householdId: result.household_id,
-      role: result.role,
+      userId: result.user.id,
+      email: result.user.email,
+      householdId: result.user.household_id,
+      role: result.user.role,
     };
 
     const accessToken = generateAccessToken(payload);
     const refreshToken = generateRefreshToken(payload);
 
-    return {
-      user: this.formatUserResponse(result),
+    const response: AuthResponse = {
+      user: this.formatUserResponse(result.user),
       accessToken,
       refreshToken,
     };
+
+    // Include invitation code if household was created
+    if (result.invitationCode) {
+      response.invitationCode = result.invitationCode;
+    }
+
+    return response;
   }
 
   /**
    * Login user
    */
   async login(data: LoginData): Promise<AuthResponse> {
-    const { email, password } = data;
+    const { email, password, rememberMe = false } = data;
 
     // Find user
     const user = await db('users').where({ email }).first();
@@ -122,7 +160,7 @@ class AuthService {
       .where({ id: user.id })
       .update({ last_login_at: db.fn.now() });
 
-    logger.info(`User logged in: ${email}`);
+    logger.info(`User logged in: ${email}${rememberMe ? ' (Remember Me enabled)' : ''}`);
 
     // Generate tokens
     const payload: JWTPayload = {
@@ -132,8 +170,8 @@ class AuthService {
       role: user.role,
     };
 
-    const accessToken = generateAccessToken(payload);
-    const refreshToken = generateRefreshToken(payload);
+    const accessToken = generateAccessToken(payload, rememberMe);
+    const refreshToken = generateRefreshToken(payload, rememberMe);
 
     return {
       user: this.formatUserResponse(user),

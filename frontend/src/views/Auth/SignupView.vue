@@ -1,5 +1,51 @@
 <template>
   <div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary-50 to-primary-100 px-4">
+    <!-- Success Modal with Invitation Code -->
+    <div
+      v-if="showInvitationCode"
+      class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+      @click="handleContinue"
+    >
+      <div class="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-8 transform transition-all" @click.stop>
+        <div class="text-center mb-6">
+          <div class="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-4">
+            <svg class="h-10 w-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+          <h2 class="text-3xl font-bold text-gray-900 mb-2">Welcome to MoneyShyft!</h2>
+          <p class="text-gray-600">Your account has been created successfully</p>
+        </div>
+
+        <div class="bg-gradient-to-br from-primary-50 to-primary-100 rounded-xl p-6 mb-6">
+          <p class="text-sm font-medium text-gray-700 mb-3 text-center">
+            Your Household Invitation Code
+          </p>
+          <div class="bg-white rounded-lg p-4 mb-3">
+            <p class="text-4xl font-bold text-primary-600 text-center tracking-widest font-mono">
+              {{ invitationCode }}
+            </p>
+          </div>
+          <p class="text-xs text-gray-600 text-center">
+            Share this code with family members to invite them to your household
+          </p>
+        </div>
+
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+          <p class="text-sm text-blue-800">
+            <strong>💡 Tip:</strong> You can find this code anytime in your household settings.
+          </p>
+        </div>
+
+        <button
+          @click="handleContinue"
+          class="w-full bg-primary-600 hover:bg-primary-700 text-white font-semibold py-3 px-6 rounded-lg transition shadow-md"
+        >
+          Continue to Dashboard
+        </button>
+      </div>
+    </div>
+
     <div class="max-w-md w-full space-y-8 bg-white p-8 rounded-2xl shadow-xl">
       <div class="text-center">
         <h1 class="text-4xl font-bold text-gray-900">MoneyShyft</h1>
@@ -105,6 +151,8 @@ const email = ref('');
 const password = ref('');
 const householdName = ref('');
 const validationError = ref('');
+const showInvitationCode = ref(false);
+const invitationCode = ref('');
 
 async function handleSignup() {
   validationError.value = '';
@@ -117,19 +165,32 @@ async function handleSignup() {
   }
 
   try {
-    await authStore.signup({
+    const code = await authStore.signup({
       firstName: firstName.value,
       lastName: lastName.value,
       email: email.value,
       password: password.value,
       householdName: householdName.value || undefined,
     });
-    router.push('/');
+
+    // If invitation code was returned (new household created), show modal
+    if (code) {
+      invitationCode.value = code;
+      showInvitationCode.value = true;
+    } else {
+      // No household created, go straight to dashboard
+      router.push('/');
+    }
   } catch (error: any) {
     console.error('Signup error:', error);
     if (error.response?.data?.details) {
       validationError.value = error.response.data.details.map((d: any) => d.message).join(', ');
     }
   }
+}
+
+function handleContinue() {
+  showInvitationCode.value = false;
+  router.push('/');
 }
 </script>

@@ -17,7 +17,7 @@ export const useAuthStore = defineStore('auth', () => {
   });
 
   // Actions
-  async function signup(data: SignupData): Promise<void> {
+  async function signup(data: SignupData): Promise<string | null> {
     isLoading.value = true;
     error.value = null;
     try {
@@ -25,6 +25,8 @@ export const useAuthStore = defineStore('auth', () => {
       const response = await api.post('/auth/signup', data);
       console.log('Signup successful:', response.data);
       user.value = response.data.user;
+      // Return invitation code if present (new household created)
+      return response.data.invitationCode || null;
     } catch (err: any) {
       console.error('Signup error details:', {
         message: err.message,

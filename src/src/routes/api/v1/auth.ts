@@ -14,7 +14,7 @@ const router = Router();
  */
 router.post('/signup', validateRequest(signupSchema), async (req: Request, res: Response) => {
   try {
-    const { user, accessToken, refreshToken } = await AuthService.signup(req.body);
+    const { user, accessToken, refreshToken, invitationCode } = await AuthService.signup(req.body);
 
     // Set HTTP-only cookies
     setAuthCookies(res, accessToken, refreshToken);
@@ -22,6 +22,7 @@ router.post('/signup', validateRequest(signupSchema), async (req: Request, res: 
     res.status(201).json({
       message: 'User created successfully',
       user,
+      invitationCode, // Include invitation code if household was created
     });
   } catch (error) {
     logger.error('Signup error:', error);
@@ -37,10 +38,11 @@ router.post('/signup', validateRequest(signupSchema), async (req: Request, res: 
  */
 router.post('/login', validateRequest(loginSchema), async (req: Request, res: Response) => {
   try {
+    const { rememberMe = false } = req.body;
     const { user, accessToken, refreshToken } = await AuthService.login(req.body);
 
-    // Set HTTP-only cookies
-    setAuthCookies(res, accessToken, refreshToken);
+    // Set HTTP-only cookies with extended duration if rememberMe is true
+    setAuthCookies(res, accessToken, refreshToken, rememberMe);
 
     res.json({
       message: 'Login successful',
