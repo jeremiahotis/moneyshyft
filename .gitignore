@@ -6,6 +6,7 @@
 # Docker - local setup differs from remote
 docker-compose.yml
 docker-compose.override.yml
+src/Dockerfile
 
 # Dependencies
 node_modules/
