@@ -306,14 +306,28 @@ export class BudgetService {
       .where({ household_id: householdId });
 
     // Calculate spending for the month
-    const monthStart = new Date(month.getFullYear(), month.getMonth(), 1);
-    const monthEnd = new Date(month.getFullYear(), month.getMonth() + 1, 0);
+    // Use UTC methods to avoid timezone issues
+    const monthStart = new Date(Date.UTC(month.getUTCFullYear(), month.getUTCMonth(), 1));
+    const monthEnd = new Date(Date.UTC(month.getUTCFullYear(), month.getUTCMonth() + 1, 0, 23, 59, 59, 999));
+
+    // Get Income section IDs to exclude from spending calculation
+    const incomeSections = await knex('category_sections')
+      .where({ household_id: householdId, name: 'Income' })
+      .select('id');
+
+    const incomeSectionIds = incomeSections.map(s => s.id);
 
     // Get all transactions for this month grouped by category
+    // Exclude Income categories from spending calculation
     const spendingByCategory = await knex('transactions')
       .where({ household_id: householdId })
       .whereBetween('transaction_date', [monthStart, monthEnd])
       .whereNotNull('category_id')
+      .whereNotIn('category_id', function() {
+        this.select('id')
+          .from('categories')
+          .whereIn('section_id', incomeSectionIds);
+      })
       .select('category_id')
       .sum('amount as total_spent')
       .groupBy('category_id');
@@ -326,9 +340,11 @@ export class BudgetService {
       ])
     );
 
-    // Build section summaries
-    const sectionSummaries: SectionSummary[] = sections.map(section => {
-      const sectionCategories = categories.filter(cat => cat.section_id === section.id);
+    // Build section summaries (exclude Income section from budget)
+    const sectionSummaries: SectionSummary[] = sections
+      .filter(section => section.name !== 'Income')
+      .map(section => {
+        const sectionCategories = categories.filter(cat => cat.section_id === section.id);
 
       // Check if there's a section-level allocation (rollup mode)
       const sectionAllocation = allocations.find(

@@ -7,11 +7,11 @@ const config: { [key: string]: Knex.Config } = {
   development: {
     client: 'postgresql',
     connection: process.env.DATABASE_URL || {
-      host: 'postgres',
+      host: 'localhost',
       port: 5432,
       database: 'moneyshyft',
       user: 'jeremiahotis',
-      password: 'Oiruueu12'
+      password: 'Oiurueu12'
     },
     pool: {
       min: 2,

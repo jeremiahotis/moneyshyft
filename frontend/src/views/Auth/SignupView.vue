@@ -107,15 +107,56 @@
           <p class="mt-1 text-xs text-gray-500">At least 8 characters</p>
         </div>
 
-        <div>
-          <label for="householdName" class="block text-sm font-medium text-gray-700">Household Name (Optional)</label>
-          <input
-            id="householdName"
-            v-model="householdName"
-            type="text"
-            class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
-            placeholder="e.g., Smith Family"
-          />
+        <!-- Household Mode Selection -->
+        <div class="space-y-3">
+          <label class="block text-sm font-medium text-gray-700">Household</label>
+          <div class="flex gap-4">
+            <label class="flex items-center cursor-pointer">
+              <input
+                type="radio"
+                v-model="householdMode"
+                value="create"
+                class="mr-2 text-primary-600 focus:ring-primary-500"
+              />
+              <span class="text-sm">Create new household</span>
+            </label>
+            <label class="flex items-center cursor-pointer">
+              <input
+                type="radio"
+                v-model="householdMode"
+                value="join"
+                class="mr-2 text-primary-600 focus:ring-primary-500"
+              />
+              <span class="text-sm">Join existing household</span>
+            </label>
+          </div>
+
+          <!-- Create Mode: Household Name -->
+          <div v-if="householdMode === 'create'">
+            <input
+              id="householdName"
+              v-model="householdName"
+              type="text"
+              class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500"
+              placeholder="e.g., Smith Family (Optional)"
+            />
+            <p class="mt-1 text-xs text-gray-500">Leave blank to create household later</p>
+          </div>
+
+          <!-- Join Mode: Invitation Code -->
+          <div v-if="householdMode === 'join'">
+            <input
+              id="joinCode"
+              v-model="joinInvitationCode"
+              type="text"
+              maxlength="6"
+              required
+              class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 uppercase tracking-widest font-mono text-center text-lg"
+              placeholder="ABC123"
+              @input="joinInvitationCode = joinInvitationCode.toUpperCase()"
+            />
+            <p class="mt-1 text-xs text-gray-500">Enter the 6-character code from your family member</p>
+          </div>
         </div>
 
         <button
@@ -149,7 +190,9 @@ const firstName = ref('');
 const lastName = ref('');
 const email = ref('');
 const password = ref('');
+const householdMode = ref<'create' | 'join'>('create');
 const householdName = ref('');
+const joinInvitationCode = ref('');
 const validationError = ref('');
 const showInvitationCode = ref(false);
 const invitationCode = ref('');
@@ -164,17 +207,32 @@ async function handleSignup() {
     return;
   }
 
+  // Validate join mode requires invitation code
+  if (householdMode.value === 'join' && !joinInvitationCode.value) {
+    validationError.value = 'Please enter an invitation code';
+    return;
+  }
+
   try {
-    const code = await authStore.signup({
+    const signupData: any = {
       firstName: firstName.value,
       lastName: lastName.value,
       email: email.value,
       password: password.value,
-      householdName: householdName.value || undefined,
-    });
+    };
+
+    // Add either householdName or invitationCode based on mode
+    if (householdMode.value === 'create') {
+      signupData.householdName = householdName.value || undefined;
+    } else {
+      signupData.invitationCode = joinInvitationCode.value;
+    }
+
+    const code = await authStore.signup(signupData);
 
     // If invitation code was returned (new household created), show modal
-    if (code) {
+    // Don't show modal if user joined via invitation code
+    if (code && householdMode.value === 'create') {
       invitationCode.value = code;
       showInvitationCode.value = true;
     } else {

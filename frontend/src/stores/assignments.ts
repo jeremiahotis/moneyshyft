@@ -125,6 +125,52 @@ export const useAssignmentsStore = defineStore('assignments', () => {
     }
   }
 
+  async function assignToCategories(
+    month: string,
+    categoryAssignments: { category_id?: string; section_id?: string; amount: number }[]
+  ): Promise<AutoAssignmentResult> {
+    isLoading.value = true;
+    error.value = null;
+    try {
+      const response = await api.post('/assignments/assign-to-categories', {
+        month,
+        assignments: categoryAssignments
+      });
+
+      const result = response.data.data as AutoAssignmentResult;
+
+      // Refresh assignments to get updated state
+      await fetchAssignments(month);
+
+      return result;
+    } catch (err: any) {
+      error.value = err.response?.data?.error || 'Failed to assign to categories';
+      throw err;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  async function autoAssignAll(month: string): Promise<AutoAssignmentResult> {
+    isLoading.value = true;
+    error.value = null;
+    try {
+      const response = await api.post('/assignments/auto-assign-all', { month });
+
+      const result = response.data.data as AutoAssignmentResult;
+
+      // Refresh assignments to get updated state
+      await fetchAssignments(month);
+
+      return result;
+    } catch (err: any) {
+      error.value = err.response?.data?.error || 'Failed to auto-assign all';
+      throw err;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
   function clearError(): void {
     error.value = null;
   }
@@ -143,6 +189,8 @@ export const useAssignmentsStore = defineStore('assignments', () => {
     deleteAssignment,
     getTransactionAssignments,
     transferMoney,
+    assignToCategories,
+    autoAssignAll,
     clearError,
   };
 });

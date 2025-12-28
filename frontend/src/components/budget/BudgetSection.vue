@@ -136,7 +136,24 @@
               </div>
               <div>
                 <p class="text-xs text-gray-500">Assigned</p>
-                <p class="font-semibold text-blue-600">{{ formatCurrency(category.assigned) }}</p>
+                <input
+                  v-if="editingCategoryAssigned === category.category_id"
+                  v-model.number="editAssignedAmount"
+                  @blur="saveAssigned(category.category_id)"
+                  @keyup.enter="saveAssigned(category.category_id)"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  class="w-full px-2 py-1 text-sm border border-blue-500 rounded focus:ring-2 focus:ring-blue-500"
+                  @click.stop
+                />
+                <button
+                  v-else
+                  @click="startEditAssigned(category.category_id, category.assigned)"
+                  class="font-semibold text-blue-600 hover:text-blue-800"
+                >
+                  {{ formatCurrency(category.assigned) }}
+                </button>
               </div>
               <div>
                 <p class="text-xs text-gray-500">Spent</p>
@@ -215,7 +232,24 @@
             </div>
             <div>
               <p class="text-xs text-gray-500">Assigned</p>
-              <p class="font-semibold text-blue-600">{{ formatCurrency(summary?.assigned || 0) }}</p>
+              <input
+                v-if="editingSectionAssigned"
+                v-model.number="editAssignedAmount"
+                @blur="saveSectionAssigned"
+                @keyup.enter="saveSectionAssigned"
+                type="number"
+                step="0.01"
+                min="0"
+                class="w-full px-2 py-1 text-sm border border-blue-500 rounded focus:ring-2 focus:ring-blue-500"
+                @click.stop
+              />
+              <button
+                v-else
+                @click="startSectionAssignedEdit"
+                class="font-semibold text-blue-600 hover:text-blue-800"
+              >
+                {{ formatCurrency(summary?.assigned || 0) }}
+              </button>
             </div>
             <div>
               <p class="text-xs text-gray-500">Spent</p>
@@ -347,6 +381,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   updateAllocation: [data: { categoryId?: string; sectionId?: string; amount: number; rollupMode: boolean }];
+  updateAssigned: [data: { categoryId: string; amount: number; rollupMode: boolean }];
   refresh: [];
 }>();
 
@@ -354,8 +389,11 @@ const categoriesStore = useCategoriesStore();
 
 const expanded = ref(true);
 const editingCategoryAllocation = ref<string | null>(null);
+const editingCategoryAssigned = ref<string | null>(null);
 const editingSection = ref(false);
+const editingSectionAssigned = ref(false);
 const editAmount = ref(0);
+const editAssignedAmount = ref(0);
 const showAddCategory = ref(false);
 const showEditSection = ref(false);
 const showEditCategory = ref(false);
@@ -483,6 +521,44 @@ function saveAllocation(categoryId: string) {
   });
 
   editingCategoryAllocation.value = null;
+}
+
+// Assigned amount editing functions
+function startEditAssigned(categoryId: string, currentAmount: number) {
+  editingCategoryAssigned.value = categoryId;
+  editAssignedAmount.value = currentAmount;
+}
+
+function startSectionAssignedEdit() {
+  editingSectionAssigned.value = true;
+  editAssignedAmount.value = props.summary?.assigned || 0;
+}
+
+function saveAssigned(categoryId: string) {
+  if (editAssignedAmount.value < 0) {
+    editAssignedAmount.value = 0;
+  }
+
+  emit('updateAssigned', {
+    categoryId,
+    amount: editAssignedAmount.value,
+    rollupMode: false,
+  });
+
+  editingCategoryAssigned.value = null;
+}
+
+function saveSectionAssigned() {
+  if (editAssignedAmount.value < 0) {
+    editAssignedAmount.value = 0;
+  }
+
+  emit('updateAssigned', {
+    amount: editAssignedAmount.value,
+    rollupMode: true,
+  });
+
+  editingSectionAssigned.value = false;
 }
 
 function editSection() {

@@ -36,17 +36,49 @@
         </nav>
 
         <!-- User Menu -->
-        <div class="flex items-center gap-4">
-          <span v-if="authStore.user" class="text-sm text-gray-700 hidden sm:inline">
-            {{ authStore.fullName }}
-          </span>
-          <button
-            v-if="authStore.isAuthenticated"
-            @click="handleLogout"
-            class="text-sm text-gray-600 hover:text-gray-900"
-          >
-            Logout
-          </button>
+        <div v-if="authStore.isAuthenticated" class="relative flex items-center gap-4">
+          <!-- User Menu Dropdown -->
+          <div class="relative">
+            <button
+              @click="showUserMenu = !showUserMenu"
+              @blur="closeUserMenu"
+              class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 transition"
+            >
+              <span class="hidden sm:inline">{{ authStore.fullName }}</span>
+              <svg
+                class="w-4 h-4 transition-transform"
+                :class="{ 'rotate-180': showUserMenu }"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+
+            <!-- Dropdown Menu -->
+            <Transition name="dropdown">
+              <div
+                v-if="showUserMenu"
+                class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50"
+                @mousedown.prevent
+              >
+                <router-link
+                  to="/settings"
+                  @click="showUserMenu = false"
+                  class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition"
+                >
+                  ⚙️ Settings
+                </router-link>
+                <button
+                  @click="handleLogout"
+                  class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition"
+                >
+                  🚪 Logout
+                </button>
+              </div>
+            </Transition>
+          </div>
         </div>
       </div>
     </div>
@@ -127,6 +159,7 @@ const router = useRouter();
 const route = useRoute();
 
 const showMobileMenu = ref(false);
+const showUserMenu = ref(false);
 
 const navItems = [
   { name: 'dashboard', label: 'Dashboard', icon: '📊', path: '/' },
@@ -141,7 +174,15 @@ function isActive(path: string): boolean {
   return route.path === path || (path !== '/' && route.path.startsWith(path));
 }
 
+function closeUserMenu() {
+  // Delay closing to allow link clicks to register
+  setTimeout(() => {
+    showUserMenu.value = false;
+  }, 200);
+}
+
 async function handleLogout() {
+  showUserMenu.value = false;
   await authStore.logout();
   router.push('/login');
 }
@@ -175,5 +216,17 @@ async function handleLogoutAndClose() {
 
 .drawer-leave-to .absolute:not(.bg-black\/50) {
   transform: translateX(-100%);
+}
+
+/* Dropdown fade transition */
+.dropdown-enter-active,
+.dropdown-leave-active {
+  transition: all 0.2s ease;
+}
+
+.dropdown-enter-from,
+.dropdown-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
 }
 </style>

@@ -2,6 +2,7 @@ import knex from '../config/knex';
 import { NotFoundError, BadRequestError } from '../middleware/errorHandler';
 import logger from '../utils/logger';
 import { BudgetService } from './BudgetService';
+import { v4 as uuidv4 } from 'uuid';
 
 export interface IncomeAssignment {
   id: string;
@@ -28,6 +29,20 @@ export interface AutoAssignmentResult {
   assignments: IncomeAssignment[];
   total_assigned: number;
   remaining: number;
+}
+
+export interface CategoryAssignmentRequest {
+  category_id?: string;
+  section_id?: string;
+  amount: number;
+}
+
+export interface TransactionWithAvailable {
+  id: string;
+  household_id: string;
+  amount: number;
+  transaction_date: string;
+  available: number; // amount - already assigned
 }
 
 export class AssignmentService {
@@ -322,13 +337,16 @@ export class AssignmentService {
     month: string
   ): Promise<number> {
     // Get all income transactions for the month
-    const monthStart = `${month}-01`;
-    const lastDay = new Date(
-      parseInt(month.split('-')[0]),
-      parseInt(month.split('-')[1]),
-      0
-    ).getDate();
-    const monthEnd = `${month}-${String(lastDay).padStart(2, '0')}`;
+    // Use UTC to avoid timezone issues
+    const [year, monthPart] = month.split('-');
+    const monthNum = parseInt(monthPart) - 1; // Convert to 0-based
+    const yearNum = parseInt(year);
+
+    const startDate = new Date(Date.UTC(yearNum, monthNum, 1));
+    const endDate = new Date(Date.UTC(yearNum, monthNum + 1, 0, 23, 59, 59, 999));
+
+    const monthStart = startDate.toISOString().split('T')[0];
+    const monthEnd = endDate.toISOString().split('T')[0];
 
     const incomeResult = await knex('transactions')
       .where({ household_id: householdId })
@@ -467,5 +485,299 @@ export class AssignmentService {
     });
 
     logger.info(`Money transferred: ${amount} from ${from_category_id || from_section_id} to ${to_category_id || to_section_id}`);
+  }
+
+  /**
+   * Build pool of income transactions with available amounts (FIFO order)
+   * @private
+   */
+  private static async buildTransactionPool(
+    householdId: string,
+    month: string,
+    trx: any
+  ): Promise<TransactionWithAvailable[]> {
+    // Get month date range using UTC
+    const [year, monthPart] = month.split('-');
+    const monthNum = parseInt(monthPart) - 1;
+    const yearNum = parseInt(year);
+
+    const startDate = new Date(Date.UTC(yearNum, monthNum, 1));
+    const endDate = new Date(Date.UTC(yearNum, monthNum + 1, 0, 23, 59, 59, 999));
+
+    const monthStart = startDate.toISOString().split('T')[0];
+    const monthEnd = endDate.toISOString().split('T')[0];
+
+    // Get all income transactions for month (FIFO order)
+    const transactions = await trx('transactions')
+      .where({ household_id: householdId })
+      .whereBetween('transaction_date', [monthStart, monthEnd])
+      .where('amount', '>', 0) // Income only
+      .orderBy('transaction_date', 'asc') // FIFO: oldest first
+      .select('*');
+
+    // Calculate available amount for each transaction
+    const pool: TransactionWithAvailable[] = [];
+
+    for (const transaction of transactions) {
+      const existingAssignments = await trx('income_assignments')
+        .where({ income_transaction_id: transaction.id })
+        .sum('amount as total')
+        .first();
+
+      const assigned = Number(existingAssignments?.total || 0);
+      const available = Number(transaction.amount) - assigned;
+
+      if (available > 0) {
+        pool.push({
+          id: transaction.id,
+          household_id: transaction.household_id,
+          amount: Number(transaction.amount),
+          transaction_date: transaction.transaction_date,
+          available,
+        });
+      }
+    }
+
+    return pool;
+  }
+
+  /**
+   * Assign to categories using FIFO transaction matching
+   * Automatically distributes money across income transactions in date order
+   */
+  static async assignToCategories(
+    householdId: string,
+    userId: string,
+    month: string,
+    categoryAssignments: CategoryAssignmentRequest[]
+  ): Promise<AutoAssignmentResult> {
+    return await knex.transaction(async (trx) => {
+      // 1. Build transaction pool (FIFO order)
+      const pool = await this.buildTransactionPool(householdId, month, trx);
+
+      // 2. Validate total doesn't exceed available
+      const totalRequested = categoryAssignments.reduce((sum, a) => sum + a.amount, 0);
+      const totalAvailable = pool.reduce((sum, t) => sum + t.available, 0);
+
+      if (totalRequested > totalAvailable) {
+        throw new BadRequestError(
+          `Insufficient funds: $${totalRequested.toFixed(2)} requested, $${totalAvailable.toFixed(2)} available`
+        );
+      }
+
+      // 3. Assign to each category/section using FIFO
+      const createdAssignments: IncomeAssignment[] = [];
+
+      for (const { category_id, section_id, amount } of categoryAssignments) {
+        if (amount <= 0) continue;
+
+        // Validate either category or section exists and belongs to household
+        if (category_id) {
+          const category = await trx('categories')
+            .join('category_sections', 'categories.section_id', 'category_sections.id')
+            .where({ 'categories.id': category_id, 'category_sections.household_id': householdId })
+            .first();
+
+          if (!category) {
+            throw new NotFoundError(`Category ${category_id} not found`);
+          }
+        } else if (section_id) {
+          const section = await trx('category_sections')
+            .where({ id: section_id, household_id: householdId })
+            .first();
+
+          if (!section) {
+            throw new NotFoundError(`Section ${section_id} not found`);
+          }
+        } else {
+          throw new BadRequestError('Either category_id or section_id must be provided');
+        }
+
+        let remaining = amount;
+
+        // Assign from pool transactions (FIFO)
+        for (const transaction of pool) {
+          if (remaining <= 0) break;
+          if (transaction.available <= 0) continue;
+
+          const toAssign = Math.min(transaction.available, remaining);
+
+          // Create assignment record
+          const [assignment] = await trx('income_assignments')
+            .insert({
+              household_id: householdId,
+              income_transaction_id: transaction.id,
+              category_id: category_id || null,
+              section_id: section_id || null,
+              amount: toAssign,
+              month: month,
+              notes: null,
+              created_by_user_id: userId,
+            })
+            .returning('*');
+
+          createdAssignments.push({
+            ...assignment,
+            amount: Number(assignment.amount),
+          });
+
+          // Update transaction available balance
+          transaction.available -= toAssign;
+          remaining -= toAssign;
+        }
+
+        if (remaining > 0.01) {
+          // Allow for small floating point errors
+          const targetId = category_id || section_id;
+          const targetType = category_id ? 'category' : 'section';
+          throw new BadRequestError(
+            `Could not fully assign $${amount.toFixed(2)} to ${targetType} ${targetId}. ` +
+            `$${remaining.toFixed(2)} remaining unassigned.`
+          );
+        }
+      }
+
+      // 4. Update budget_allocations.assigned_amount for all categories/sections
+      for (const { category_id, section_id } of categoryAssignments) {
+        // Calculate total assigned to this category or section
+        const query = trx('income_assignments')
+          .where({ household_id: householdId, month });
+
+        if (category_id) {
+          query.where({ category_id });
+        } else {
+          query.where({ section_id });
+        }
+
+        const result = await query.sum('amount as total').first();
+        const totalAssigned = Number(result?.total || 0);
+
+        // Get budget month
+        const monthDate = new Date(`${month}-01`);
+        const budgetMonth = await BudgetService.getOrCreateBudgetMonth(householdId, monthDate);
+
+        // Find or create allocation
+        const whereClause: any = { budget_month_id: budgetMonth.id };
+        if (category_id) {
+          whereClause.category_id = category_id;
+        } else {
+          whereClause.section_id = section_id;
+          whereClause.category_id = null; // Rollup mode
+        }
+
+        let allocation = await trx('budget_allocations')
+          .where(whereClause)
+          .first();
+
+        if (allocation) {
+          await trx('budget_allocations')
+            .where({ id: allocation.id })
+            .update({ assigned_amount: totalAssigned, updated_at: trx.fn.now() });
+        } else {
+          await trx('budget_allocations')
+            .insert({
+              budget_month_id: budgetMonth.id,
+              category_id: category_id || null,
+              section_id: section_id || null,
+              allocated_amount: 0,
+              assigned_amount: totalAssigned,
+              rollup_mode: !!section_id,
+            });
+        }
+      }
+
+      logger.info(`Assigned money to ${categoryAssignments.length} categories using FIFO matching`);
+
+      return {
+        assignments: createdAssignments,
+        total_assigned: createdAssignments.reduce((sum, a) => sum + a.amount, 0),
+        remaining: totalAvailable - totalRequested,
+      };
+    });
+  }
+
+  /**
+   * Auto-assign all available money to underfunded categories/sections
+   * Uses proportional distribution if insufficient funds
+   */
+  static async autoAssignAll(
+    householdId: string,
+    userId: string,
+    month: string
+  ): Promise<AutoAssignmentResult> {
+    // 1. Get budget summary
+    const monthDate = new Date(`${month}-01`);
+    const summary = await BudgetService.getBudgetSummary(householdId, monthDate);
+
+    // 2. Get underfunded items (categories or rollup sections, need > 0, excluding Income section)
+    const underfundedItems: Array<{ id: string; need: number; isSection: boolean }> = [];
+
+    for (const section of summary.sections) {
+      // Skip Income section
+      if (section.section_type === 'income') continue;
+
+      // If section is in rollup mode and needs money, add the section itself
+      if (section.rollup_mode && section.need > 0) {
+        underfundedItems.push({
+          id: section.section_id,
+          need: section.need,
+          isSection: true,
+        });
+      }
+
+      // Add individual categories that need money (if not rollup)
+      if (!section.rollup_mode) {
+        for (const category of section.categories) {
+          if (category.need > 0) {
+            underfundedItems.push({
+              id: category.category_id,
+              need: category.need,
+              isSection: false,
+            });
+          }
+        }
+      }
+    }
+
+    if (underfundedItems.length === 0) {
+      return {
+        assignments: [],
+        total_assigned: 0,
+        remaining: summary.to_be_assigned,
+      };
+    }
+
+    // 3. Calculate distribution
+    const totalNeed = underfundedItems.reduce((sum, item) => sum + item.need, 0);
+    const available = summary.to_be_assigned;
+
+    if (available <= 0) {
+      return {
+        assignments: [],
+        total_assigned: 0,
+        remaining: 0,
+      };
+    }
+
+    // Build assignment requests
+    const assignments: CategoryAssignmentRequest[] = underfundedItems.map((item) => {
+      let amount: number;
+
+      if (available >= totalNeed) {
+        // Full funding - give each item exactly what it needs
+        amount = item.need;
+      } else {
+        // Proportional distribution
+        amount = (item.need / totalNeed) * available;
+      }
+
+      return {
+        ...(item.isSection ? { section_id: item.id } : { category_id: item.id }),
+        amount: Math.round(amount * 100) / 100, // Round to 2 decimals
+      };
+    });
+
+    // 4. Use assignToCategories with calculated amounts
+    return await this.assignToCategories(householdId, userId, month, assignments);
   }
 }

@@ -14,6 +14,7 @@ export interface SignupData {
   firstName: string;
   lastName: string;
   householdName?: string;
+  invitationCode?: string;
 }
 
 export interface LoginData {

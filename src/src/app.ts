@@ -61,6 +61,7 @@ import budgetRoutes from './routes/api/v1/budgets';
 import incomeRoutes from './routes/api/v1/income';
 import debtRoutes from './routes/api/v1/debts';
 import assignmentRoutes from './routes/api/v1/assignments';
+import householdRoutes from './routes/api/v1/households';
 
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/accounts', accountRoutes);
@@ -71,6 +72,7 @@ app.use('/api/v1/budgets', budgetRoutes);
 app.use('/api/v1/income', incomeRoutes);
 app.use('/api/v1/debts', debtRoutes);
 app.use('/api/v1/assignments', assignmentRoutes);
+app.use('/api/v1/households', householdRoutes);
 
 // 404 handler
 app.use((req: Request, res: Response) => {

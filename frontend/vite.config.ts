@@ -14,7 +14,7 @@ export default defineConfig({
     host: true, // Listen on all network interfaces
     proxy: {
       '/api': {
-        target: 'http://localhost', // Proxy to nginx which routes to node
+        target: 'http://localhost:3000', // Proxy to backend dev server
         changeOrigin: true,
       }
     }

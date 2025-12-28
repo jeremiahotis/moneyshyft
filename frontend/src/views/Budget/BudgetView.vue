@@ -17,7 +17,7 @@
               {{ formatCurrency(budgetsStore.toBeAssigned) }}
             </h2>
             <p class="text-sm opacity-75 mt-2">
-              Unassigned income from {{ budgetsStore.getCurrentMonthDisplay() }}
+              Available to assign to categories
             </p>
           </div>
           <button
@@ -179,9 +179,11 @@
         <!-- Fixed Sections -->
         <div v-for="section in fixedSections" :key="section.id">
           <BudgetSection
+            v-if="section.name !== 'Income'"
             :section="section"
             :summary="getSectionSummary(section.id)"
             @update-allocation="handleUpdateAllocation"
+            @update-assigned="handleUpdateAssigned"
             @refresh="refreshBudget"
           />
         </div>
@@ -189,21 +191,89 @@
         <!-- Flexible Sections -->
         <div v-for="section in flexibleSections" :key="section.id">
           <BudgetSection
+            v-if="section.name !== 'Income'"
             :section="section"
             :summary="getSectionSummary(section.id)"
             @update-allocation="handleUpdateAllocation"
+            @update-assigned="handleUpdateAssigned"
             @refresh="refreshBudget"
           />
         </div>
 
-        <!-- Debt Sections -->
-        <div v-for="section in debtSections" :key="section.id">
-          <BudgetSection
-            :section="section"
-            :summary="getSectionSummary(section.id)"
-            @update-allocation="handleUpdateAllocation"
-            @refresh="refreshBudget"
-          />
+        <!-- Debt Payments Section (Virtual) -->
+        <div v-if="debtSection" class="bg-white rounded-lg shadow">
+          <div class="p-6">
+            <div class="flex items-center justify-between mb-4">
+              <div class="flex items-center gap-3">
+                <span class="text-3xl">💳</span>
+                <div>
+                  <h3 class="text-lg font-semibold text-gray-900">Debt Payments</h3>
+                  <p class="text-sm text-gray-600">Monthly debt payment progress</p>
+                </div>
+              </div>
+              <router-link
+                to="/debts"
+                class="px-4 py-2 text-orange-600 hover:bg-orange-50 rounded-lg font-medium transition"
+              >
+                View Details →
+              </router-link>
+            </div>
+
+            <!-- Motivational Message -->
+            <div class="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <p class="text-sm text-blue-800">
+                💡 Keep making progress on your debt!
+              </p>
+            </div>
+
+            <!-- Debt Summary Grid -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-gradient-to-br from-orange-50 to-red-50 rounded-lg">
+              <div>
+                <p class="text-xs text-gray-600 mb-1">Planned</p>
+                <p class="text-lg font-semibold text-gray-900">
+                  {{ formatCurrency(debtSection.allocated) }}
+                </p>
+              </div>
+              <div>
+                <p class="text-xs text-gray-600 mb-1">Assigned</p>
+                <p class="text-lg font-semibold text-blue-600">
+                  {{ formatCurrency(debtSection.assigned) }}
+                </p>
+              </div>
+              <div>
+                <p class="text-xs text-gray-600 mb-1">Spent</p>
+                <p class="text-lg font-semibold text-orange-600">
+                  {{ formatCurrency(debtSection.spent) }}
+                </p>
+              </div>
+              <div>
+                <p class="text-xs text-gray-600 mb-1">Available</p>
+                <p class="text-lg font-semibold" :class="debtSection.available >= 0 ? 'text-green-600' : 'text-red-600'">
+                  {{ formatCurrency(debtSection.available) }}
+                </p>
+              </div>
+            </div>
+
+            <!-- Progress Bar -->
+            <div v-if="debtSection.allocated > 0" class="mt-4">
+              <div class="w-full bg-gray-200 rounded-full h-2">
+                <div
+                  class="bg-gradient-to-r from-orange-500 to-red-500 h-2 rounded-full transition-all"
+                  :style="{ width: Math.min((debtSection.assigned / debtSection.allocated) * 100, 100) + '%' }"
+                ></div>
+              </div>
+              <p class="text-xs text-gray-600 mt-2 text-center">
+                {{ formatCurrency(debtSection.assigned) }} of {{ formatCurrency(debtSection.allocated) }} assigned this month
+              </p>
+            </div>
+
+            <!-- Need More Message -->
+            <div v-if="debtSection.need > 0" class="mt-3 text-center">
+              <p class="text-sm text-orange-600 font-medium">
+                Need {{ formatCurrency(debtSection.need) }} more to reach budget
+              </p>
+            </div>
+          </div>
         </div>
 
         <!-- Goals Section (Virtual) -->
@@ -364,6 +434,24 @@ const goalsSection = computed(() =>
   budgetsStore.currentSummary?.sections?.find(s => s.section_type === 'goals')
 );
 
+// Aggregate all debt sections into a single virtual section
+const debtSection = computed(() => {
+  const debtSections = budgetsStore.currentSummary?.sections?.filter(s => s.section_type === 'debt') || [];
+
+  if (debtSections.length === 0) return null;
+
+  // Aggregate metrics from all debt sections
+  return {
+    section_type: 'debt',
+    section_name: 'Debt Payments',
+    allocated: debtSections.reduce((sum, s) => sum + s.allocated, 0),
+    assigned: debtSections.reduce((sum, s) => sum + s.assigned, 0),
+    spent: debtSections.reduce((sum, s) => sum + s.spent, 0),
+    available: debtSections.reduce((sum, s) => sum + s.available, 0),
+    need: debtSections.reduce((sum, s) => sum + s.need, 0),
+  };
+});
+
 const spentColor = computed(() => {
   if (!budgetsStore.currentSummary) return 'text-gray-900';
   if (budgetsStore.totalSpent > budgetsStore.totalAllocated) return 'text-red-600';
@@ -404,6 +492,20 @@ async function handleUpdateAllocation(data: {
     console.error('Failed to update allocation:', error);
     // Error is already set in store
   }
+}
+
+async function handleUpdateAssigned(data: { categoryId: string; amount: number; rollupMode: boolean }) {
+  // For now, show message that user should use Assign Money modal
+  // Inline editing of "Assigned" is complex because assignments are tied to income transactions
+  alert('To assign money to categories, please use the "Assign Money" button above.');
+
+  // Refresh to reset the display
+  await refreshBudget();
+
+  // TODO: Implement proper assignment update logic
+  // This would require either:
+  // 1. Creating/deleting income assignments to match the new amount
+  // 2. Adding a backend endpoint that handles bulk assignment updates
 }
 
 async function handleAddSection(data: { name: string; type: 'fixed' | 'flexible' | 'debt' }) {

@@ -9,13 +9,14 @@
       </p>
     </div>
 
-    <div class="space-y-4 mb-6">
+    <div class="space-y-6 mb-6">
       <div
         v-for="(source, index) in sources"
         :key="index"
-        class="flex gap-3 items-start"
+        class="p-4 border border-gray-200 rounded-lg space-y-3"
       >
-        <div class="flex-1">
+        <!-- Income source name -->
+        <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">
             Income source name
           </label>
@@ -28,9 +29,44 @@
           <p class="text-xs text-gray-500 mt-1">💡 Tip: Give it a name you'll recognize</p>
         </div>
 
-        <div class="flex-1">
+        <!-- Pay frequency -->
+        <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">
-            Monthly amount
+            Pay frequency
+          </label>
+          <select
+            v-model="source.frequency"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+          >
+            <option value="hourly">Hourly</option>
+            <option value="weekly">Weekly</option>
+            <option value="biweekly">Bi-weekly (every 2 weeks)</option>
+            <option value="semimonthly">Semi-monthly (twice per month)</option>
+            <option value="monthly">Monthly</option>
+            <option value="annually">Annually</option>
+          </select>
+        </div>
+
+        <!-- Hours per week (only for hourly) -->
+        <div v-if="source.frequency === 'hourly'">
+          <label class="block text-sm font-medium text-gray-700 mb-1">
+            Hours per week
+          </label>
+          <input
+            v-model.number="source.hoursPerWeek"
+            type="number"
+            step="1"
+            min="0"
+            max="168"
+            placeholder="40"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+          />
+        </div>
+
+        <!-- Amount input -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">
+            {{ getAmountLabel(source.frequency) }}
           </label>
           <div class="relative">
             <span class="absolute left-3 top-2 text-gray-500">$</span>
@@ -42,24 +78,41 @@
               class="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
             />
           </div>
-          <p v-if="source.amount > 0 && source.amount < 500" class="text-xs text-gray-500 mt-1">
-            💡 Seems low - is this per paycheck or per month?
+        </div>
+
+        <!-- Monthly conversion preview -->
+        <div v-if="source.amount > 0" class="p-3 bg-green-50 border border-green-200 rounded-lg">
+          <p class="text-sm text-green-800 font-medium">
+            📊 Monthly income: {{ formatCurrency(convertToMonthly(source)) }}
           </p>
-          <p v-else-if="source.amount >= 500 && source.amount < 2000" class="text-xs text-green-600 mt-1">
-            ✓ Typical range for part-time work
-          </p>
-          <p v-else-if="source.amount >= 2000 && source.amount < 10000" class="text-xs text-green-600 mt-1">
-            ✓ Typical range for full-time work
+          <p v-if="source.frequency !== 'monthly'" class="text-xs text-green-700 mt-1">
+            <template v-if="source.frequency === 'hourly'">
+              {{ formatCurrency(source.amount) }}/hour × {{ source.hoursPerWeek }} hours/week
+            </template>
+            <template v-else-if="source.frequency === 'weekly'">
+              {{ formatCurrency(source.amount) }}/week × 52 weeks ÷ 12 months
+            </template>
+            <template v-else-if="source.frequency === 'biweekly'">
+              {{ formatCurrency(source.amount) }}/paycheck × 26 paychecks ÷ 12 months
+            </template>
+            <template v-else-if="source.frequency === 'semimonthly'">
+              {{ formatCurrency(source.amount) }}/paycheck × 2 paychecks/month
+            </template>
+            <template v-else-if="source.frequency === 'annually'">
+              {{ formatCurrency(source.amount) }}/year ÷ 12 months
+            </template>
           </p>
         </div>
 
-        <button
-          v-if="sources.length > 1"
-          @click="removeSource(index)"
-          class="mt-7 p-2 text-red-600 hover:bg-red-50 rounded"
-        >
-          🗑️
-        </button>
+        <!-- Remove button -->
+        <div v-if="sources.length > 1" class="text-right">
+          <button
+            @click="removeSource(index)"
+            class="px-3 py-1 text-sm text-red-600 hover:bg-red-50 rounded"
+          >
+            🗑️ Remove
+          </button>
+        </div>
       </div>
     </div>
 
@@ -129,8 +182,15 @@ const emit = defineEmits<{
 
 const wizardStore = useWizardStore();
 
-const sources = ref([
-  { name: '', amount: 0 }
+interface IncomeSource {
+  name: string;
+  amount: number;
+  frequency: 'monthly' | 'hourly' | 'weekly' | 'biweekly' | 'semimonthly' | 'annually';
+  hoursPerWeek?: number;
+}
+
+const sources = ref<IncomeSource[]>([
+  { name: '', amount: 0, frequency: 'monthly', hoursPerWeek: 40 }
 ]);
 
 onMounted(() => {
@@ -140,16 +200,56 @@ onMounted(() => {
   }
 });
 
+// Convert any frequency to monthly amount
+function convertToMonthly(source: IncomeSource): number {
+  const { amount, frequency, hoursPerWeek = 40 } = source;
+  if (!amount) return 0;
+
+  switch (frequency) {
+    case 'hourly':
+      return amount * hoursPerWeek * 52 / 12;
+    case 'weekly':
+      return amount * 52 / 12;
+    case 'biweekly':
+      return amount * 26 / 12;
+    case 'semimonthly':
+      return amount * 2;
+    case 'annually':
+      return amount / 12;
+    case 'monthly':
+    default:
+      return amount;
+  }
+}
+
+// Get label for amount input based on frequency
+function getAmountLabel(frequency: string): string {
+  const labels: Record<string, string> = {
+    hourly: 'Hourly Rate',
+    weekly: 'Weekly Pay',
+    biweekly: 'Pay Per Paycheck',
+    semimonthly: 'Pay Per Paycheck',
+    monthly: 'Monthly Income',
+    annually: 'Annual Salary'
+  };
+  return labels[frequency] || 'Amount';
+}
+
 const totalIncome = computed(() => {
-  return sources.value.reduce((sum, s) => sum + (s.amount || 0), 0);
+  return sources.value.reduce((sum, s) => sum + convertToMonthly(s), 0);
 });
 
 const isValid = computed(() => {
-  return sources.value.some(s => s.name.trim() && s.amount > 0);
+  return sources.value.some(s => {
+    const hasName = s.name.trim().length > 0;
+    const hasAmount = s.amount > 0;
+    const hasHoursIfHourly = s.frequency !== 'hourly' || (s.hoursPerWeek && s.hoursPerWeek > 0);
+    return hasName && hasAmount && hasHoursIfHourly;
+  });
 });
 
 function addSource() {
-  sources.value.push({ name: '', amount: 0 });
+  sources.value.push({ name: '', amount: 0, frequency: 'monthly', hoursPerWeek: 40 });
 }
 
 function removeSource(index: number) {
@@ -157,7 +257,12 @@ function removeSource(index: number) {
 }
 
 function handleNext() {
-  const validSources = sources.value.filter(s => s.name.trim() && s.amount > 0);
+  const validSources = sources.value
+    .filter(s => s.name.trim() && s.amount > 0)
+    .map(s => ({
+      name: s.name,
+      amount: convertToMonthly(s) // Store the calculated monthly amount
+    }));
   emit('next', { sources: validSources });
 }
 

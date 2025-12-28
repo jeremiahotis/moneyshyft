@@ -5,7 +5,9 @@ import { authenticateToken } from '../../../middleware/auth';
 import { validateRequest } from '../../../middleware/validate';
 import {
   createAssignmentSchema,
-  autoAssignSchema
+  autoAssignSchema,
+  assignToCategoriesSchema,
+  autoAssignAllSchema
 } from '../../../validators/assignment.validators';
 import knex from '../../../config/knex';
 
@@ -186,6 +188,57 @@ router.post('/transfer', asyncHandler(async (req: Request, res: Response) => {
   res.json({
     success: true,
     message: 'Money transferred successfully'
+  });
+}));
+
+/**
+ * POST /api/v1/assignments/assign-to-categories
+ * Assign money to multiple categories using FIFO transaction matching
+ */
+router.post('/assign-to-categories', validateRequest(assignToCategoriesSchema), asyncHandler(async (req: Request, res: Response) => {
+  const { month, assignments } = req.body;
+  const householdId = req.user!.householdId;
+  const userId = req.user!.userId;
+
+  if (!householdId) {
+    return res.status(403).json({ error: 'User must belong to a household' });
+  }
+
+  const result = await AssignmentService.assignToCategories(
+    householdId,
+    userId,
+    month,
+    assignments
+  );
+
+  res.json({
+    success: true,
+    data: result
+  });
+}));
+
+/**
+ * POST /api/v1/assignments/auto-assign-all
+ * Auto-assign all available money to underfunded categories
+ */
+router.post('/auto-assign-all', validateRequest(autoAssignAllSchema), asyncHandler(async (req: Request, res: Response) => {
+  const { month } = req.body;
+  const householdId = req.user!.householdId;
+  const userId = req.user!.userId;
+
+  if (!householdId) {
+    return res.status(403).json({ error: 'User must belong to a household' });
+  }
+
+  const result = await AssignmentService.autoAssignAll(
+    householdId,
+    userId,
+    month
+  );
+
+  res.json({
+    success: true,
+    data: result
   });
 }));
 

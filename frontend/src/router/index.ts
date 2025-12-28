@@ -56,6 +56,12 @@ const routes: RouteRecordRaw[] = [
     name: 'debts',
     component: () => import('@/views/Debts/DebtsView.vue'),
     meta: { requiresAuth: true }
+  },
+  {
+    path: '/settings',
+    name: 'settings',
+    component: () => import('@/views/Settings/HouseholdSettingsView.vue'),
+    meta: { requiresAuth: true }
   }
 ];
 

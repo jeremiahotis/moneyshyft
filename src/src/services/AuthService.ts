@@ -12,6 +12,7 @@ export interface SignupData {
   firstName: string;
   lastName: string;
   householdName?: string; // Optional - creates new household if provided
+  invitationCode?: string; // Optional - joins existing household if provided
 }
 
 export interface LoginData {
@@ -42,7 +43,7 @@ class AuthService {
    * Sign up a new user
    */
   async signup(data: SignupData): Promise<AuthResponse> {
-    const { email, password, firstName, lastName, householdName } = data;
+    const { email, password, firstName, lastName, householdName, invitationCode } = data;
 
     // Check if user already exists
     const existingUser = await db('users').where({ email }).first();
@@ -56,10 +57,23 @@ class AuthService {
     // Use transaction to create user and optionally household
     const result = await db.transaction(async (trx) => {
       let householdId: string | null = null;
-      let invitationCode: string | null = null;
+      let returnInvitationCode: string | null = null;
 
+      // Join existing household if invitation code provided
+      if (invitationCode) {
+        const household = await trx('households')
+          .where({ invitation_code: invitationCode.toUpperCase() })
+          .first();
+
+        if (!household) {
+          throw new Error('Invalid invitation code');
+        }
+
+        householdId = household.id;
+        logger.info(`User joining household via invitation code: ${invitationCode}`);
+      }
       // Create household if name provided
-      if (householdName) {
+      else if (householdName) {
         // Generate unique invitation code
         let code = generateInvitationCode();
         let isUnique = false;
@@ -84,18 +98,43 @@ class AuthService {
           throw new Error('Failed to generate unique invitation code');
         }
 
-        invitationCode = code;
+        returnInvitationCode = code;
 
         const [household] = await trx('households')
           .insert({
             name: householdName,
-            invitation_code: invitationCode,
+            invitation_code: returnInvitationCode,
           })
           .returning('*');
         householdId = household.id;
+
+        // Create default Income section and category for the new household
+        const [incomeSection] = await trx('category_sections')
+          .insert({
+            household_id: householdId,
+            name: 'Income',
+            type: 'flexible',
+            sort_order: -1, // Place at top
+            is_system: true,
+          })
+          .returning('*');
+
+        await trx('categories')
+          .insert({
+            household_id: householdId,
+            section_id: incomeSection.id,
+            name: 'Income',
+            icon: '💰',
+            color: '#10b981', // green-600
+            sort_order: 0,
+            is_system: true,
+          });
+
+        logger.info(`Created default Income category for household: ${householdId}`);
       }
 
-      // Create user (as admin if they created the household)
+      // Create user (as admin if they created the household, member if joining via code)
+      const userRole = householdId && !invitationCode ? 'admin' : 'member';
       const [user] = await trx('users')
         .insert({
           email,
@@ -103,11 +142,11 @@ class AuthService {
           first_name: firstName,
           last_name: lastName,
           household_id: householdId,
-          role: householdId ? 'admin' : 'member',
+          role: userRole,
         })
         .returning('*');
 
-      return { user, invitationCode };
+      return { user, invitationCode: returnInvitationCode };
     });
 
     logger.info(`New user signed up: ${email}`);
