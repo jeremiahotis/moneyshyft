@@ -491,7 +491,7 @@ async function handleUpdateAllocation(data: {
   }
 }
 
-async function handleUpdateAssigned(_data: { categoryId: string; amount: number; rollupMode: boolean }) {
+async function handleUpdateAssigned(_data: { categoryId?: string; sectionId?: string; amount: number; rollupMode: boolean }) {
   // For now, show message that user should use Assign Money modal
   // Inline editing of "Assigned" is complex because assignments are tied to income transactions
   alert('To assign money to categories, please use the "Assign Money" button above.');
