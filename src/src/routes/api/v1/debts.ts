@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { DebtService } from '../../../services/DebtService';
 import { asyncHandler } from '../../../middleware/errorHandler';
-import { authenticateToken } from '../../../middleware/auth';
+import { authenticateToken, requireHouseholdAccess } from '../../../middleware/auth';
 import { validateRequest } from '../../../middleware/validate';
 import {
   createDebtSchema,
@@ -12,16 +12,14 @@ import {
 
 const router = Router();
 router.use(authenticateToken);
+router.use(requireHouseholdAccess);
 
 /**
  * GET /api/v1/debts
  * Get all debts for household
  */
 router.get('/', asyncHandler(async (req: Request, res: Response) => {
-  const householdId = req.user!.householdId;
-  if (!householdId) {
-    return res.status(403).json({ error: 'User must belong to a household' });
-  }
+  const householdId = req.user!.householdId!;
 
   const debts = await DebtService.getAllDebts(householdId);
   const totalDebt = await DebtService.getTotalDebt(householdId);
@@ -42,10 +40,7 @@ router.get('/', asyncHandler(async (req: Request, res: Response) => {
  * Calculate snowball vs avalanche payoff strategies
  */
 router.post('/calculate-payoff', validateRequest(calculatePayoffSchema), asyncHandler(async (req: Request, res: Response) => {
-  const householdId = req.user!.householdId;
-  if (!householdId) {
-    return res.status(403).json({ error: 'User must belong to a household' });
-  }
+  const householdId = req.user!.householdId!;
 
   const { monthly_payment_budget } = req.body;
   const comparison = await DebtService.calculatePayoffStrategies(householdId, monthly_payment_budget);
@@ -61,11 +56,8 @@ router.post('/calculate-payoff', validateRequest(calculatePayoffSchema), asyncHa
  * Commit a debt payoff plan to budget
  */
 router.post('/commit-plan', asyncHandler(async (req: Request, res: Response) => {
-  const householdId = req.user!.householdId;
+  const householdId = req.user!.householdId!;
   const userId = req.user!.userId;
-  if (!householdId) {
-    return res.status(403).json({ error: 'User must belong to a household' });
-  }
 
   const { method, total_monthly_payment, debts } = req.body;
 
@@ -99,10 +91,7 @@ router.post('/commit-plan', asyncHandler(async (req: Request, res: Response) => 
  * Get the active payment plan
  */
 router.get('/active-plan', asyncHandler(async (req: Request, res: Response) => {
-  const householdId = req.user!.householdId;
-  if (!householdId) {
-    return res.status(403).json({ error: 'User must belong to a household' });
-  }
+  const householdId = req.user!.householdId!;
 
   const plan = await DebtService.getActivePaymentPlan(householdId);
 
@@ -118,10 +107,7 @@ router.get('/active-plan', asyncHandler(async (req: Request, res: Response) => {
  */
 router.get('/:id', asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
-  const householdId = req.user!.householdId;
-  if (!householdId) {
-    return res.status(403).json({ error: 'User must belong to a household' });
-  }
+  const householdId = req.user!.householdId!;
 
   const debt = await DebtService.getDebtById(id, householdId);
 
@@ -136,10 +122,7 @@ router.get('/:id', asyncHandler(async (req: Request, res: Response) => {
  * Create a new debt
  */
 router.post('/', validateRequest(createDebtSchema), asyncHandler(async (req: Request, res: Response) => {
-  const householdId = req.user!.householdId;
-  if (!householdId) {
-    return res.status(403).json({ error: 'User must belong to a household' });
-  }
+  const householdId = req.user!.householdId!;
 
   const debt = await DebtService.createDebt(householdId, req.body);
 
@@ -155,10 +138,7 @@ router.post('/', validateRequest(createDebtSchema), asyncHandler(async (req: Req
  */
 router.patch('/:id', validateRequest(updateDebtSchema), asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
-  const householdId = req.user!.householdId;
-  if (!householdId) {
-    return res.status(403).json({ error: 'User must belong to a household' });
-  }
+  const householdId = req.user!.householdId!;
 
   const debt = await DebtService.updateDebt(id, householdId, req.body);
 
@@ -174,10 +154,7 @@ router.patch('/:id', validateRequest(updateDebtSchema), asyncHandler(async (req:
  */
 router.delete('/:id', asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
-  const householdId = req.user!.householdId;
-  if (!householdId) {
-    return res.status(403).json({ error: 'User must belong to a household' });
-  }
+  const householdId = req.user!.householdId!;
 
   await DebtService.deleteDebt(id, householdId);
 
@@ -193,11 +170,8 @@ router.delete('/:id', asyncHandler(async (req: Request, res: Response) => {
  */
 router.post('/:id/payments', validateRequest(addDebtPaymentSchema), asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
-  const householdId = req.user!.householdId;
+  const householdId = req.user!.householdId!;
   const userId = req.user!.userId;
-  if (!householdId) {
-    return res.status(403).json({ error: 'User must belong to a household' });
-  }
 
   const debt = await DebtService.addPayment(id, householdId, userId, req.body);
 
@@ -214,10 +188,7 @@ router.post('/:id/payments', validateRequest(addDebtPaymentSchema), asyncHandler
  */
 router.get('/:id/payments', asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
-  const householdId = req.user!.householdId;
-  if (!householdId) {
-    return res.status(403).json({ error: 'User must belong to a household' });
-  }
+  const householdId = req.user!.householdId!;
 
   const payments = await DebtService.getPayments(id, householdId);
 

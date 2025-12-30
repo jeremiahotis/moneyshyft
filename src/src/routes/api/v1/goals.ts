@@ -1,25 +1,22 @@
 import { Router, Request, Response } from 'express';
 import { GoalService } from '../../../services/GoalService';
 import { asyncHandler } from '../../../middleware/errorHandler';
-import { authenticateToken } from '../../../middleware/auth';
+import { authenticateToken, requireHouseholdAccess } from '../../../middleware/auth';
 import { validateRequest } from '../../../middleware/validate';
 import { createGoalSchema, updateGoalSchema, addContributionSchema } from '../../../validators/goal.validators';
 
 const router = Router();
 
-// All routes require authentication
+// All routes require authentication and household access
 router.use(authenticateToken);
+router.use(requireHouseholdAccess);
 
 /**
  * GET /api/v1/goals
  * Get all goals for the authenticated user's household
  */
 router.get('/', asyncHandler(async (req: Request, res: Response) => {
-  const householdId = req.user!.householdId;
-
-  if (!householdId) {
-    return res.status(403).json({ error: 'User must belong to a household to access goals' });
-  }
+  const householdId = req.user!.householdId!;
 
   const goals = await GoalService.getAllGoals(householdId);
 
@@ -35,11 +32,7 @@ router.get('/', asyncHandler(async (req: Request, res: Response) => {
  */
 router.get('/:id', asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
-  const householdId = req.user!.householdId;
-
-  if (!householdId) {
-    return res.status(403).json({ error: 'User must belong to a household to access goals' });
-  }
+  const householdId = req.user!.householdId!;
 
   const goal = await GoalService.getGoalById(id, householdId);
 
@@ -54,12 +47,8 @@ router.get('/:id', asyncHandler(async (req: Request, res: Response) => {
  * Create a new goal
  */
 router.post('/', validateRequest(createGoalSchema), asyncHandler(async (req: Request, res: Response) => {
-  const householdId = req.user!.householdId;
+  const householdId = req.user!.householdId!;
   const goalData = req.body;
-
-  if (!householdId) {
-    return res.status(403).json({ error: 'User must belong to a household to create goals' });
-  }
 
   const goal = await GoalService.createGoal(householdId, goalData);
 
@@ -75,12 +64,8 @@ router.post('/', validateRequest(createGoalSchema), asyncHandler(async (req: Req
  */
 router.patch('/:id', validateRequest(updateGoalSchema), asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
-  const householdId = req.user!.householdId;
+  const householdId = req.user!.householdId!;
   const updateData = req.body;
-
-  if (!householdId) {
-    return res.status(403).json({ error: 'User must belong to a household to update goals' });
-  }
 
   const goal = await GoalService.updateGoal(id, householdId, updateData);
 
@@ -96,11 +81,7 @@ router.patch('/:id', validateRequest(updateGoalSchema), asyncHandler(async (req:
  */
 router.delete('/:id', asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
-  const householdId = req.user!.householdId;
-
-  if (!householdId) {
-    return res.status(403).json({ error: 'User must belong to a household to delete goals' });
-  }
+  const householdId = req.user!.householdId!;
 
   await GoalService.deleteGoal(id, householdId);
 
@@ -116,13 +97,9 @@ router.delete('/:id', asyncHandler(async (req: Request, res: Response) => {
  */
 router.post('/:id/contributions', validateRequest(addContributionSchema), asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
-  const householdId = req.user!.householdId;
+  const householdId = req.user!.householdId!;
   const userId = req.user!.userId;
   const contributionData = req.body;
-
-  if (!householdId) {
-    return res.status(403).json({ error: 'User must belong to a household to add contributions' });
-  }
 
   const goal = await GoalService.addContribution(id, householdId, userId, contributionData);
 
@@ -138,11 +115,7 @@ router.post('/:id/contributions', validateRequest(addContributionSchema), asyncH
  */
 router.get('/:id/contributions', asyncHandler(async (req: Request, res: Response) => {
   const { id } = req.params;
-  const householdId = req.user!.householdId;
-
-  if (!householdId) {
-    return res.status(403).json({ error: 'User must belong to a household to access contributions' });
-  }
+  const householdId = req.user!.householdId!;
 
   const contributions = await GoalService.getGoalContributions(id, householdId);
 

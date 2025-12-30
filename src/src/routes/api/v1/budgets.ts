@@ -1,7 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { BudgetService } from '../../../services/BudgetService';
 import { asyncHandler } from '../../../middleware/errorHandler';
-import { authenticateToken } from '../../../middleware/auth';
+import { authenticateToken, requireHouseholdAccess } from '../../../middleware/auth';
 import { validateRequest } from '../../../middleware/validate';
 import {
   createBudgetMonthSchema,
@@ -12,8 +12,9 @@ import {
 
 const router = Router();
 
-// All routes require authentication
+// All routes require authentication and household access
 router.use(authenticateToken);
+router.use(requireHouseholdAccess);
 
 /**
  * GET /api/v1/budgets/:month/summary
@@ -21,12 +22,8 @@ router.use(authenticateToken);
  * Month format: YYYY-MM-DD (first day of month) or YYYY-MM
  */
 router.get('/:month/summary', asyncHandler(async (req: Request, res: Response) => {
-  const householdId = req.user!.householdId;
+  const householdId = req.user!.householdId!;
   const { month } = req.params;
-
-  if (!householdId) {
-    return res.status(403).json({ error: 'User must belong to a household to access budgets' });
-  }
 
   // Parse month parameter
   const monthDate = new Date(month);
@@ -47,13 +44,9 @@ router.get('/:month/summary', asyncHandler(async (req: Request, res: Response) =
  * Update budget month notes
  */
 router.put('/:month/notes', validateRequest(updateBudgetMonthSchema), asyncHandler(async (req: Request, res: Response) => {
-  const householdId = req.user!.householdId;
+  const householdId = req.user!.householdId!;
   const { month } = req.params;
   const { notes } = req.body;
-
-  if (!householdId) {
-    return res.status(403).json({ error: 'User must belong to a household to update budgets' });
-  }
 
   const monthDate = new Date(month);
   if (isNaN(monthDate.getTime())) {
@@ -73,12 +66,8 @@ router.put('/:month/notes', validateRequest(updateBudgetMonthSchema), asyncHandl
  * Get all allocations for a specific month
  */
 router.get('/:month/allocations', asyncHandler(async (req: Request, res: Response) => {
-  const householdId = req.user!.householdId;
+  const householdId = req.user!.householdId!;
   const { month } = req.params;
-
-  if (!householdId) {
-    return res.status(403).json({ error: 'User must belong to a household to access budgets' });
-  }
 
   const monthDate = new Date(month);
   if (isNaN(monthDate.getTime())) {
@@ -98,13 +87,9 @@ router.get('/:month/allocations', asyncHandler(async (req: Request, res: Respons
  * Set a single budget allocation (category or section level)
  */
 router.post('/:month/allocations', validateRequest(setBudgetAllocationSchema), asyncHandler(async (req: Request, res: Response) => {
-  const householdId = req.user!.householdId;
+  const householdId = req.user!.householdId!;
   const { month } = req.params;
   const allocationData = req.body;
-
-  if (!householdId) {
-    return res.status(403).json({ error: 'User must belong to a household to create budget allocations' });
-  }
 
   const monthDate = new Date(month);
   if (isNaN(monthDate.getTime())) {
@@ -124,13 +109,9 @@ router.post('/:month/allocations', validateRequest(setBudgetAllocationSchema), a
  * Bulk set multiple allocations at once
  */
 router.post('/:month/allocations/bulk', validateRequest(bulkSetAllocationsSchema), asyncHandler(async (req: Request, res: Response) => {
-  const householdId = req.user!.householdId;
+  const householdId = req.user!.householdId!;
   const { month } = req.params;
   const { allocations } = req.body;
-
-  if (!householdId) {
-    return res.status(403).json({ error: 'User must belong to a household to create budget allocations' });
-  }
 
   const monthDate = new Date(month);
   if (isNaN(monthDate.getTime())) {
@@ -151,12 +132,8 @@ router.post('/:month/allocations/bulk', validateRequest(bulkSetAllocationsSchema
  * Delete a specific allocation
  */
 router.delete('/allocations/:id', asyncHandler(async (req: Request, res: Response) => {
-  const householdId = req.user!.householdId;
+  const householdId = req.user!.householdId!;
   const { id } = req.params;
-
-  if (!householdId) {
-    return res.status(403).json({ error: 'User must belong to a household to delete budget allocations' });
-  }
 
   await BudgetService.deleteAllocation(householdId, id);
 

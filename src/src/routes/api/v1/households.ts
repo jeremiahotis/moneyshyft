@@ -1,24 +1,21 @@
 import { Router, Request, Response } from 'express';
 import { asyncHandler } from '../../../middleware/errorHandler';
-import { authenticateToken } from '../../../middleware/auth';
+import { authenticateToken, requireHouseholdAccess } from '../../../middleware/auth';
 import db from '../../../config/knex';
 import logger from '../../../utils/logger';
 
 const router = Router();
 
-// All routes require authentication
+// All routes require authentication and household access
 router.use(authenticateToken);
+router.use(requireHouseholdAccess);
 
 /**
  * GET /api/v1/households/current
  * Get current user's household information
  */
 router.get('/current', asyncHandler(async (req: Request, res: Response) => {
-  const householdId = req.user!.householdId;
-
-  if (!householdId) {
-    return res.status(404).json({ error: 'User does not belong to a household' });
-  }
+  const householdId = req.user!.householdId!;
 
   // Get household information
   const household = await db('households')
@@ -50,11 +47,7 @@ router.get('/current', asyncHandler(async (req: Request, res: Response) => {
  * Get all members of the current user's household
  */
 router.get('/members', asyncHandler(async (req: Request, res: Response) => {
-  const householdId = req.user!.householdId;
-
-  if (!householdId) {
-    return res.status(404).json({ error: 'User does not belong to a household' });
-  }
+  const householdId = req.user!.householdId!;
 
   // Get all household members
   const members = await db('users')
