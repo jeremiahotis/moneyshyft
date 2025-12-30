@@ -1,4 +1,4 @@
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import db from '../config/knex';
 import { generateAccessToken, generateRefreshToken, JWTPayload } from '../utils/jwt';
 import { generateInvitationCode } from '../utils/invitationCode';
