@@ -43,9 +43,9 @@
           </span>
           <span class="font-medium">{{ formatCurrency(answers.housing_amount) }}</span>
         </div>
-        <div v-if="answers.car_payment_amount" class="flex justify-between">
+        <div v-if="answers.car_payments && answers.car_payments.length > 0" class="flex justify-between">
           <span class="text-gray-700"><span class="mr-2">🚗</span>Car Payment</span>
-          <span class="font-medium">{{ formatCurrency(answers.car_payment_amount) }}</span>
+          <span class="font-medium">{{ formatCurrency(answers.car_payments.reduce((sum, p) => sum + p.amount, 0)) }}</span>
         </div>
         <div v-if="answers.car_insurance_amount" class="flex justify-between">
           <span class="text-gray-700"><span class="mr-2">🛡️</span>Car Insurance</span>
@@ -138,8 +138,8 @@ const totalIncome = computed(() => {
 });
 
 const totalDebtPayments = computed(() => {
-  const ccPayments = props.answers.credit_card_payments?.reduce((sum, p) => sum + p.amount, 0) || 0;
-  const otherPayments = props.answers.other_debt_payments?.reduce((sum, p) => sum + p.amount, 0) || 0;
+  const ccPayments = props.answers.credit_card_debts?.reduce((sum: number, p: any) => sum + p.minimum_payment, 0) || 0;
+  const otherPayments = props.answers.other_debts?.reduce((sum: number, p: any) => sum + p.minimum_payment, 0) || 0;
   return ccPayments + otherPayments;
 });
 
@@ -150,8 +150,9 @@ const totalFlexibleSpending = computed(() => {
 });
 
 const totalExpenses = computed(() => {
+  const carPayments = props.answers.car_payments?.reduce((sum, p) => sum + p.amount, 0) || 0;
   return (props.answers.housing_amount || 0) +
-         (props.answers.car_payment_amount || 0) +
+         carPayments +
          (props.answers.car_insurance_amount || 0) +
          (props.answers.utilities_estimate || 0) +
          (props.answers.internet_phone_estimate || 0) +

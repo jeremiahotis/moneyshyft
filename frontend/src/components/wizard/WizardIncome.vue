@@ -196,7 +196,11 @@ const sources = ref<IncomeSource[]>([
 onMounted(() => {
   // Pre-populate from stored answers if they exist
   if (wizardStore.answers.income_sources && wizardStore.answers.income_sources.length > 0) {
-    sources.value = wizardStore.answers.income_sources.map(s => ({ ...s }));
+    sources.value = wizardStore.answers.income_sources.map(s => ({ 
+      ...s, 
+      frequency: 'monthly' as const,
+      hoursPerWeek: 40 
+    }));
   }
 });
 

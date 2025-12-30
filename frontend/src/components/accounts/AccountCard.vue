@@ -74,6 +74,11 @@ const balanceClass = computed(() => {
   return props.account.current_balance < 0 ? 'text-red-600' : 'text-gray-900';
 });
 
+const accountTypeIcon = computed(() => {
+  // Return empty string or a CSS class if needed
+  return '';
+});
+
 function getAccountIcon(type: string): string {
   const icons: Record<string, string> = {
     checking: '🏦',

@@ -7,8 +7,8 @@ export const useWizardStore = defineStore('wizard', () => {
   const currentStep = ref(0);
   const answers = ref<Partial<WizardAnswers>>({
     income_sources: [],
-    credit_card_payments: [],
-    other_debt_payments: [],
+    credit_card_debts: [],
+    other_debts: [],
   });
   const isCompleted = ref(false);
 
@@ -35,8 +35,8 @@ export const useWizardStore = defineStore('wizard', () => {
     currentStep.value = 0;
     answers.value = {
       income_sources: [],
-      credit_card_payments: [],
-      other_debt_payments: [],
+      credit_card_debts: [],
+      other_debts: [],
     };
     isCompleted.value = false;
   }

@@ -283,7 +283,7 @@ async function handleSubmit() {
       await incomeStore.updateIncomeSource(props.income.id, {
         name: formData.value.name,
         monthly_amount: monthlyAmount.value,
-        notes: formData.value.notes || null,
+        notes: formData.value.notes || undefined,
       });
     } else {
       // Create new income source

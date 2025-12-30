@@ -26,7 +26,7 @@
             </label>
             <div class="px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg">
               <div class="flex items-center justify-between">
-                <span class="text-gray-900">{{ sourceCategory?.category_name || sourceSection?.name }}</span>
+                <span class="text-gray-900">{{ sourceCategory?.category_name || sourceSection?.section_name }}</span>
                 <span class="text-sm font-semibold text-green-600">
                   {{ formatCurrency(maxAmount) }} available
                 </span>
@@ -105,7 +105,7 @@
               <strong>Transfer:</strong> {{ formatCurrency(formData.amount) }}
             </p>
             <p class="text-sm text-blue-700 mt-1">
-              <strong>From:</strong> {{ sourceCategory?.category_name || sourceSection?.name }}
+              <strong>From:</strong> {{ sourceCategory?.category_name || sourceSection?.section_name }}
             </p>
             <p class="text-sm text-blue-700">
               <strong>To:</strong> {{ getTargetName() }}
@@ -183,7 +183,8 @@ const isValid = computed(() => {
 });
 
 function getCategoriesForSection(sectionId: string) {
-  return categoriesStore.categories.filter(c => c.section_id === sectionId);
+  const section = categoriesStore.sections.find(s => s.id === sectionId);
+  return section?.categories || [];
 }
 
 function isCurrentSource(categoryId: string, sectionId: string | null): boolean {
@@ -202,8 +203,11 @@ function getTargetName(): string {
   const [type, id] = formData.value.targetId.split(':');
 
   if (type === 'category') {
-    const category = categoriesStore.categories.find(c => c.id === id);
-    return category?.name || '';
+    for (const section of categoriesStore.sections) {
+      const category = section.categories?.find((c: any) => c.id === id);
+      if (category) return category.name;
+    }
+    return '';
   }
 
   return '';

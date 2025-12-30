@@ -112,6 +112,61 @@ export const useCategoriesStore = defineStore('categories', () => {
     }
   }
 
+  async function updateCategory(categoryId: string, data: {
+    name?: string;
+    color?: string | null;
+    icon?: string | null;
+  }): Promise<any> {
+    isLoading.value = true;
+    error.value = null;
+    try {
+      const response = await api.patch(`/categories/${categoryId}`, data);
+      const updatedCategory = response.data.data;
+
+      // Update in local state
+      sections.value.forEach(section => {
+        if (section.categories) {
+          const categoryIndex = section.categories.findIndex(c => c.id === categoryId);
+          if (categoryIndex !== -1) {
+            section.categories[categoryIndex] = updatedCategory;
+          }
+        }
+      });
+
+      return updatedCategory;
+    } catch (err: any) {
+      error.value = err.response?.data?.error || 'Failed to update category';
+      throw err;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  async function updateSection(sectionId: string, data: {
+    name?: string;
+    type?: 'fixed' | 'flexible' | 'debt';
+  }): Promise<any> {
+    isLoading.value = true;
+    error.value = null;
+    try {
+      const response = await api.patch(`/categories/sections/${sectionId}`, data);
+      const updatedSection = response.data.data;
+
+      // Update in local state
+      const sectionIndex = sections.value.findIndex(s => s.id === sectionId);
+      if (sectionIndex !== -1) {
+        sections.value[sectionIndex] = { ...sections.value[sectionIndex], ...updatedSection };
+      }
+
+      return updatedSection;
+    } catch (err: any) {
+      error.value = err.response?.data?.error || 'Failed to update section';
+      throw err;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
   function clearError(): void {
     error.value = null;
   }
@@ -127,6 +182,8 @@ export const useCategoriesStore = defineStore('categories', () => {
     createCategory,
     deleteCategory,
     deleteSection,
+    updateCategory,
+    updateSection,
     clearError,
   };
 });

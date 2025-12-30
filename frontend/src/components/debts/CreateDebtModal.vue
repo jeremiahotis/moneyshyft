@@ -188,7 +188,7 @@ const error = ref<string | null>(null);
 
 const form = ref<CreateDebtData>({
   name: '',
-  debt_type: '',
+  debt_type: 'other',
   current_balance: 0,
   original_balance: undefined,
   interest_rate: 0,
@@ -206,7 +206,7 @@ watch(() => props.modelValue, (newValue) => {
 function resetForm() {
   form.value = {
     name: '',
-    debt_type: '',
+    debt_type: 'other',
     current_balance: 0,
     original_balance: undefined,
     interest_rate: 0,

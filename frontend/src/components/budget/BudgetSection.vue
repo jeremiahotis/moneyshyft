@@ -381,7 +381,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   updateAllocation: [data: { categoryId?: string; sectionId?: string; amount: number; rollupMode: boolean }];
-  updateAssigned: [data: { categoryId: string; amount: number; rollupMode: boolean }];
+  updateAssigned: [data: { categoryId?: string; sectionId?: string; amount: number; rollupMode: boolean }];
   refresh: [];
 }>();
 

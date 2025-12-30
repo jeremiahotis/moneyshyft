@@ -129,7 +129,7 @@ import { ref, computed } from 'vue';
 import { useGoalsStore } from '@/stores/goals';
 import type { CreateGoalData } from '@/types';
 
-const props = defineProps<{
+defineProps<{
   modelValue: boolean;
 }>();
 

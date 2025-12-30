@@ -426,9 +426,6 @@ const flexibleSections = computed(() =>
   categoriesStore.sections.filter(s => s.type === 'flexible')
 );
 
-const debtSections = computed(() =>
-  categoriesStore.sections.filter(s => s.type === 'debt')
-);
 
 const goalsSection = computed(() =>
   budgetsStore.currentSummary?.sections?.find(s => s.section_type === 'goals')
@@ -494,7 +491,7 @@ async function handleUpdateAllocation(data: {
   }
 }
 
-async function handleUpdateAssigned(data: { categoryId: string; amount: number; rollupMode: boolean }) {
+async function handleUpdateAssigned(_data: { categoryId: string; amount: number; rollupMode: boolean }) {
   // For now, show message that user should use Assign Money modal
   // Inline editing of "Assigned" is complex because assignments are tied to income transactions
   alert('To assign money to categories, please use the "Assign Money" button above.');

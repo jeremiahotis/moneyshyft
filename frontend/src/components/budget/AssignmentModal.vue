@@ -139,7 +139,6 @@
 import { ref, computed, watch } from 'vue';
 import { useAssignmentsStore } from '@/stores/assignments';
 import { useBudgetsStore } from '@/stores/budgets';
-import type { CategorySummary } from '@/types';
 
 const props = defineProps<{
   modelValue: boolean;

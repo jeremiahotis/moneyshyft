@@ -182,7 +182,7 @@ async function handleAddContribution() {
     await goalsStore.addContribution(props.goal.id, {
       amount: contributionAmount.value,
       contribution_date: contributionDate.value,
-      notes: contributionNotes.value || null,
+      notes: contributionNotes.value || undefined,
     });
 
     // Reset form

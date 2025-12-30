@@ -252,7 +252,7 @@ async function createBudgetFromWizard() {
       for (const debt of answers.credit_card_debts) {
         await debtsStore.createDebt({
           name: debt.name,
-          debt_type: debt.debt_type,
+          debt_type: debt.debt_type as 'credit_card' | 'auto_loan' | 'student_loan' | 'personal_loan' | 'medical' | 'other',
           current_balance: debt.current_balance,
           original_balance: debt.current_balance, // Set original to current for new debts
           interest_rate: debt.interest_rate,
@@ -266,7 +266,7 @@ async function createBudgetFromWizard() {
       for (const debt of answers.other_debts) {
         await debtsStore.createDebt({
           name: debt.name,
-          debt_type: debt.debt_type,
+          debt_type: debt.debt_type as 'credit_card' | 'auto_loan' | 'student_loan' | 'personal_loan' | 'medical' | 'other',
           current_balance: debt.current_balance,
           original_balance: debt.current_balance, // Set original to current for new debts
           interest_rate: debt.interest_rate,

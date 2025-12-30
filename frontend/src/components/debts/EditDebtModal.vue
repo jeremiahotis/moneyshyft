@@ -171,7 +171,7 @@ const error = ref<string | null>(null);
 
 const form = ref<UpdateDebtData>({
   name: '',
-  debt_type: '',
+  debt_type: undefined,
   current_balance: 0,
   interest_rate: 0,
   minimum_payment: 0,
@@ -180,8 +180,8 @@ const form = ref<UpdateDebtData>({
 
 // Populate form when modal opens with debt data
 watch(() => [props.modelValue, props.debt], ([newModelValue, newDebt]) => {
-  if (newModelValue && newDebt) {
-    populateForm(newDebt);
+  if (newModelValue && newDebt && typeof newDebt === 'object' && 'id' in newDebt) {
+    populateForm(newDebt as Debt);
   }
 }, { immediate: true });
 
