@@ -7,6 +7,7 @@
 docker-compose.yml
 docker-compose.override.yml
 src/Dockerfile
+docker-build/
 
 # Dependencies
 node_modules/

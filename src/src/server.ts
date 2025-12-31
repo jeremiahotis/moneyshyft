@@ -2,9 +2,10 @@ import app from './app';
 import logger from './utils/logger';
 
 const PORT = process.env.PORT || 3000;
+const HOST = process.env.HOST || '0.0.0.0'; // Listen on all interfaces for Docker
 
-const server = app.listen(PORT, () => {
-  logger.info(`🚀 MoneyShyft API server running on port ${PORT}`);
+const server = app.listen(PORT, HOST, () => {
+  logger.info(`🚀 MoneyShyft API server running on ${HOST}:${PORT}`);
   logger.info(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
   logger.info(`🔗 Database: ${process.env.DATABASE_URL?.split('@')[1] || 'not configured'}`);
 });
