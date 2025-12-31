@@ -47,4 +47,6 @@ const config: { [key: string]: Knex.Config } = {
   }
 };
 
-export default config;
+// Use CommonJS export for Knex compatibility
+// TypeScript will compile this to module.exports
+export = config;
