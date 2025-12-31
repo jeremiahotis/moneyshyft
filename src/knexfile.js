@@ -35,7 +35,7 @@ const config = {
     },
     migrations: {
       tableName: 'knex_migrations',
-      directory: path.resolve(__dirname, 'dist/migrations'),
+      directory: path.join(__dirname, 'dist', 'migrations'),
       extension: 'js'  // Use compiled JavaScript files in production
     },
     seeds: {
