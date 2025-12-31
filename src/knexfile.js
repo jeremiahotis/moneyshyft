@@ -1,4 +1,5 @@
 require('dotenv').config();
+const path = require('path');
 
 const config = {
   development: {
@@ -34,7 +35,7 @@ const config = {
     },
     migrations: {
       tableName: 'knex_migrations',
-      directory: './dist/migrations',
+      directory: path.resolve(__dirname, 'dist/migrations'),
       extension: 'js'  // Use compiled JavaScript files in production
     },
     seeds: {
