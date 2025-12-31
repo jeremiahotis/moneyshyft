@@ -38,11 +38,11 @@ const config: { [key: string]: Knex.Config } = {
     migrations: {
       tableName: 'knex_migrations',
       directory: './migrations',
-      extension: 'ts'
+      extension: 'js'  // Use compiled JavaScript files in production
     },
     seeds: {
       directory: './seeds/production',
-      extension: 'ts'
+      extension: 'js'  // Use compiled JavaScript files in production
     }
   }
 };
