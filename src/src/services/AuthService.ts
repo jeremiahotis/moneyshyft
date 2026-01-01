@@ -70,7 +70,11 @@ class AuthService {
         }
 
         householdId = household.id;
-        logger.info(`User joining household via invitation code: ${invitationCode}`);
+        logger.info(`User joining household via invitation code`, {
+          invitationCode: invitationCode.toUpperCase(),
+          householdId: household.id,
+          householdName: household.name
+        });
       }
       // Create household if name provided
       else if (householdName) {
@@ -146,6 +150,27 @@ class AuthService {
         })
         .returning('*');
 
+      // Log user creation details
+      logger.info(`User created successfully`, {
+        userId: user.id,
+        email: user.email,
+        role: user.role,
+        householdId: user.household_id,
+        hadInvitationCode: !!invitationCode,
+        hadHouseholdName: !!householdName
+      });
+
+      // Critical validation: If invitation code was provided, household_id MUST be set
+      if (invitationCode && !user.household_id) {
+        logger.error(`CRITICAL: User created with invitation code but household_id is NULL in database`, {
+          userId: user.id,
+          email: user.email,
+          invitationCode: invitationCode.toUpperCase(),
+          expectedHouseholdId: householdId
+        });
+        throw new Error('Failed to assign user to household. Please contact support.');
+      }
+
       return { user, invitationCode: returnInvitationCode };
     });
 
@@ -158,6 +183,25 @@ class AuthService {
       householdId: result.user.household_id,
       role: result.user.role,
     };
+
+    // Log JWT payload creation (redact sensitive data)
+    logger.info(`Creating JWT tokens for user`, {
+      userId: result.user.id,
+      email: result.user.email,
+      householdId: payload.householdId,
+      role: payload.role,
+      hasHouseholdId: !!payload.householdId
+    });
+
+    // Final validation: Ensure householdId is set if user joined via invitation
+    if (data.invitationCode && !payload.householdId) {
+      logger.error(`CRITICAL: JWT payload has null householdId despite invitation code signup`, {
+        userId: payload.userId,
+        userHouseholdId: result.user.household_id,
+        payloadHouseholdId: payload.householdId
+      });
+      throw new Error('Authentication error: Invalid household assignment');
+    }
 
     const accessToken = generateAccessToken(payload);
     const refreshToken = generateRefreshToken(payload);

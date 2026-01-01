@@ -81,15 +81,22 @@ router.post('/refresh', (req: Request, res: Response) => {
     // Verify refresh token
     const payload = verifyRefreshToken(refreshToken);
 
+    // Log token refresh for debugging
+    logger.info('Refreshing access token', {
+      userId: payload.userId,
+      householdId: payload.householdId,
+      hasHouseholdId: !!payload.householdId
+    });
+
     // Generate new access token
     const newAccessToken = generateAccessToken(payload);
 
-    // Set new access token cookie
+    // Set new access token cookie with same maxAge as token expiration (2 hours)
     res.cookie('access_token', newAccessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
-      maxAge: 15 * 60 * 1000, // 15 minutes
+      maxAge: 2 * 60 * 60 * 1000, // 2 hours (matches SHORT_SESSION_ACCESS)
     });
 
     res.json({ message: 'Token refreshed successfully' });

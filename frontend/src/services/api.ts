@@ -1,5 +1,5 @@
 import axios from 'axios';
-import type { AxiosInstance, AxiosError } from 'axios';
+import type { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
 
 const api: AxiosInstance = axios.create({
   baseURL: '/api/v1',
@@ -9,14 +9,80 @@ const api: AxiosInstance = axios.create({
   },
 });
 
+// Track if we're currently refreshing the token to avoid multiple refresh attempts
+let isRefreshing = false;
+let failedQueue: Array<{
+  resolve: (value?: any) => void;
+  reject: (reason?: any) => void;
+}> = [];
+
+const processQueue = (error: Error | null = null) => {
+  failedQueue.forEach(prom => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve();
+    }
+  });
+
+  failedQueue = [];
+};
+
 // Response interceptor for error handling
 api.interceptors.response.use(
   (response) => response,
-  (error: AxiosError) => {
-    if (error.response?.status === 401) {
-      // Unauthorized - redirect to login if needed
-      // This will be handled by the auth store
+  async (error: AxiosError) => {
+    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+
+    // If we get a 401 error and haven't already tried to refresh
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      // Don't try to refresh if the failed request was already to /auth/refresh or /auth/login or /auth/signup
+      if (originalRequest.url?.includes('/auth/refresh') ||
+          originalRequest.url?.includes('/auth/login') ||
+          originalRequest.url?.includes('/auth/signup')) {
+        // Clear auth and redirect to login
+        window.location.href = '/login';
+        return Promise.reject(error);
+      }
+
+      if (isRefreshing) {
+        // If already refreshing, queue this request
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        })
+          .then(() => {
+            return api(originalRequest);
+          })
+          .catch(err => {
+            return Promise.reject(err);
+          });
+      }
+
+      originalRequest._retry = true;
+      isRefreshing = true;
+
+      try {
+        // Try to refresh the token
+        await api.post('/auth/refresh');
+
+        // Token refreshed successfully, process queued requests
+        processQueue(null);
+        isRefreshing = false;
+
+        // Retry the original request
+        return api(originalRequest);
+      } catch (refreshError) {
+        // Refresh failed, clear queue and redirect to login
+        processQueue(refreshError as Error);
+        isRefreshing = false;
+
+        // Redirect to login page
+        window.location.href = '/login';
+        return Promise.reject(refreshError);
+      }
     }
+
+    // For other errors, just pass them through
     return Promise.reject(error);
   }
 );
