@@ -76,7 +76,12 @@ router.beforeEach(async (to, _from, next) => {
 
   // Try to load user if not already loaded
   if (!authStore.user && !authStore.isLoading) {
-    await authStore.fetchCurrentUser();
+    try {
+      await authStore.fetchCurrentUser();
+    } catch (error) {
+      // Failed to load user - that's ok, they're probably not authenticated
+      // Let the requiresAuth check handle it below
+    }
   }
 
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {

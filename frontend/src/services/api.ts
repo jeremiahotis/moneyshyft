@@ -36,12 +36,16 @@ api.interceptors.response.use(
 
     // If we get a 401 error and haven't already tried to refresh
     if (error.response?.status === 401 && !originalRequest._retry) {
-      // Don't try to refresh if the failed request was already to /auth/refresh or /auth/login or /auth/signup
+      // Don't intercept auth endpoints - let errors pass through to UI
       if (originalRequest.url?.includes('/auth/refresh') ||
           originalRequest.url?.includes('/auth/login') ||
-          originalRequest.url?.includes('/auth/signup')) {
-        // Clear auth and redirect to login
-        window.location.href = '/login';
+          originalRequest.url?.includes('/auth/signup') ||
+          originalRequest.url?.includes('/auth/me')) {
+        return Promise.reject(error);
+      }
+
+      // Don't redirect if already on login page (prevents redirect loop)
+      if (window.location.pathname === '/login') {
         return Promise.reject(error);
       }
 
@@ -72,12 +76,11 @@ api.interceptors.response.use(
         // Retry the original request
         return api(originalRequest);
       } catch (refreshError) {
-        // Refresh failed, clear queue and redirect to login
+        // Refresh failed, clear queue
         processQueue(refreshError as Error);
         isRefreshing = false;
 
-        // Redirect to login page
-        window.location.href = '/login';
+        // Let the router guard handle navigation - don't force redirect here
         return Promise.reject(refreshError);
       }
     }
