@@ -23,6 +23,9 @@ export const signupSchema = Joi.object({
     'string.min': 'Household name cannot be empty',
     'string.max': 'Household name must be less than 255 characters',
   }),
+  invitationCode: Joi.string().length(6).uppercase().optional().messages({
+    'string.length': 'Invitation code must be exactly 6 characters',
+  }),
 });
 
 export const loginSchema = Joi.object({
