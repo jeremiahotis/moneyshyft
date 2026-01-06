@@ -36,6 +36,7 @@
           type="currency"
           icon="💵"
           :color-class="budgetsStore.toBeAssigned > 0 ? 'text-green-600' : 'text-orange-600'"
+          subtitle="Unassigned cash"
         />
       </div>
 
@@ -56,7 +57,8 @@
                 <div class="flex justify-between items-center mb-2">
                   <span class="text-sm text-gray-600">Income vs Planned</span>
                   <span class="text-sm font-medium">
-                    {{ formatCurrency(budgetsStore.totalAllocated) }} / {{ formatCurrency(incomeStore.totalMonthlyIncome) }}
+                    <span class="privacy-value">{{ formatCurrency(budgetsStore.totalAllocated) }}</span> /
+                    <span class="privacy-value">{{ formatCurrency(incomeStore.totalMonthlyIncome) }}</span>
                   </span>
                 </div>
                 <div class="w-full bg-gray-200 rounded-full h-2">
@@ -74,7 +76,8 @@
                 <div class="flex justify-between items-center mb-2">
                   <span class="text-sm text-gray-600">Planned vs Spent</span>
                   <span class="text-sm font-medium">
-                    {{ formatCurrency(Math.abs(budgetsStore.totalSpent)) }} / {{ formatCurrency(budgetsStore.totalAllocated) }}
+                    <span class="privacy-value">{{ formatCurrency(Math.abs(budgetsStore.totalSpent)) }}</span> /
+                    <span class="privacy-value">{{ formatCurrency(budgetsStore.totalAllocated) }}</span>
                   </span>
                 </div>
                 <div class="w-full bg-gray-200 rounded-full h-2">
@@ -91,14 +94,23 @@
               <div class="pt-4 border-t grid grid-cols-2 gap-4">
                 <div>
                   <p class="text-xs text-gray-600">Total Income</p>
-                  <p class="text-lg font-bold text-primary-600">{{ formatCurrency(incomeStore.totalMonthlyIncome) }}</p>
+                  <p class="text-lg font-bold text-primary-600 privacy-value">{{ formatCurrency(incomeStore.totalMonthlyIncome) }}</p>
                 </div>
                 <div>
                   <p class="text-xs text-gray-600">Ready to Plan</p>
-                  <p class="text-lg font-bold" :class="budgetsStore.toBeAssigned >= 0 ? 'text-green-600' : 'text-red-600'">
+                  <p class="text-lg font-bold privacy-value" :class="budgetsStore.toBeAssigned >= 0 ? 'text-green-600' : 'text-red-600'">
                     {{ formatCurrency(budgetsStore.toBeAssigned) }}
                   </p>
                 </div>
+              </div>
+
+              <div v-if="budgetsStore.toBeAssigned === 0" class="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                <p class="text-sm text-green-800">🎉 Balanced month! Everything has a job.</p>
+              </div>
+              <div v-else-if="allocationPercentage > 100" class="mt-4 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                <p class="text-sm text-orange-800">
+                  You’re planning more than income. That’s okay—trim a category or add income when it lands.
+                </p>
               </div>
 
               <router-link
@@ -168,6 +180,22 @@
             </div>
           </div>
         </div>
+      </div>
+
+      <!-- Extra Money Alert -->
+      <div class="mb-8">
+        <PendingExtraMoneyCard
+          @view-all="$router.push('/extra-money')"
+          @assign="handleAssignExtraMoney"
+        />
+      </div>
+
+      <!-- Recurring Transactions -->
+      <div class="mb-8">
+        <PendingRecurringCard
+          @view-all="$router.push('/transactions')"
+          @create-recurring="showRecurringModal = true"
+        />
       </div>
 
       <!-- Recent Activity -->
@@ -246,19 +274,40 @@
         </div>
       </div>
     </div>
+
+    <!-- Recurring Transaction Modal -->
+    <RecurringTransactionModal
+      v-model="showRecurringModal"
+      @saved="handleRecurringSaved"
+    />
+
+    <!-- Extra Money Modal -->
+    <ExtraMoneyModal
+      v-model="showExtraMoneyModal"
+      :entry="selectedExtraMoneyEntry"
+      @saved="handleExtraMoneySaved"
+      @ignored="handleExtraMoneyIgnored"
+    />
   </AppLayout>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import { useAuthStore } from '@/stores/auth';
 import { useAccountsStore } from '@/stores/accounts';
 import { useTransactionsStore } from '@/stores/transactions';
 import { useIncomeStore } from '@/stores/income';
 import { useBudgetsStore } from '@/stores/budgets';
 import { useGoalsStore } from '@/stores/goals';
+import { useRecurringStore } from '@/stores/recurring';
+import { useExtraMoneyStore } from '@/stores/extraMoney';
 import AppLayout from '@/components/layout/AppLayout.vue';
 import StatCard from '@/components/common/StatCard.vue';
+import PendingRecurringCard from '@/components/dashboard/PendingRecurringCard.vue';
+import PendingExtraMoneyCard from '@/components/dashboard/PendingExtraMoneyCard.vue';
+import RecurringTransactionModal from '@/components/transactions/RecurringTransactionModal.vue';
+import ExtraMoneyModal from '@/components/extraMoney/ExtraMoneyModal.vue';
+import type { ExtraMoneyWithAssignments } from '@/types';
 
 const authStore = useAuthStore();
 const accountsStore = useAccountsStore();
@@ -266,6 +315,12 @@ const transactionsStore = useTransactionsStore();
 const incomeStore = useIncomeStore();
 const budgetsStore = useBudgetsStore();
 const goalsStore = useGoalsStore();
+const recurringStore = useRecurringStore();
+const extraMoneyStore = useExtraMoneyStore();
+
+const showRecurringModal = ref(false);
+const showExtraMoneyModal = ref(false);
+const selectedExtraMoneyEntry = ref<ExtraMoneyWithAssignments | null>(null);
 
 const currentMonth = computed(() => {
   return new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
@@ -312,8 +367,40 @@ onMounted(async () => {
     incomeStore.fetchIncomeSources(),
     budgetsStore.fetchBudgetSummary(currentMonthStr),
     goalsStore.fetchGoals(),
+    recurringStore.fetchPendingInstances(7),
+    extraMoneyStore.fetchPendingEntries(),
   ]);
 });
+
+async function handleRecurringSaved() {
+  // Refresh pending instances after creating a new recurring transaction
+  await recurringStore.fetchPendingInstances(7);
+}
+
+function handleAssignExtraMoney(entry: ExtraMoneyWithAssignments) {
+  selectedExtraMoneyEntry.value = entry;
+  showExtraMoneyModal.value = true;
+}
+
+async function handleExtraMoneySaved() {
+  showExtraMoneyModal.value = false;
+  selectedExtraMoneyEntry.value = null;
+
+  // Refresh budget summary and extra money entries
+  const currentMonthStr = new Date().toISOString().slice(0, 7);
+  await Promise.all([
+    budgetsStore.fetchBudgetSummary(currentMonthStr),
+    extraMoneyStore.fetchPendingEntries()
+  ]);
+}
+
+async function handleExtraMoneyIgnored() {
+  showExtraMoneyModal.value = false;
+  selectedExtraMoneyEntry.value = null;
+
+  // Refresh extra money entries
+  await extraMoneyStore.fetchPendingEntries();
+}
 
 function formatCurrency(amount: number): string {
   const absAmount = Math.abs(amount);

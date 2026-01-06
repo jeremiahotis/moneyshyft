@@ -55,6 +55,7 @@ app.get('/db-test', async (req: Request, res: Response) => {
 import authRoutes from './routes/api/v1/auth';
 import accountRoutes from './routes/api/v1/accounts';
 import transactionRoutes from './routes/api/v1/transactions';
+import splitRoutes from './routes/api/v1/splits';
 import categoryRoutes from './routes/api/v1/categories';
 import goalRoutes from './routes/api/v1/goals';
 import budgetRoutes from './routes/api/v1/budgets';
@@ -62,10 +63,14 @@ import incomeRoutes from './routes/api/v1/income';
 import debtRoutes from './routes/api/v1/debts';
 import assignmentRoutes from './routes/api/v1/assignments';
 import householdRoutes from './routes/api/v1/households';
+import recurringRoutes from './routes/api/v1/recurring-transactions';
+import extraMoneyRoutes from './routes/api/v1/extra-money';
+import settingsRoutes from './routes/api/v1/settings';
 
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/accounts', accountRoutes);
 app.use('/api/v1/transactions', transactionRoutes);
+app.use('/api/v1/transactions', splitRoutes);
 app.use('/api/v1/categories', categoryRoutes);
 app.use('/api/v1/goals', goalRoutes);
 app.use('/api/v1/budgets', budgetRoutes);
@@ -73,6 +78,9 @@ app.use('/api/v1/income', incomeRoutes);
 app.use('/api/v1/debts', debtRoutes);
 app.use('/api/v1/assignments', assignmentRoutes);
 app.use('/api/v1/households', householdRoutes);
+app.use('/api/v1/recurring-transactions', recurringRoutes);
+app.use('/api/v1/extra-money', extraMoneyRoutes);
+app.use('/api/v1/settings', settingsRoutes);
 
 // 404 handler
 app.use((req: Request, res: Response) => {

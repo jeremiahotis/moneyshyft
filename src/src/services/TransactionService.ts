@@ -1,13 +1,16 @@
 import knex from '../config/knex';
 import { NotFoundError, BadRequestError } from '../middleware/errorHandler';
 import { AccountService } from './AccountService';
+import { ExtraMoneyService, type ExtraMoneyEntry } from './ExtraMoneyService';
 import logger from '../utils/logger';
+import { v4 as uuidv4 } from 'uuid';
 
 interface Transaction {
   id: string;
   household_id: string;
   account_id: string;
   category_id: string | null;
+  debt_id: string | null;  // NEW: Optional debt link
   payee: string;
   amount: number;
   transaction_date: Date;
@@ -21,9 +24,15 @@ interface Transaction {
   updated_at: Date;
 }
 
+interface TransactionCreateResult extends Transaction {
+  extra_money_detected: boolean;
+  extra_money_entry?: ExtraMoneyEntry | null;
+}
+
 interface CreateTransactionData {
   account_id: string;
   category_id?: string | null;
+  debt_id?: string | null;  // NEW: Optional debt link
   payee: string;
   amount: number;
   transaction_date: Date;
@@ -55,11 +64,18 @@ export class TransactionService {
       end_date?: Date;
       limit?: number;
       offset?: number;
+      include_split_children?: boolean; // Optional flag to include split children
     }
   ): Promise<Transaction[]> {
     let query = knex('transactions')
       .where({ household_id: householdId })
       .orderBy('transaction_date', 'desc');
+
+    // By default, exclude split children from the list (only show parent transactions)
+    // This prevents double-counting and keeps the UI cleaner
+    if (!filters?.include_split_children) {
+      query = query.where({ is_split_child: false });
+    }
 
     // Apply filters
     if (filters?.account_id) {
@@ -104,13 +120,15 @@ export class TransactionService {
 
   /**
    * Create a new transaction and update account balance
+   * If linked to a debt, also creates a debt_payment record
+   * Automatically detects extra money for positive transactions
    */
   static async createTransaction(
     householdId: string,
     userId: string,
     data: CreateTransactionData
-  ): Promise<Transaction> {
-    const { account_id, category_id, payee, amount, transaction_date, notes, is_cleared = false, is_reconciled = false } = data;
+  ): Promise<TransactionCreateResult> {
+    const { account_id, category_id, debt_id, payee, amount, transaction_date, notes, is_cleared = false, is_reconciled = false } = data;
 
     // Verify account belongs to household
     await AccountService.getAccountById(account_id, householdId);
@@ -126,28 +144,126 @@ export class TransactionService {
       }
     }
 
-    // Create transaction
-    const [transaction] = await knex('transactions')
-      .insert({
-        household_id: householdId,
-        account_id,
-        category_id: category_id || null,
-        payee,
-        amount,
-        transaction_date,
-        notes: notes || null,
-        is_cleared,
-        is_reconciled,
-        created_by_user_id: userId
-      })
-      .returning('*');
+    // If debt provided, verify it belongs to household
+    if (debt_id) {
+      const debt = await knex('debts')
+        .where({ id: debt_id, household_id: householdId })
+        .first();
 
-    // Recalculate account balance
-    await AccountService.recalculateBalance(account_id, householdId);
+      if (!debt) {
+        throw new BadRequestError('Debt not found or does not belong to this household');
+      }
+    }
 
-    logger.info(`Transaction created: ${transaction.id} for account: ${account_id}`);
+    // Use a transaction to ensure atomicity when creating debt payments
+    return await knex.transaction(async (trx) => {
+      // Create transaction
+      const [transaction] = await trx('transactions')
+        .insert({
+          household_id: householdId,
+          account_id,
+          category_id: category_id || null,
+          debt_id: debt_id || null,  // NEW: Link to debt
+          payee,
+          amount,
+          transaction_date,
+          notes: notes || null,
+          is_cleared,
+          is_reconciled,
+          created_by_user_id: userId,
+          parent_transaction_id: null,
+          is_split_child: false,
+        })
+        .returning('*');
 
-    return transaction;
+      // If transaction is linked to a debt and uses the Debt Payments category, create debt_payment record
+      if (debt_id && category_id) {
+        const debtCategory = await trx('categories')
+          .where({ id: category_id, name: 'Debt Payments' })
+          .first();
+
+        if (debtCategory) {
+          // This is a debt payment transaction - create payment record
+          const paymentAmount = Math.abs(amount);  // Ensure positive for payment record
+
+          await trx('debt_payments').insert({
+            id: uuidv4(),
+            debt_id: debt_id,
+            user_id: userId,
+            amount: paymentAmount,
+            payment_date: transaction_date,
+            notes: notes || null,
+            transaction_id: transaction.id,
+          });
+
+          // Update debt balance
+          await trx('debts')
+            .where({ id: debt_id })
+            .decrement('current_balance', paymentAmount)
+            .update({
+              updated_at: trx.fn.now()
+            });
+
+          // Check if debt is now paid off
+          const updatedDebt = await trx('debts')
+            .where({ id: debt_id })
+            .first();
+
+          if (updatedDebt && updatedDebt.current_balance <= 0) {
+            await trx('debts')
+              .where({ id: debt_id })
+              .update({
+                is_paid_off: true,
+                paid_off_at: trx.fn.now(),
+                current_balance: 0  // Ensure balance doesn't go negative
+              });
+          }
+
+          logger.info(`Debt payment transaction created: ${transaction.id}, debt_payment created for debt: ${debt_id}`);
+        }
+      }
+
+      // Recalculate account balance
+      await AccountService.recalculateBalance(account_id, householdId);
+
+      // AUTO-DETECT EXTRA MONEY (if positive income transaction)
+      let extraMoneyDetected = false;
+      let extraMoneyEntry: ExtraMoneyEntry | null = null;
+
+      if (amount > 0) {
+        const { shouldFlag, reason } = await ExtraMoneyService.detectExtraMoney(
+          householdId,
+          transaction.id,
+          trx
+        );
+
+        if (shouldFlag) {
+          extraMoneyEntry = await ExtraMoneyService.createExtraMoneyEntry({
+            household_id: householdId,
+            transaction_id: transaction.id,
+            source: payee || 'Unknown Source',
+            amount: amount,
+            received_date: transaction_date,
+            notes: notes || null,
+            auto_detected: true,
+            detection_reason: reason,
+            user_id: userId
+          }, trx);
+
+          extraMoneyDetected = true;
+          logger.info(`Extra money detected for transaction: ${transaction.id}, entry: ${extraMoneyEntry.id}`);
+        }
+      }
+
+      logger.info(`Transaction created: ${transaction.id} for account: ${account_id}`);
+
+      // Return transaction with extra money flag
+      return {
+        ...transaction,
+        extra_money_detected: extraMoneyDetected,
+        extra_money_entry: extraMoneyEntry
+      };
+    });
   }
 
   /**
@@ -160,6 +276,28 @@ export class TransactionService {
   ): Promise<Transaction> {
     // Check if transaction exists and belongs to household
     const existingTransaction = await this.getTransactionById(transactionId, householdId);
+
+    // Check if transaction is split (has children)
+    const splitChildren = await knex('transactions')
+      .where({ parent_transaction_id: transactionId })
+      .count('* as count')
+      .first();
+
+    const isSplit = splitChildren && parseInt(splitChildren.count as string) > 0;
+
+    // Prevent amount updates on split transactions
+    if (isSplit && data.amount !== undefined) {
+      throw new BadRequestError(
+        'Cannot change amount on a split transaction. Please unsplit the transaction first, then edit the amount.'
+      );
+    }
+
+    // Prevent split children from being edited directly
+    if (existingTransaction.is_split_child) {
+      throw new BadRequestError(
+        'Cannot edit a split child transaction directly. Please update the parent transaction splits instead.'
+      );
+    }
 
     // If category is being updated, verify it belongs to household
     if (data.category_id !== undefined && data.category_id !== null) {

@@ -2,6 +2,8 @@ import knex from '../config/knex';
 import { NotFoundError, BadRequestError } from '../middleware/errorHandler';
 import logger from '../utils/logger';
 import { BudgetService } from './BudgetService';
+import { TransactionService } from './TransactionService';
+import { v4 as uuidv4 } from 'uuid';
 
 export interface Debt {
   id: string;
@@ -28,6 +30,7 @@ export interface DebtPayment {
   amount: number;
   payment_date: string;
   notes: string | null;
+  transaction_id?: string | null;  // NEW: Link to transaction
   created_at: Date;
 }
 
@@ -57,6 +60,7 @@ export interface AddDebtPaymentData {
   amount: number;
   payment_date: string;
   notes?: string;
+  account_id: string;  // NEW: Required account to pay from
 }
 
 export interface PayoffStrategy {
@@ -246,53 +250,147 @@ export class DebtService {
   }
 
   /**
+   * Get or create the "Debt Payments" system category
+   * This category is used to track all debt payment transactions
+   */
+  private static async getOrCreateDebtPaymentsCategory(
+    householdId: string,
+    trx: any
+  ): Promise<{ id: string; name: string }> {
+    // Check if category exists
+    let category = await trx('categories')
+      .where({
+        household_id: householdId,
+        name: 'Debt Payments'
+      })
+      .first();
+
+    if (!category) {
+      // Find or create a section for debt payments (could be part of "Fixed Expenses" or its own section)
+      let section = await trx('sections')
+        .where({
+          household_id: householdId,
+          name: 'Fixed Expenses'
+        })
+        .first();
+
+      if (!section) {
+        // Create a Fixed Expenses section if it doesn't exist
+        [section] = await trx('sections')
+          .insert({
+            id: uuidv4(),
+            household_id: householdId,
+            name: 'Fixed Expenses',
+            section_type: 'spending',
+            sort_order: 1,
+          })
+          .returning('*');
+      }
+
+      // Create the Debt Payments category
+      [category] = await trx('categories')
+        .insert({
+          id: uuidv4(),
+          household_id: householdId,
+          section_id: section.id,
+          name: 'Debt Payments',
+          category_type: 'spending',
+          sort_order: 999, // Put it at the end
+        })
+        .returning('*');
+
+      logger.info(`Created Debt Payments category for household ${householdId}`);
+    }
+
+    return category;
+  }
+
+  /**
    * Add a payment to a debt
+   * This creates both a debt_payment record AND a transaction that moves money from the account
    */
   static async addPayment(debtId: string, householdId: string, userId: string | null, data: AddDebtPaymentData): Promise<Debt> {
-    // Validate debt exists and belongs to household
-    const debt = await this.getDebtById(debtId, householdId);
-
     if (data.amount <= 0) {
       throw new BadRequestError('Payment amount must be positive');
     }
 
-    // Record the payment
-    await knex('debt_payments').insert({
-      debt_id: debtId,
-      user_id: userId,
-      amount: data.amount,
-      payment_date: data.payment_date,
-      notes: data.notes || null,
+    // Use a database transaction to ensure atomicity
+    return await knex.transaction(async (trx) => {
+      // 1. Validate debt exists and belongs to household
+      const debt = await trx('debts')
+        .where({ id: debtId, household_id: householdId })
+        .first();
+
+      if (!debt) {
+        throw new NotFoundError('Debt not found');
+      }
+
+      // 2. Get or create "Debt Payments" category
+      const debtCategory = await this.getOrCreateDebtPaymentsCategory(householdId, trx);
+
+      // 3. Create transaction (negative amount = expense/payment)
+      const [transaction] = await trx('transactions').insert({
+        id: uuidv4(),
+        household_id: householdId,
+        account_id: data.account_id,
+        category_id: debtCategory.id,
+        debt_id: debtId,  // Link to specific debt
+        amount: -Math.abs(data.amount),  // Negative for expense
+        payee: debt.name,  // Debt name as payee
+        transaction_date: data.payment_date,
+        notes: data.notes || `Payment to ${debt.name}`,
+        is_cleared: false,
+        is_reconciled: false,
+        created_by_user_id: userId,
+        parent_transaction_id: null,
+        is_split_child: false,
+      }).returning('*');
+
+      // 4. Create debt_payment record linked to transaction
+      await trx('debt_payments').insert({
+        id: uuidv4(),
+        debt_id: debtId,
+        user_id: userId,
+        amount: data.amount,
+        payment_date: data.payment_date,
+        notes: data.notes || null,
+        transaction_id: transaction.id,  // Link to transaction
+      });
+
+      // 5. Update debt balance
+      const newBalance = Math.max(0, debt.current_balance - data.amount);
+      const isPaidOff = newBalance === 0;
+
+      const updateData: any = {
+        current_balance: newBalance,
+        is_paid_off: isPaidOff,
+        updated_at: trx.fn.now(),
+      };
+
+      if (isPaidOff && !debt.is_paid_off) {
+        updateData.paid_off_at = trx.fn.now();
+      }
+
+      const [updatedDebt] = await trx('debts')
+        .where({ id: debtId })
+        .update(updateData)
+        .returning('*');
+
+      // 6. Update account balance (transaction reduces account balance)
+      await trx('accounts')
+        .where({ id: data.account_id })
+        .increment('current_balance', -Math.abs(data.amount));  // Decrement by payment amount
+
+      logger.info(`Payment of ${data.amount} added to debt ${debtId}, new balance: ${newBalance}, transaction: ${transaction.id}`);
+
+      return {
+        ...updatedDebt,
+        current_balance: Number(updatedDebt.current_balance),
+        original_balance: updatedDebt.original_balance ? Number(updatedDebt.original_balance) : null,
+        interest_rate: Number(updatedDebt.interest_rate),
+        minimum_payment: Number(updatedDebt.minimum_payment),
+      };
     });
-
-    // Update debt balance
-    const newBalance = Math.max(0, debt.current_balance - data.amount);
-    const isPaidOff = newBalance === 0;
-
-    const updateData: any = {
-      current_balance: newBalance,
-      is_paid_off: isPaidOff,
-      updated_at: knex.fn.now(),
-    };
-
-    if (isPaidOff && !debt.is_paid_off) {
-      updateData.paid_off_at = knex.fn.now();
-    }
-
-    const [updated] = await knex('debts')
-      .where({ id: debtId })
-      .update(updateData)
-      .returning('*');
-
-    logger.info(`Payment of ${data.amount} added to debt ${debtId}, new balance: ${newBalance}`);
-
-    return {
-      ...updated,
-      current_balance: Number(updated.current_balance),
-      original_balance: updated.original_balance ? Number(updated.original_balance) : null,
-      interest_rate: Number(updated.interest_rate),
-      minimum_payment: Number(updated.minimum_payment),
-    };
   }
 
   /**

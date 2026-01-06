@@ -3,6 +3,7 @@ import { NotFoundError, BadRequestError } from '../middleware/errorHandler';
 import { CategoryService } from './CategoryService';
 import { IncomeService } from './IncomeService';
 import logger from '../utils/logger';
+import { v4 as uuidv4 } from 'uuid';
 
 interface BudgetMonth {
   id: string;
@@ -91,12 +92,13 @@ export class BudgetService {
    */
   static async getOrCreateBudgetMonth(
     householdId: string,
-    month: Date
+    month: Date,
+    trx: Knex | Knex.Transaction = knex
   ): Promise<BudgetMonth> {
     // Normalize to first of month
     const normalizedMonth = new Date(month.getFullYear(), month.getMonth(), 1);
 
-    let budgetMonth = await knex('budget_months')
+    let budgetMonth = await trx('budget_months')
       .where({
         household_id: householdId,
         month: normalizedMonth
@@ -109,7 +111,7 @@ export class BudgetService {
       previousMonth.setMonth(previousMonth.getMonth() - 1);
 
       // Check if previous month's budget exists
-      const previousBudget = await knex('budget_months')
+      const previousBudget = await trx('budget_months')
         .where({
           household_id: householdId,
           month: previousMonth
@@ -117,7 +119,7 @@ export class BudgetService {
         .first();
 
       // Create new budget month
-      [budgetMonth] = await knex('budget_months')
+      [budgetMonth] = await trx('budget_months')
         .insert({
           household_id: householdId,
           month: normalizedMonth
@@ -126,7 +128,7 @@ export class BudgetService {
 
       // If previous month exists, copy its allocations
       if (previousBudget) {
-        const previousAllocations = await knex('budget_allocations')
+        const previousAllocations = await trx('budget_allocations')
           .where({ budget_month_id: previousBudget.id });
 
         if (previousAllocations.length > 0) {
@@ -140,7 +142,7 @@ export class BudgetService {
             notes: alloc.notes
           }));
 
-          await knex('budget_allocations').insert(newAllocations);
+          await trx('budget_allocations').insert(newAllocations);
 
           logger.info(`Budget month ${normalizedMonth.toISOString()} created for household ${householdId} with ${newAllocations.length} allocations copied from previous month`);
         } else {
@@ -340,6 +342,23 @@ export class BudgetService {
       ])
     );
 
+    // Get extra money assignments made at section level for this month
+    const extraMoneySectionAssignments = await knex('extra_money_assignments as ema')
+      .join('extra_money_entries as eme', 'ema.extra_money_entry_id', 'eme.id')
+      .where({ 'eme.household_id': householdId })
+      .whereNotNull('ema.section_id')
+      .whereBetween('eme.received_date', [monthStart, monthEnd])
+      .select('ema.section_id')
+      .sum('ema.amount as total')
+      .groupBy('ema.section_id');
+
+    const extraMoneySectionMap = new Map(
+      extraMoneySectionAssignments.map(row => [
+        row.section_id,
+        Number(row.total || 0)
+      ])
+    );
+
     // Build section summaries (exclude Income section from budget)
     const sectionSummaries: SectionSummary[] = sections
       .filter(section => section.name !== 'Income')
@@ -417,6 +436,9 @@ export class BudgetService {
         });
       }
 
+      const extraSectionAssigned = extraMoneySectionMap.get(section.id) || 0;
+      sectionAssigned += extraSectionAssigned;
+
       return {
         section_id: section.id,
         section_name: section.name,
@@ -438,6 +460,14 @@ export class BudgetService {
     const totalAssigned = sectionSummaries.reduce((sum, sec) => sum + sec.assigned, 0);
     const totalSpent = sectionSummaries.reduce((sum, sec) => sum + sec.spent, 0);
 
+    const savingsReserveResult = await knex('extra_money_entries')
+      .where({ household_id: householdId })
+      .whereBetween('received_date', [monthStart, monthEnd])
+      .sum('savings_reserve as total')
+      .first();
+
+    const totalSavingsReserve = Number(savingsReserveResult?.total || 0);
+
     // Get total monthly PLANNED income from income sources
     const totalPlannedIncome = await IncomeService.getTotalMonthlyIncome(householdId);
 
@@ -452,9 +482,27 @@ export class BudgetService {
 
     const totalRealIncome = Number(realIncomeResult?.total || 0);
 
+    // Get total account starting balances
+    const accountBalancesResult = await knex('accounts')
+      .where({ household_id: householdId, is_active: true })
+      .sum('starting_balance as total')
+      .first();
+
+    const totalAccountBalances = Number(accountBalancesResult?.total || 0);
+
+    // Get total account balance assignments
+    const assignedBalancesResult = await knex('account_balance_assignments')
+      .where({ household_id: householdId })
+      .sum('amount as total')
+      .first();
+
+    const totalAssignedBalances = Number(assignedBalancesResult?.total || 0);
+
     // Calculate income variance and "To Be Assigned"
+    // Include both real income and unassigned account balances
     const incomeVariance = totalRealIncome - totalPlannedIncome;
-    const toBeAssigned = totalRealIncome - totalAssigned;
+    const totalAssignedWithReserve = totalAssigned + totalSavingsReserve;
+    const toBeAssigned = (totalRealIncome + totalAccountBalances) - totalAssignedWithReserve;
 
     // Calculate Goals summary (virtual section)
     const goalsContributionsResult = await knex('goal_contributions')
@@ -506,9 +554,28 @@ export class BudgetService {
     };
 
     // Add goals section if there are active goals or contributions
-    const allSections = totalGoalContributions > 0 || activeGoals.length > 0
+    const savingsReserveSummary = {
+      section_id: 'savings-reserve',
+      section_name: 'Savings Reserve',
+      section_type: 'savings_reserve',
+      allocated: 0,
+      assigned: totalSavingsReserve,
+      spent: 0,
+      remaining: 0,
+      available: totalSavingsReserve,
+      need: 0,
+      categories: [],
+      rollup_mode: true,
+      allocation_notes: null
+    };
+
+    const sectionsWithGoals = totalGoalContributions > 0 || activeGoals.length > 0
       ? [...sectionSummaries, goalsSummary]
       : sectionSummaries;
+
+    const allSections = totalSavingsReserve > 0
+      ? [...sectionsWithGoals, savingsReserveSummary]
+      : sectionsWithGoals;
 
     const result = {
       month: budgetMonth.month,
@@ -521,13 +588,13 @@ export class BudgetService {
 
       // BUDGET
       total_allocated: totalAllocated,
-      total_assigned: totalAssigned,
+      total_assigned: totalAssignedWithReserve,
       to_be_assigned: toBeAssigned,
 
       // SPENDING
       total_spent: totalSpent,
       total_remaining: totalAllocated - totalSpent,
-      total_available: totalAssigned - totalSpent,
+      total_available: totalAssignedWithReserve - totalSpent,
 
       sections: allSections
     };
@@ -584,5 +651,68 @@ export class BudgetService {
       .where({ budget_month_id: budgetMonth.id });
 
     return allocations;
+  }
+
+  /**
+   * Assign account balance to a category
+   * Used during wizard setup when users assign their existing account balances to categories
+   * This is separate from regular income-based assignments
+   */
+  static async assignAccountBalance(
+    householdId: string,
+    userId: string,
+    data: {
+      category_id: string;
+      account_id?: string | null;
+      amount: number;
+    }
+  ): Promise<BudgetAllocation> {
+    const currentMonth = new Date();
+    const budgetMonth = await this.getOrCreateBudgetMonth(householdId, currentMonth);
+
+    // 1. Create account_balance_assignment record
+    await knex('account_balance_assignments').insert({
+      id: uuidv4(),
+      household_id: householdId,
+      account_id: data.account_id || null,
+      category_id: data.category_id,
+      amount: data.amount,
+      assigned_by_user_id: userId
+    });
+
+    // 2. Find or create budget allocation for this category
+    let allocation = await knex('budget_allocations')
+      .where({
+        budget_month_id: budgetMonth.id,
+        category_id: data.category_id
+      })
+      .first();
+
+    if (!allocation) {
+      // Create new allocation if it doesn't exist
+      [allocation] = await knex('budget_allocations')
+        .insert({
+          budget_month_id: budgetMonth.id,
+          category_id: data.category_id,
+          section_id: null,
+          allocated_amount: 0,
+          assigned_amount: data.amount,
+          rollup_mode: false,
+          notes: null
+        })
+        .returning('*');
+
+      logger.info(`Created new allocation for category ${data.category_id} with assigned amount ${data.amount}`);
+    } else {
+      // Update existing allocation - increment assigned_amount
+      [allocation] = await knex('budget_allocations')
+        .where({ id: allocation.id })
+        .increment('assigned_amount', data.amount)
+        .returning('*');
+
+      logger.info(`Updated allocation ${allocation.id} - added ${data.amount} to assigned_amount`);
+    }
+
+    return allocation;
   }
 }

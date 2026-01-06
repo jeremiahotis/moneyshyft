@@ -34,12 +34,15 @@
         <p class="text-sm font-medium">✓ All income planned</p>
       </div>
       <div v-else-if="unallocated > 0" class="text-yellow-600">
-        <p class="text-sm font-medium mb-1">Ready to plan:</p>
-        <p class="text-2xl font-bold">{{ formatCurrency(unallocated) }}</p>
+        <p class="text-sm font-medium mb-1" title="Unassigned cash available for categories">Ready to plan:</p>
+        <p class="text-2xl font-bold privacy-value">{{ formatCurrency(unallocated) }}</p>
       </div>
       <div v-else class="text-red-600">
         <p class="text-sm font-medium mb-1">Over-planned by:</p>
-        <p class="text-2xl font-bold">{{ formatCurrency(Math.abs(unallocated)) }}</p>
+        <p class="text-2xl font-bold privacy-value">{{ formatCurrency(Math.abs(unallocated)) }}</p>
+        <p class="text-xs text-red-500 mt-2">
+          You’re not behind—this is just a signal to adjust or add income later.
+        </p>
       </div>
     </div>
   </div>

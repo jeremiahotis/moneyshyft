@@ -93,6 +93,38 @@ export async function createRecommendedSections(
     }))
   );
 
+  // Giving parent category with child categories
+  const [givingParent] = await knex('categories')
+    .insert({
+      household_id: householdId,
+      section_id: flexibleSection.id,
+      name: 'Giving',
+      sort_order: 7,
+      is_system: false,
+      parent_category_id: null,
+      color: null,
+      icon: null
+    })
+    .returning('*');
+
+  const givingChildren = [
+    { name: 'Donations', sort_order: 8 },
+    { name: 'Helping Friends/Family', sort_order: 9 }
+  ];
+
+  await knex('categories').insert(
+    givingChildren.map(cat => ({
+      household_id: householdId,
+      section_id: flexibleSection.id,
+      name: cat.name,
+      sort_order: cat.sort_order,
+      is_system: false,
+      parent_category_id: givingParent.id,
+      color: null,
+      icon: null
+    }))
+  );
+
   // 3. Debt Payments Section
   const [debtSection] = await knex('category_sections')
     .insert({
@@ -125,6 +157,6 @@ export async function createRecommendedSections(
 
   console.log(`✅ Recommended sections created for household ${householdId}`);
   console.log(`   - Fixed Expenses (${fixedCategories.length} categories)`);
-  console.log(`   - Flexible Spending (${flexibleCategories.length} categories)`);
+  console.log(`   - Flexible Spending (${flexibleCategories.length + givingChildren.length + 1} categories)`);
   console.log(`   - Debt Payments (${debtCategories.length} categories)`);
 }

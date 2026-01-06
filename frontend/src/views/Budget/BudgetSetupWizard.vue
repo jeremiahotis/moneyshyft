@@ -1,12 +1,21 @@
 <template>
   <div class="min-h-screen bg-gradient-to-br from-primary-50 to-secondary-50 p-4">
     <div class="max-w-2xl mx-auto">
+      <div class="flex justify-end mb-3">
+        <button
+          @click="handleLogout"
+          class="text-sm text-gray-600 hover:text-gray-900 underline"
+          type="button"
+        >
+          Log out
+        </button>
+      </div>
       <!-- Progress Bar -->
       <div class="mb-8 bg-white rounded-lg shadow p-4">
         <div class="flex justify-between items-center mb-2">
-          <span class="text-sm text-gray-600">Step {{ wizardStore.currentStep + 1 }} of 9</span>
+          <span class="text-sm text-gray-600">Step {{ wizardStore.currentStep + 1 }} of 12</span>
           <button
-            v-if="wizardStore.currentStep > 0 && wizardStore.currentStep < 8"
+            v-if="wizardStore.currentStep > 0 && wizardStore.currentStep < 11"
             @click="skipWizard"
             class="text-sm text-gray-500 hover:text-gray-700"
           >
@@ -33,39 +42,58 @@
           @next="handleIncomeNext"
           @back="wizardStore.prevStep"
         />
-        <WizardHousing
+        <WizardAccounts
           v-else-if="wizardStore.currentStep === 2"
+          :answers="wizardStore.answers"
+          @update:answers="wizardStore.updateAnswers"
+          @next="wizardStore.nextStep"
+          @back="wizardStore.prevStep"
+        />
+        <WizardHousing
+          v-else-if="wizardStore.currentStep === 3"
           @next="handleHousingNext"
           @back="wizardStore.prevStep"
         />
         <WizardTransportation
-          v-else-if="wizardStore.currentStep === 3"
+          v-else-if="wizardStore.currentStep === 4"
           @next="handleTransportationNext"
           @back="wizardStore.prevStep"
         />
         <WizardUtilities
-          v-else-if="wizardStore.currentStep === 4"
+          v-else-if="wizardStore.currentStep === 5"
           @next="handleUtilitiesNext"
           @back="wizardStore.prevStep"
         />
         <WizardDebt
-          v-else-if="wizardStore.currentStep === 5"
+          v-else-if="wizardStore.currentStep === 6"
           @next="handleDebtNext"
           @back="wizardStore.prevStep"
         />
         <WizardFlexible
-          v-else-if="wizardStore.currentStep === 6"
+          v-else-if="wizardStore.currentStep === 7"
           @next="handleFlexibleNext"
           @back="wizardStore.prevStep"
         />
+        <WizardExtraMoney
+          v-else-if="wizardStore.currentStep === 8"
+          @next="handleExtraMoneyNext"
+          @back="wizardStore.prevStep"
+        />
         <WizardReview
-          v-else-if="wizardStore.currentStep === 7"
+          v-else-if="wizardStore.currentStep === 9"
           :answers="wizardStore.answers"
           @next="handleReviewNext"
           @back="wizardStore.prevStep"
         />
+        <WizardAssignBalances
+          v-else-if="wizardStore.currentStep === 10"
+          :answers="wizardStore.answers"
+          @update:assignments="handleAssignmentsUpdate"
+          @next="handleAssignBalancesNext"
+          @back="wizardStore.prevStep"
+        />
         <WizardComplete
-          v-else-if="wizardStore.currentStep === 8"
+          v-else-if="wizardStore.currentStep === 11"
           @done="completeWizard"
         />
       </transition>
@@ -76,32 +104,40 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { useRouter } from 'vue-router';
+import { useAuthStore } from '@/stores/auth';
 import { useWizardStore } from '@/stores/wizard';
 import { useIncomeStore } from '@/stores/income';
+import { useAccountsStore } from '@/stores/accounts';
 import { useCategoriesStore } from '@/stores/categories';
 import { useBudgetsStore } from '@/stores/budgets';
 import { useDebtsStore } from '@/stores/debts';
+import api from '@/services/api';
 
 // Import wizard step components
 import WizardWelcome from '@/components/wizard/WizardWelcome.vue';
 import WizardIncome from '@/components/wizard/WizardIncome.vue';
+import WizardAccounts from '@/components/wizard/WizardAccounts.vue';
 import WizardHousing from '@/components/wizard/WizardHousing.vue';
 import WizardTransportation from '@/components/wizard/WizardTransportation.vue';
 import WizardUtilities from '@/components/wizard/WizardUtilities.vue';
 import WizardDebt from '@/components/wizard/WizardDebt.vue';
 import WizardFlexible from '@/components/wizard/WizardFlexible.vue';
+import WizardExtraMoney from '@/components/wizard/WizardExtraMoney.vue';
 import WizardReview from '@/components/wizard/WizardReview.vue';
+import WizardAssignBalances from '@/components/wizard/WizardAssignBalances.vue';
 import WizardComplete from '@/components/wizard/WizardComplete.vue';
 
 const router = useRouter();
+const authStore = useAuthStore();
 const wizardStore = useWizardStore();
 const incomeStore = useIncomeStore();
+const accountsStore = useAccountsStore();  // NEW
 const categoriesStore = useCategoriesStore();
 const budgetsStore = useBudgetsStore();
 const debtsStore = useDebtsStore();
 
 const progressPercent = computed(() => {
-  return ((wizardStore.currentStep + 1) / 9) * 100;
+  return ((wizardStore.currentStep + 1) / 12) * 100;
 });
 
 function skipWizard() {
@@ -140,9 +176,28 @@ async function handleFlexibleNext(data: any) {
   wizardStore.nextStep();
 }
 
+async function handleExtraMoneyNext(data: any) {
+  wizardStore.updateAnswers({ extra_money_percentages: data });
+  wizardStore.nextStep();
+}
+
 async function handleReviewNext() {
-  // Create everything!
+  // Create budget, categories, accounts, etc.
   await createBudgetFromWizard();
+
+  // Now move to balance assignment step
+  wizardStore.nextStep();
+}
+
+function handleAssignmentsUpdate(assignments: Record<string, number>) {
+  wizardStore.updateAnswers({ balance_assignments: assignments });
+}
+
+async function handleAssignBalancesNext() {
+  // Apply balance assignments to categories
+  await applyBalanceAssignments();
+
+  // Move to completion step
   wizardStore.nextStep();
 }
 
@@ -151,38 +206,66 @@ async function createBudgetFromWizard() {
   const currentMonth = new Date().toISOString().slice(0, 7);
 
   try {
+    await categoriesStore.fetchCategories();
+
+    const findSection = (name: string, type: 'fixed' | 'flexible' | 'debt') => {
+      return categoriesStore.sections.find(section => section.name === name && section.type === type);
+    };
+
+    const ensureSection = async (name: string, type: 'fixed' | 'flexible' | 'debt') => {
+      const existing = findSection(name, type);
+      return existing || await categoriesStore.createSection({ name, type });
+    };
+
+    const findCategory = (sectionId: string, name: string) => {
+      const section = categoriesStore.sections.find(s => s.id === sectionId);
+      return section?.categories?.find(cat => cat.name === name);
+    };
+
+    const ensureCategory = async (sectionId: string, name: string) => {
+      const existing = findCategory(sectionId, name);
+      return existing || await categoriesStore.createCategory({ section_id: sectionId, name });
+    };
+
     // 1. Create income sources
     if (answers.income_sources && answers.income_sources.length > 0) {
       for (const source of answers.income_sources) {
         await incomeStore.createIncomeSource({
           name: source.name,
-          monthly_amount: source.amount,
+          monthly_amount: source.monthly_amount,
+          frequency: source.frequency,
+          expected_day_of_month: source.expected_day_of_month,
+          hours_per_week: source.hours_per_week,
+          last_payment_date: source.last_payment_date
+        });
+      }
+    }
+
+    // 1.5. Create accounts from wizard (NEW)
+    if (answers.accounts && answers.accounts.length > 0) {
+      for (const accountData of answers.accounts) {
+        await accountsStore.createAccount({
+          name: accountData.name,
+          type: accountData.type,
+          starting_balance: accountData.current_balance,
+          current_balance: accountData.current_balance,
         });
       }
     }
 
     // 2. Create Fixed Expenses section and categories
-    const fixedSection = await categoriesStore.createSection({
-      name: 'Fixed Expenses',
-      type: 'fixed',
-    });
+    const fixedSection = await ensureSection('Fixed Expenses', 'fixed');
 
     // Housing
     if (answers.housing_type === 'rent' && answers.housing_amount) {
-      const rentCat = await categoriesStore.createCategory({
-        section_id: fixedSection.id,
-        name: 'Rent',
-      });
+      const rentCat = await ensureCategory(fixedSection.id, 'Rent/Mortgage');
       await budgetsStore.setAllocation(currentMonth, {
         category_id: rentCat.id,
         allocated_amount: answers.housing_amount,
         rollup_mode: false,
       });
     } else if (answers.housing_type === 'own' && answers.housing_amount) {
-      const mortgageCat = await categoriesStore.createCategory({
-        section_id: fixedSection.id,
-        name: 'Mortgage',
-      });
+      const mortgageCat = await ensureCategory(fixedSection.id, 'Rent/Mortgage');
       await budgetsStore.setAllocation(currentMonth, {
         category_id: mortgageCat.id,
         allocated_amount: answers.housing_amount,
@@ -190,42 +273,31 @@ async function createBudgetFromWizard() {
       });
     }
 
-    // Car payments (multiple cars)
-    if (answers.has_car_payment && answers.car_payments) {
-      for (const payment of answers.car_payments) {
-        const carCat = await categoriesStore.createCategory({
-          section_id: fixedSection.id,
-          name: `Car Payment - ${payment.name}`,
-        });
-        await budgetsStore.setAllocation(currentMonth, {
-          category_id: carCat.id,
-          allocated_amount: payment.amount,
-          rollup_mode: false,
-        });
-      }
+    // Car payments (sum into base category)
+    if (answers.has_car_payment && answers.car_payments && answers.car_payments.length > 0) {
+      const totalCarPayments = answers.car_payments.reduce((sum, payment) => sum + payment.amount, 0);
+      const carCat = await ensureCategory(fixedSection.id, 'Car Payment');
+      await budgetsStore.setAllocation(currentMonth, {
+        category_id: carCat.id,
+        allocated_amount: totalCarPayments,
+        rollup_mode: false,
+      });
     }
 
-    // Car insurance (multiple vehicles)
-    if (answers.has_car_insurance && answers.car_insurance_payments) {
-      for (const insurance of answers.car_insurance_payments) {
-        const insuranceCat = await categoriesStore.createCategory({
-          section_id: fixedSection.id,
-          name: `Car Insurance - ${insurance.name}`,
-        });
-        await budgetsStore.setAllocation(currentMonth, {
-          category_id: insuranceCat.id,
-          allocated_amount: insurance.amount,
-          rollup_mode: false,
-        });
-      }
+    // Car insurance (sum into base category)
+    if (answers.has_car_insurance && answers.car_insurance_payments && answers.car_insurance_payments.length > 0) {
+      const totalInsurance = answers.car_insurance_payments.reduce((sum, payment) => sum + payment.amount, 0);
+      const insuranceCat = await ensureCategory(fixedSection.id, 'Insurance');
+      await budgetsStore.setAllocation(currentMonth, {
+        category_id: insuranceCat.id,
+        allocated_amount: totalInsurance,
+        rollup_mode: false,
+      });
     }
 
     // Utilities
     if (answers.utilities_estimate) {
-      const utilitiesCat = await categoriesStore.createCategory({
-        section_id: fixedSection.id,
-        name: 'Utilities',
-      });
+      const utilitiesCat = await ensureCategory(fixedSection.id, 'Utilities');
       await budgetsStore.setAllocation(currentMonth, {
         category_id: utilitiesCat.id,
         allocated_amount: answers.utilities_estimate,
@@ -235,10 +307,7 @@ async function createBudgetFromWizard() {
 
     // Internet & Phone
     if (answers.internet_phone_estimate) {
-      const internetCat = await categoriesStore.createCategory({
-        section_id: fixedSection.id,
-        name: 'Internet & Phone',
-      });
+      const internetCat = await ensureCategory(fixedSection.id, 'Internet & Phone');
       await budgetsStore.setAllocation(currentMonth, {
         category_id: internetCat.id,
         allocated_amount: answers.internet_phone_estimate,
@@ -283,16 +352,16 @@ async function createBudgetFromWizard() {
     ].reduce((sum, debt) => sum + debt.minimum_payment, 0);
 
     if (totalDebtPayments > 0) {
-      const debtSection = await categoriesStore.createSection({
-        name: 'Debt Payments',
-        type: 'debt',
-      });
+      const debtSection = await ensureSection('Debt Payments', 'debt');
 
-      // Create a single category for all debt payments
-      const debtCat = await categoriesStore.createCategory({
-        section_id: debtSection.id,
-        name: 'Minimum Debt Payments',
-      });
+      const existingDebtCategories = debtSection.categories || [];
+      for (const category of existingDebtCategories) {
+        if (category.name !== 'Minimum Debt Payments') {
+          await categoriesStore.deleteCategory(category.id);
+        }
+      }
+
+      const debtCat = await ensureCategory(debtSection.id, 'Minimum Debt Payments');
 
       await budgetsStore.setAllocation(currentMonth, {
         category_id: debtCat.id,
@@ -302,36 +371,44 @@ async function createBudgetFromWizard() {
     }
 
     // 4. Create Flexible Spending section
-    const flexSection = await categoriesStore.createSection({
-      name: 'Flexible Spending',
-      type: 'flexible',
-    });
+    const flexSection = await ensureSection('Flexible Spending', 'flexible');
 
     // Create categories for tracking
-    await categoriesStore.createCategory({
-      section_id: flexSection.id,
-      name: 'Groceries',
-    });
-    await categoriesStore.createCategory({
-      section_id: flexSection.id,
-      name: 'Dining Out',
-    });
-    await categoriesStore.createCategory({
-      section_id: flexSection.id,
-      name: 'Entertainment',
-    });
+    await ensureCategory(flexSection.id, 'Groceries');
+    await ensureCategory(flexSection.id, 'Dining Out');
+    await ensureCategory(flexSection.id, 'Entertainment');
+    await ensureCategory(flexSection.id, 'Gas & Transportation');
+    await ensureCategory(flexSection.id, 'Shopping');
+    await ensureCategory(flexSection.id, 'Personal Care');
 
-    // Calculate flexible spending amount
-    const flexTotal = (answers.groceries_estimate || 0) +
-                      (answers.dining_out_estimate || 0) +
-                      (answers.entertainment_estimate || 0);
+    const flexAllocations = [
+      { name: 'Groceries', amount: answers.groceries_estimate || 0 },
+      { name: 'Dining Out', amount: answers.dining_out_estimate || 0 },
+      { name: 'Entertainment', amount: answers.entertainment_estimate || 0 },
+      { name: 'Gas & Transportation', amount: answers.gas_transportation_estimate || 0 },
+      { name: 'Shopping', amount: answers.shopping_estimate || 0 },
+      { name: 'Personal Care', amount: answers.personal_care_estimate || 0 }
+    ];
 
-    if (flexTotal > 0) {
-      await budgetsStore.setAllocation(currentMonth, {
-        section_id: flexSection.id,
-        allocated_amount: flexTotal,
-        rollup_mode: true,
-      });
+    for (const allocation of flexAllocations) {
+      if (allocation.amount > 0) {
+        const category = await ensureCategory(flexSection.id, allocation.name);
+        await budgetsStore.setAllocation(currentMonth, {
+          category_id: category.id,
+          allocated_amount: allocation.amount,
+          rollup_mode: false,
+        });
+      }
+    }
+
+    // 5. Save Extra Money preferences (if provided)
+    if (answers.extra_money_percentages) {
+      try {
+        await api.post('/extra-money/preferences', answers.extra_money_percentages);
+      } catch (error) {
+        console.error('Error saving extra money preferences:', error);
+        // Don't fail the wizard if this fails - preferences can be set later
+      }
     }
 
     // Refresh budget to show everything
@@ -342,9 +419,53 @@ async function createBudgetFromWizard() {
   }
 }
 
-function completeWizard() {
-  wizardStore.markComplete();
-  router.push('/budget');
+async function applyBalanceAssignments() {
+  const assignments = wizardStore.answers.balance_assignments;
+
+  if (!assignments || Object.keys(assignments).length === 0) {
+    // No assignments to apply - user skipped this step
+    return;
+  }
+
+  try {
+    // Send each assignment to the backend API
+    for (const [categoryId, amount] of Object.entries(assignments)) {
+      if (amount > 0) {
+        await api.post('/budgets/assign-account-balance', {
+          category_id: categoryId,
+          amount: amount,
+        });
+      }
+    }
+
+    // Refresh budget to show updated assignments
+    const currentMonth = new Date().toISOString().slice(0, 7);
+    await budgetsStore.fetchBudgetSummary(currentMonth);
+  } catch (error) {
+    console.error('Error applying balance assignments:', error);
+    alert('There was an error assigning your account balances. Please try again.');
+    throw error;
+  }
+}
+
+async function completeWizard() {
+  try {
+    await api.patch('/households/setup-wizard');
+    if (authStore.user) {
+      authStore.user.setupWizardCompleted = true;
+    }
+  } catch (error) {
+    console.error('Failed to mark setup wizard complete:', error);
+  } finally {
+    wizardStore.markComplete();
+    router.push('/budget');
+  }
+}
+
+async function handleLogout() {
+  await authStore.logout();
+  wizardStore.reset();
+  router.push('/login');
 }
 </script>
 

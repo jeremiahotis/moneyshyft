@@ -7,6 +7,10 @@ export interface IncomeSource {
   household_id: string;
   name: string;
   monthly_amount: number;
+  frequency: 'hourly' | 'weekly' | 'biweekly' | 'semimonthly' | 'monthly' | 'annually' | null;
+  expected_day_of_month: number | null;
+  hours_per_week: number | null;
+  last_payment_date: string | null;
   is_active: boolean;
   sort_order: number;
   notes: string | null;
@@ -17,6 +21,10 @@ export interface IncomeSource {
 export interface CreateIncomeSourceData {
   name: string;
   monthly_amount: number;
+  frequency?: 'hourly' | 'weekly' | 'biweekly' | 'semimonthly' | 'monthly' | 'annually';
+  expected_day_of_month?: number | null;
+  hours_per_week?: number | null;
+  last_payment_date?: string | null;
   is_active?: boolean;
   notes?: string;
 }
@@ -24,6 +32,10 @@ export interface CreateIncomeSourceData {
 export interface UpdateIncomeSourceData {
   name?: string;
   monthly_amount?: number;
+  frequency?: 'hourly' | 'weekly' | 'biweekly' | 'semimonthly' | 'monthly' | 'annually' | null;
+  expected_day_of_month?: number | null;
+  hours_per_week?: number | null;
+  last_payment_date?: string | null;
   is_active?: boolean;
   sort_order?: number;
   notes?: string;
@@ -74,6 +86,10 @@ export class IncomeService {
         household_id: householdId,
         name: data.name,
         monthly_amount: data.monthly_amount,
+        frequency: data.frequency || null,
+        expected_day_of_month: data.expected_day_of_month ?? null,
+        hours_per_week: data.hours_per_week ?? null,
+        last_payment_date: data.last_payment_date ?? null,
         is_active: data.is_active ?? true,
         sort_order: nextOrder,
         notes: data.notes || null,

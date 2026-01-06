@@ -181,6 +181,23 @@ docker-compose restart
 PGPASSWORD=<password> psql -h localhost -U <username> -d moneyshyft
 ```
 
+## Feature Completeness Standards
+
+**Definition of "Complete" or "Functional" Feature:**
+- A feature is NOT complete until it has a fully working user interface that allows users to perform all CRUD operations
+- Backend APIs alone do NOT constitute a "fully functional" feature
+- A complete feature requires:
+  - ✅ Database schema and migrations
+  - ✅ Backend service layer and API endpoints
+  - ✅ Frontend types and Pinia store
+  - ✅ UI components (forms, modals, lists)
+  - ✅ Integration in views/pages where users can access the feature
+  - ✅ Full end-to-end user workflow testing
+
+**Example:**
+- ❌ "Recurring transactions are fully functional" when only backend API exists
+- ✅ "Recurring transactions are fully functional" when users can create, view, edit, and delete them via the UI
+
 ## Important Patterns
 
 **Household Data Isolation:**

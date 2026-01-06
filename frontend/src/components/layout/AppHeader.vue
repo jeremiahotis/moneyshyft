@@ -63,6 +63,12 @@
                 class="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50"
                 @mousedown.prevent
               >
+                <button
+                  @click="togglePrivacyMode"
+                  class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition"
+                >
+                  {{ isPrivacyMode ? '🙈 Privacy Mode: On' : '👀 Privacy Mode: Off' }}
+                </button>
                 <router-link
                   to="/settings"
                   @click="showUserMenu = false"
@@ -137,6 +143,12 @@
               <span>{{ authStore.fullName }}</span>
             </div>
             <button
+              @click="togglePrivacyMode"
+              class="w-full mt-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded-lg transition font-medium"
+            >
+              {{ isPrivacyMode ? '🙈 Privacy Mode: On' : '👀 Privacy Mode: Off' }}
+            </button>
+            <button
               @click="handleLogoutAndClose"
               class="w-full mt-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition font-medium"
             >
@@ -150,7 +162,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import { useAuthStore } from '@/stores/auth';
 import { useRouter, useRoute } from 'vue-router';
 
@@ -160,12 +172,15 @@ const route = useRoute();
 
 const showMobileMenu = ref(false);
 const showUserMenu = ref(false);
+const isPrivacyMode = ref(false);
+const PRIVACY_KEY = 'moneyshyft_privacy_mode';
 
 const navItems = [
   { name: 'dashboard', label: 'Dashboard', icon: '📊', path: '/' },
   { name: 'accounts', label: 'Accounts', icon: '💰', path: '/accounts' },
   { name: 'transactions', label: 'Transactions', icon: '📝', path: '/transactions' },
   { name: 'budget', label: 'Budget', icon: '📈', path: '/budget' },
+  { name: 'extra-money', label: 'Extra Money', icon: '💸', path: '/extra-money' },
   { name: 'debts', label: 'Debts', icon: '💳', path: '/debts' },
   { name: 'goals', label: 'Goals', icon: '🎯', path: '/goals' },
 ];
@@ -180,6 +195,25 @@ function closeUserMenu() {
     showUserMenu.value = false;
   }, 200);
 }
+
+function applyPrivacyMode(value: boolean) {
+  isPrivacyMode.value = value;
+  const root = document.documentElement;
+  root.classList.toggle('privacy-mode', value);
+  localStorage.setItem(PRIVACY_KEY, value ? 'on' : 'off');
+}
+
+function togglePrivacyMode() {
+  applyPrivacyMode(!isPrivacyMode.value);
+  showUserMenu.value = false;
+}
+
+onMounted(() => {
+  const stored = localStorage.getItem(PRIVACY_KEY);
+  if (stored === 'on') {
+    applyPrivacyMode(true);
+  }
+});
 
 async function handleLogout() {
   showUserMenu.value = false;

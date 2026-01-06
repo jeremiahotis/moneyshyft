@@ -5,7 +5,7 @@
         Everyday spending 🛒
       </h2>
       <p class="text-gray-600">
-        Let's estimate what you typically spend on groceries, dining out, and fun stuff each month.
+        Let's estimate what you typically spend on flexible categories each month.
       </p>
     </div>
 
@@ -78,6 +78,66 @@
       </p>
     </div>
 
+    <!-- Gas & Transportation -->
+    <div class="mb-6">
+      <label class="block text-sm font-medium text-gray-700 mb-1">
+        Gas & transportation
+      </label>
+      <div class="relative">
+        <span class="absolute left-3 top-3 text-gray-500">$</span>
+        <input
+          v-model.number="gasTransportationEstimate"
+          type="number"
+          step="0.01"
+          placeholder="0.00"
+          class="w-full pl-8 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+        />
+      </div>
+      <p class="text-xs text-gray-500 mt-2">
+        💡 Tip: Fuel, transit passes, rideshare, parking
+      </p>
+    </div>
+
+    <!-- Shopping -->
+    <div class="mb-6">
+      <label class="block text-sm font-medium text-gray-700 mb-1">
+        Shopping
+      </label>
+      <div class="relative">
+        <span class="absolute left-3 top-3 text-gray-500">$</span>
+        <input
+          v-model.number="shoppingEstimate"
+          type="number"
+          step="0.01"
+          placeholder="0.00"
+          class="w-full pl-8 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+        />
+      </div>
+      <p class="text-xs text-gray-500 mt-2">
+        💡 Tip: Clothing, household items, misc purchases
+      </p>
+    </div>
+
+    <!-- Personal Care -->
+    <div class="mb-6">
+      <label class="block text-sm font-medium text-gray-700 mb-1">
+        Personal care
+      </label>
+      <div class="relative">
+        <span class="absolute left-3 top-3 text-gray-500">$</span>
+        <input
+          v-model.number="personalCareEstimate"
+          type="number"
+          step="0.01"
+          placeholder="0.00"
+          class="w-full pl-8 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+        />
+      </div>
+      <p class="text-xs text-gray-500 mt-2">
+        💡 Tip: Haircuts, toiletries, self-care subscriptions
+      </p>
+    </div>
+
     <!-- Total display -->
     <div v-if="totalFlexible > 0" class="mb-6 p-4 bg-primary-50 border border-primary-200 rounded-lg">
       <div class="flex justify-between items-center">
@@ -133,6 +193,9 @@ const emit = defineEmits<{
     groceries_estimate?: number;
     dining_out_estimate?: number;
     entertainment_estimate?: number;
+    gas_transportation_estimate?: number;
+    shopping_estimate?: number;
+    personal_care_estimate?: number;
   }];
   back: [];
 }>();
@@ -142,6 +205,9 @@ const wizardStore = useWizardStore();
 const groceriesEstimate = ref(0);
 const diningOutEstimate = ref(0);
 const entertainmentEstimate = ref(0);
+const gasTransportationEstimate = ref(0);
+const shoppingEstimate = ref(0);
+const personalCareEstimate = ref(0);
 
 onMounted(() => {
   // Pre-populate from stored answers if they exist
@@ -154,12 +220,24 @@ onMounted(() => {
   if (wizardStore.answers.entertainment_estimate) {
     entertainmentEstimate.value = wizardStore.answers.entertainment_estimate;
   }
+  if (wizardStore.answers.gas_transportation_estimate) {
+    gasTransportationEstimate.value = wizardStore.answers.gas_transportation_estimate;
+  }
+  if (wizardStore.answers.shopping_estimate) {
+    shoppingEstimate.value = wizardStore.answers.shopping_estimate;
+  }
+  if (wizardStore.answers.personal_care_estimate) {
+    personalCareEstimate.value = wizardStore.answers.personal_care_estimate;
+  }
 });
 
 const totalFlexible = computed(() => {
   return (groceriesEstimate.value || 0) +
          (diningOutEstimate.value || 0) +
-         (entertainmentEstimate.value || 0);
+         (entertainmentEstimate.value || 0) +
+         (gasTransportationEstimate.value || 0) +
+         (shoppingEstimate.value || 0) +
+         (personalCareEstimate.value || 0);
 });
 
 function handleNext() {
@@ -167,6 +245,9 @@ function handleNext() {
     groceries_estimate: groceriesEstimate.value || undefined,
     dining_out_estimate: diningOutEstimate.value || undefined,
     entertainment_estimate: entertainmentEstimate.value || undefined,
+    gas_transportation_estimate: gasTransportationEstimate.value || undefined,
+    shopping_estimate: shoppingEstimate.value || undefined,
+    personal_care_estimate: personalCareEstimate.value || undefined,
   });
 }
 

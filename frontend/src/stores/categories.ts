@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import api from '@/services/api';
 import type { CategorySection } from '@/types';
 
@@ -8,6 +8,11 @@ export const useCategoriesStore = defineStore('categories', () => {
   const sections = ref<CategorySection[]>([]);
   const isLoading = ref(false);
   const error = ref<string | null>(null);
+
+  // Computed - Flat list of all categories across all sections
+  const categories = computed(() => {
+    return sections.value.flatMap(section => section.categories || []);
+  });
 
   // Actions
   async function fetchCategories(): Promise<void> {
@@ -174,6 +179,7 @@ export const useCategoriesStore = defineStore('categories', () => {
   return {
     // State
     sections,
+    categories,  // Flat list of all categories
     isLoading,
     error,
     // Actions

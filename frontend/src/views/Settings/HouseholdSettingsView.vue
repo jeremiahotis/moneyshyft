@@ -74,6 +74,41 @@
           </div>
         </div>
 
+        <!-- Extra Money Settings -->
+        <div class="bg-white rounded-lg shadow p-6">
+          <h2 class="text-xl font-semibold text-gray-900 mb-4">Extra Money Detection</h2>
+          <p class="text-sm text-gray-600 mb-4">
+            Set the minimum amount that should trigger extra money detection.
+          </p>
+          <div class="flex items-center gap-4">
+            <div class="flex-1">
+              <label class="block text-sm text-gray-600 mb-1">Detection Threshold</label>
+              <div class="flex items-center gap-2">
+                <span class="text-gray-500">$</span>
+                <input
+                  v-model.number="extraMoneyThreshold"
+                  type="number"
+                  min="0"
+                  step="1"
+                  class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-primary-500"
+                />
+              </div>
+              <p class="text-xs text-gray-500 mt-1">
+                Default is $100. Transactions below this amount won’t be flagged.
+              </p>
+            </div>
+            <button
+              @click="saveSettings"
+              :disabled="isSavingSettings"
+              class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
+            >
+              {{ isSavingSettings ? 'Saving...' : 'Save' }}
+            </button>
+          </div>
+        </div>
+
+        <ExtraMoneyPlanSettings />
+
         <!-- Household Members Card (optional - can be added later) -->
         <!-- Future enhancement: List all household members with their roles -->
       </div>
@@ -84,6 +119,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import api from '@/services/api';
+import ExtraMoneyPlanSettings from '@/components/settings/ExtraMoneyPlanSettings.vue';
 
 interface HouseholdData {
   name: string;
@@ -91,22 +127,38 @@ interface HouseholdData {
   memberCount: number;
 }
 
+interface HouseholdSettings {
+  extra_money_threshold: number;
+}
+
 const isLoading = ref(false);
 const error = ref<string | null>(null);
 const householdData = ref<HouseholdData | null>(null);
 const copied = ref(false);
+const extraMoneyThreshold = ref(100);
+const isSavingSettings = ref(false);
 
 async function loadHouseholdData() {
   isLoading.value = true;
   error.value = null;
 
   try {
-    const response = await api.get('/households/current');
+    const [householdResponse, settingsResponse] = await Promise.all([
+      api.get('/households/current'),
+      api.get('/settings')
+    ]);
+
+    const response = householdResponse;
     householdData.value = {
       name: response.data.name,
       invitationCode: response.data.invitation_code,
       memberCount: response.data.member_count || 1
     };
+
+    const settings = settingsResponse.data.data as HouseholdSettings;
+    if (settings?.extra_money_threshold !== undefined && settings?.extra_money_threshold !== null) {
+      extraMoneyThreshold.value = Number(settings.extra_money_threshold);
+    }
   } catch (err: any) {
     error.value = err.response?.data?.error || err.message || 'Failed to load household data';
   } finally {
@@ -127,6 +179,19 @@ async function copyInvitationCode() {
     }, 2000);
   } catch (err) {
     alert('Failed to copy code. Please copy manually.');
+  }
+}
+
+async function saveSettings() {
+  isSavingSettings.value = true;
+  try {
+    await api.patch('/settings', {
+      extra_money_threshold: extraMoneyThreshold.value
+    });
+  } catch (err: any) {
+    alert(err.response?.data?.error || 'Failed to save settings');
+  } finally {
+    isSavingSettings.value = false;
   }
 }
 

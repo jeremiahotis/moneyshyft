@@ -52,6 +52,37 @@
             </select>
           </div>
 
+          <!-- Expected Pay Day (monthly) -->
+          <div v-if="formData.frequency === 'monthly'" class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+              Expected pay day of month <span class="text-red-500">*</span>
+            </label>
+            <input
+              v-model.number="formData.expected_day_of_month"
+              type="number"
+              min="1"
+              max="31"
+              placeholder="1"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              required
+            />
+            <p class="text-xs text-gray-500 mt-1">Used to recognize regular deposits.</p>
+          </div>
+
+          <!-- Last Payment Date (weekly/biweekly) -->
+          <div v-if="formData.frequency === 'weekly' || formData.frequency === 'biweekly'" class="mb-4">
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+              Last payment date <span class="text-red-500">*</span>
+            </label>
+            <input
+              v-model="formData.last_payment_date"
+              type="date"
+              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              required
+            />
+            <p class="text-xs text-gray-500 mt-1">Helps predict your next expected deposit.</p>
+          </div>
+
           <!-- Amount Input (varies by frequency) -->
           <div class="mb-4">
             <label class="block text-sm font-medium text-gray-700 mb-1">
@@ -172,6 +203,8 @@ const formData = ref({
   frequency: 'monthly' as 'hourly' | 'weekly' | 'biweekly' | 'semimonthly' | 'monthly' | 'annually',
   amount: 0,
   hours_per_week: 40,
+  expected_day_of_month: 1,
+  last_payment_date: null as string | null,
   notes: '',
 });
 
@@ -216,8 +249,10 @@ const isValid = computed(() => {
   const isNameValid = formData.value.name.trim().length > 0;
   const isAmountValid = formData.value.amount > 0;
   const isHoursValid = formData.value.frequency !== 'hourly' || formData.value.hours_per_week > 0;
+  const isExpectedDayValid = formData.value.frequency !== 'monthly' || (formData.value.expected_day_of_month >= 1 && formData.value.expected_day_of_month <= 31);
+  const isLastPaymentValid = !['weekly', 'biweekly'].includes(formData.value.frequency) || !!formData.value.last_payment_date;
 
-  return isNameValid && isAmountValid && isHoursValid && monthlyAmount.value > 0;
+  return isNameValid && isAmountValid && isHoursValid && isExpectedDayValid && isLastPaymentValid && monthlyAmount.value > 0;
 });
 
 // Conversion helper (mirrors backend logic)
@@ -253,9 +288,11 @@ watch(() => props.income, (newIncome) => {
     // When editing, we only have the monthly amount, so default to monthly frequency
     formData.value = {
       name: newIncome.name,
-      frequency: 'monthly',
+      frequency: newIncome.frequency || 'monthly',
       amount: Number(newIncome.monthly_amount),
-      hours_per_week: 40,
+      hours_per_week: newIncome.hours_per_week ?? 40,
+      expected_day_of_month: newIncome.expected_day_of_month ?? 1,
+      last_payment_date: newIncome.last_payment_date ?? null,
       notes: newIncome.notes || '',
     };
   } else {
@@ -269,6 +306,8 @@ function resetForm() {
     frequency: 'monthly',
     amount: 0,
     hours_per_week: 40,
+    expected_day_of_month: 1,
+    last_payment_date: null,
     notes: '',
   };
 }
@@ -283,6 +322,10 @@ async function handleSubmit() {
       await incomeStore.updateIncomeSource(props.income.id, {
         name: formData.value.name,
         monthly_amount: monthlyAmount.value,
+        frequency: formData.value.frequency,
+        expected_day_of_month: formData.value.frequency === 'monthly' ? formData.value.expected_day_of_month : null,
+        hours_per_week: formData.value.frequency === 'hourly' ? formData.value.hours_per_week : null,
+        last_payment_date: ['weekly', 'biweekly'].includes(formData.value.frequency) ? formData.value.last_payment_date : null,
         notes: formData.value.notes || undefined,
       });
     } else {
@@ -290,6 +333,10 @@ async function handleSubmit() {
       await incomeStore.createIncomeSource({
         name: formData.value.name,
         monthly_amount: monthlyAmount.value,
+        frequency: formData.value.frequency,
+        expected_day_of_month: formData.value.frequency === 'monthly' ? formData.value.expected_day_of_month : null,
+        hours_per_week: formData.value.frequency === 'hourly' ? formData.value.hours_per_week : null,
+        last_payment_date: ['weekly', 'biweekly'].includes(formData.value.frequency) ? formData.value.last_payment_date : null,
         notes: formData.value.notes || undefined,
       });
     }

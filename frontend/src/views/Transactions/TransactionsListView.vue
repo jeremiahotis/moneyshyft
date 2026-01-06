@@ -4,12 +4,20 @@
       <!-- Header -->
       <div class="flex items-center justify-between mb-6">
         <h1 class="text-2xl font-bold text-gray-900">Transactions</h1>
-        <button
-          @click="showAddModal = true"
-          class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium"
-        >
-          + Add Transaction
-        </button>
+        <div class="flex gap-2">
+          <button
+            @click="$router.push('/recurring-transactions')"
+            class="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium"
+          >
+            📅 Manage Recurring
+          </button>
+          <button
+            @click="showAddModal = true"
+            class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium"
+          >
+            + Add Transaction
+          </button>
+        </div>
       </div>
 
       <!-- Loading State -->
@@ -26,7 +34,7 @@
         >
           <div class="flex items-start justify-between">
             <div class="flex-1">
-              <div class="flex items-center gap-2">
+              <div class="flex items-center gap-2 flex-wrap">
                 <h3 class="font-medium text-gray-900">{{ transaction.payee }}</h3>
                 <span
                   v-if="transaction.is_cleared"
@@ -41,15 +49,31 @@
               <p v-if="transaction.notes" class="text-sm text-gray-600 mt-1">
                 {{ transaction.notes }}
               </p>
+
+              <!-- Split Indicator (async loaded when needed) -->
+              <div v-if="!transaction.is_split_child && transaction.parent_transaction_id === null" class="mt-2">
+                <TransactionSplitIndicator
+                  v-if="splitDetailsCache.has(transaction.id)"
+                  :splits="splitDetailsCache.get(transaction.id) || []"
+                  :categories="allCategories"
+                />
+                <button
+                  v-else-if="transaction.category_id === null"
+                  @click="getSplitDetails(transaction.id)"
+                  class="text-xs text-blue-600 hover:text-blue-700 underline"
+                >
+                  Show splits
+                </button>
+              </div>
             </div>
             <div class="text-right">
               <p
                 :class="transaction.amount >= 0 ? 'text-green-600' : 'text-red-600'"
-                class="font-semibold"
+                class="font-semibold privacy-value"
               >
                 {{ formatCurrency(transaction.amount) }}
               </p>
-              <div class="flex gap-2 justify-end mt-1">
+              <div class="flex gap-2 justify-end mt-1 flex-wrap">
                 <button
                   @click="editTransaction(transaction)"
                   class="text-xs text-gray-600 hover:text-gray-900"
@@ -62,6 +86,29 @@
                   class="text-xs text-primary-600 hover:text-primary-700"
                 >
                   Mark Cleared
+                </button>
+
+                <!-- Split Actions -->
+                <button
+                  v-if="transaction.category_id === null && !transaction.is_split_child"
+                  @click="openEditSplitModal(transaction)"
+                  class="text-xs text-blue-600 hover:text-blue-700"
+                >
+                  Edit Splits
+                </button>
+                <button
+                  v-else-if="!transaction.is_split_child && transaction.parent_transaction_id === null"
+                  @click="openSplitModal(transaction)"
+                  class="text-xs text-blue-600 hover:text-blue-700"
+                >
+                  Split
+                </button>
+                <button
+                  v-if="transaction.category_id === null && !transaction.is_split_child"
+                  @click="unsplitTransaction(transaction)"
+                  class="text-xs text-red-600 hover:text-red-700"
+                >
+                  Unsplit
                 </button>
               </div>
             </div>
@@ -252,6 +299,29 @@
                 This transaction will count as a contribution to the selected goal
               </p>
             </div>
+
+            <!-- Debt Selector - only show when "Debt Payments" category is selected -->
+            <div v-if="selectedCategory?.name === 'Debt Payments' && activeDebts.length > 0">
+              <label class="block text-sm font-medium text-gray-700 mb-1">
+                Which Debt? (optional)
+              </label>
+              <select
+                v-model="formData.debt_id"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+              >
+                <option :value="null">General debt payment</option>
+                <option
+                  v-for="debt in activeDebts"
+                  :key="debt.id"
+                  :value="debt.id"
+                >
+                  {{ debt.name }} ({{ formatCurrency(debt.current_balance) }} remaining)
+                </option>
+              </select>
+              <p class="text-xs text-gray-500 mt-1">
+                This transaction will be recorded as a payment to the selected debt
+              </p>
+            </div>
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Notes (optional)</label>
               <textarea
@@ -281,29 +351,54 @@
         </div>
       </div>
     </div>
+
+    <!-- Split Transaction Modal -->
+    <SplitTransactionModal
+      v-model="showSplitModal"
+      :transaction="splitTransaction"
+      :account-name="splitTransaction ? (accounts.find(a => a.id === splitTransaction?.account_id)?.name || '') : ''"
+      :categories-by-section="categoriesBySection"
+      :is-edit="isEditingSplit"
+      :existing-splits="existingSplits"
+      @submit="handleSplitSubmit"
+    />
+
+    <ExtraMoneyModal
+      v-model="showExtraMoneyModal"
+      :entry="detectedExtraMoneyEntry"
+      @update:modelValue="handleExtraMoneyModalUpdate"
+    />
   </AppLayout>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { useTransactionsStore } from '@/stores/transactions';
 import { useAccountsStore } from '@/stores/accounts';
 import { useCategoriesStore } from '@/stores/categories';
 import { useGoalsStore } from '@/stores/goals';
+import { useDebtsStore } from '@/stores/debts';
 import AppLayout from '@/components/layout/AppLayout.vue';
-import type { CreateTransactionData, Transaction } from '@/types';
+import SplitTransactionModal from '@/components/transactions/SplitTransactionModal.vue';
+import ExtraMoneyModal from '@/components/extraMoney/ExtraMoneyModal.vue';
+import TransactionSplitIndicator from '@/components/transactions/TransactionSplitIndicator.vue';
+import type { CreateTransactionData, Transaction, SplitData, ExtraMoneyWithAssignments } from '@/types';
 
 const route = useRoute();
 const transactionsStore = useTransactionsStore();
 const accountsStore = useAccountsStore();
 const categoriesStore = useCategoriesStore();
 const goalsStore = useGoalsStore();
+const debtsStore = useDebtsStore();
 
 const showAddModal = ref(false);
+const showExtraMoneyModal = ref(false);
 const editingTransaction = ref<Transaction | null>(null);
 const transactionType = ref<'expense' | 'income'>('expense');
 const formAmount = ref(0);
+const detectedExtraMoneyEntry = ref<ExtraMoneyWithAssignments | null>(null);
+const pendingTransactionClose = ref(false);
 
 // Category creation state
 const showAddCategory = ref(false);
@@ -315,12 +410,23 @@ const newCategoryData = ref({
 // Goal selection state
 const selectedGoalId = ref<string | null>(null);
 
+// Debt selection state
+const selectedDebtId = ref<string | null>(null);
+
+// Split transaction state
+const showSplitModal = ref(false);
+const splitTransaction = ref<Transaction | null>(null);
+const existingSplits = ref<SplitData[]>([]);
+const isEditingSplit = ref(false);
+const splitDetailsCache = ref<Map<string, SplitData[]>>(new Map());
+
 const formData = ref<CreateTransactionData>({
   account_id: '',
   payee: '',
   amount: 0,
   transaction_date: new Date().toISOString().split('T')[0],
   category_id: null,
+  debt_id: null,  // NEW: Debt link
   notes: '',
 });
 
@@ -328,6 +434,39 @@ const transactions = computed(() => transactionsStore.transactions);
 const accounts = computed(() => accountsStore.accounts);
 const sections = computed(() => categoriesStore.sections);
 const activeGoals = computed(() => goalsStore.goals.filter(g => !g.is_completed));
+const activeDebts = computed(() => debtsStore.activeDebts);
+
+// Get selected category to check if it's "Debt Payments"
+const selectedCategory = computed(() => {
+  if (!formData.value.category_id) return null;
+  for (const section of sections.value) {
+    const category = section.categories?.find(c => c.id === formData.value.category_id);
+    if (category) return category;
+  }
+  return null;
+});
+
+const selectedCategorySectionName = computed(() => {
+  if (!formData.value.category_id) return null;
+  for (const section of sections.value) {
+    const category = section.categories?.find(c => c.id === formData.value.category_id);
+    if (category) return section.name;
+  }
+  return null;
+});
+
+// Computed properties for split components
+const categoriesBySection = computed(() => {
+  return sections.value.map(section => ({
+    id: section.id,
+    name: section.name,
+    categories: section.categories || []
+  }));
+});
+
+const allCategories = computed(() => {
+  return sections.value.flatMap(section => section.categories || []);
+});
 
 onMounted(async () => {
   await Promise.all([
@@ -335,10 +474,17 @@ onMounted(async () => {
     accountsStore.fetchAccounts(),
     categoriesStore.fetchCategories(),
     goalsStore.fetchGoals(),
+    debtsStore.fetchDebts(),  // NEW: Load debts
   ]);
 
   if (route.query.account_id) {
     formData.value.account_id = route.query.account_id as string;
+  }
+});
+
+watch(selectedCategorySectionName, (sectionName) => {
+  if (sectionName === 'Income') {
+    transactionType.value = 'income';
   }
 });
 
@@ -348,12 +494,14 @@ function closeModal() {
   transactionType.value = 'expense';
   formAmount.value = 0;
   selectedGoalId.value = null;
+  selectedDebtId.value = null;  // NEW: Reset debt selection
   formData.value = {
     account_id: route.query.account_id ? (route.query.account_id as string) : '',
     payee: '',
     amount: 0,
     transaction_date: new Date().toISOString().split('T')[0],
     category_id: null,
+    debt_id: null,  // NEW: Reset debt link
     notes: '',
   };
 
@@ -364,9 +512,13 @@ function closeModal() {
 async function handleSubmit() {
   try {
     // Apply sign based on transaction type
-    const amount = transactionType.value === 'expense' ? -Math.abs(formAmount.value) : Math.abs(formAmount.value);
+    const isIncomeCategory = selectedCategorySectionName.value === 'Income';
+    const amount = isIncomeCategory
+      ? Math.abs(formAmount.value)
+      : (transactionType.value === 'expense' ? -Math.abs(formAmount.value) : Math.abs(formAmount.value));
 
     let transaction;
+    let extraMoneyEntry = null;
     if (editingTransaction.value) {
       // Update existing transaction
       transaction = await transactionsStore.updateTransaction(editingTransaction.value.id, {
@@ -375,10 +527,12 @@ async function handleSubmit() {
       });
     } else {
       // Create new transaction
-      transaction = await transactionsStore.createTransaction({
+      const result = await transactionsStore.createTransaction({
         ...formData.value,
         amount,
       });
+      transaction = result.transaction;
+      extraMoneyEntry = result.extra_money_entry;
     }
 
     // If a goal is selected, create a contribution
@@ -388,6 +542,16 @@ async function handleSubmit() {
         transaction_id: transaction.id,
         notes: formData.value.notes || `Contribution from transaction: ${formData.value.payee}`,
       });
+    }
+
+    if (extraMoneyEntry) {
+      detectedExtraMoneyEntry.value = {
+        ...extraMoneyEntry,
+        assignments: []
+      };
+      pendingTransactionClose.value = true;
+      showExtraMoneyModal.value = true;
+      return;
     }
 
     closeModal();
@@ -452,6 +616,86 @@ function cancelAddCategory() {
   };
 }
 
+// Split Transaction Functions
+async function openSplitModal(transaction: Transaction) {
+  splitTransaction.value = transaction;
+  isEditingSplit.value = false;
+  existingSplits.value = [];
+  showSplitModal.value = true;
+}
+
+async function openEditSplitModal(transaction: Transaction) {
+  splitTransaction.value = transaction;
+  isEditingSplit.value = true;
+
+  try {
+    const result = await transactionsStore.getSplits(transaction.id);
+    existingSplits.value = result.splits.map(split => ({
+      category_id: split.category_id || '',
+      amount: split.amount,
+      notes: split.notes
+    }));
+    splitDetailsCache.value.set(transaction.id, existingSplits.value);
+    showSplitModal.value = true;
+  } catch (error) {
+    console.error('Failed to load splits:', error);
+  }
+}
+
+async function handleSplitSubmit(splits: SplitData[]) {
+  if (!splitTransaction.value) return;
+
+  try {
+    if (isEditingSplit.value) {
+      await transactionsStore.updateSplits(splitTransaction.value.id, splits);
+    } else {
+      await transactionsStore.splitTransaction(splitTransaction.value.id, splits);
+    }
+
+    // Refresh transactions to show updated state
+    await transactionsStore.fetchTransactions();
+    showSplitModal.value = false;
+  } catch (error: any) {
+    console.error('Failed to save split:', error);
+    alert(error.response?.data?.error || 'Failed to save split transaction');
+  }
+}
+
+async function unsplitTransaction(transaction: Transaction) {
+  if (!confirm('Are you sure you want to unsplit this transaction? This will remove all category splits.')) {
+    return;
+  }
+
+  try {
+    await transactionsStore.unsplitTransaction(transaction.id);
+    splitDetailsCache.value.delete(transaction.id);
+    await transactionsStore.fetchTransactions();
+  } catch (error: any) {
+    console.error('Failed to unsplit transaction:', error);
+    alert(error.response?.data?.error || 'Failed to unsplit transaction');
+  }
+}
+
+async function getSplitDetails(transactionId: string): Promise<SplitData[]> {
+  if (splitDetailsCache.value.has(transactionId)) {
+    return splitDetailsCache.value.get(transactionId)!;
+  }
+
+  try {
+    const result = await transactionsStore.getSplits(transactionId);
+    const splits = result.splits.map(split => ({
+      category_id: split.category_id || '',
+      amount: split.amount,
+      notes: split.notes
+    }));
+    splitDetailsCache.value.set(transactionId, splits);
+    return splits;
+  } catch (error) {
+    console.error('Failed to load split details:', error);
+    return [];
+  }
+}
+
 function formatCurrency(amount: number): string {
   const absAmount = Math.abs(amount);
   const formatted = new Intl.NumberFormat('en-US', {
@@ -464,5 +708,20 @@ function formatCurrency(amount: number): string {
 function formatDate(dateString: string): string {
   const date = new Date(dateString);
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function finalizeExtraMoneyFlow() {
+  detectedExtraMoneyEntry.value = null;
+  if (pendingTransactionClose.value) {
+    pendingTransactionClose.value = false;
+    closeModal();
+  }
+}
+
+function handleExtraMoneyModalUpdate(value: boolean) {
+  showExtraMoneyModal.value = value;
+  if (!value) {
+    finalizeExtraMoneyFlow();
+  }
 }
 </script>

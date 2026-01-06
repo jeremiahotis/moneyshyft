@@ -103,3 +103,25 @@ export const bulkSetAllocationsSchema = Joi.object({
       'array.min': 'At least one allocation must be provided'
     })
 });
+
+/**
+ * Validator for assigning account balance to category
+ * Used during wizard setup when user assigns their existing account balances
+ */
+export const assignAccountBalanceSchema = Joi.object({
+  category_id: Joi.string().uuid().required()
+    .messages({
+      'any.required': 'Category ID is required',
+      'string.guid': 'Category ID must be a valid UUID'
+    }),
+  account_id: Joi.string().uuid().optional().allow(null)
+    .messages({
+      'string.guid': 'Account ID must be a valid UUID'
+    }),
+  amount: Joi.number().min(0.01).required()
+    .messages({
+      'any.required': 'Amount is required',
+      'number.base': 'Amount must be a number',
+      'number.min': 'Amount must be greater than 0'
+    })
+});

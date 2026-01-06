@@ -7,7 +7,8 @@ import {
   createBudgetMonthSchema,
   updateBudgetMonthSchema,
   setBudgetAllocationSchema,
-  bulkSetAllocationsSchema
+  bulkSetAllocationsSchema,
+  assignAccountBalanceSchema
 } from '../../../validators/budget.validators';
 
 const router = Router();
@@ -140,6 +141,34 @@ router.delete('/allocations/:id', asyncHandler(async (req: Request, res: Respons
   res.json({
     success: true,
     message: 'Allocation deleted successfully'
+  });
+}));
+
+/**
+ * POST /api/v1/budgets/assign-account-balance
+ * Assign account balance to a category
+ * Used during wizard setup when users assign their existing account balances
+ * This creates an account_balance_assignment record and updates the category's assigned_amount
+ */
+router.post('/assign-account-balance', validateRequest(assignAccountBalanceSchema), asyncHandler(async (req: Request, res: Response) => {
+  const householdId = req.user!.householdId!;
+  const userId = req.user!.userId!;
+  const { category_id, account_id, amount } = req.body;
+
+  const allocation = await BudgetService.assignAccountBalance(
+    householdId,
+    userId,
+    {
+      category_id,
+      account_id,
+      amount
+    }
+  );
+
+  res.status(201).json({
+    success: true,
+    data: allocation,
+    message: `Assigned ${amount} to category`
   });
 }));
 

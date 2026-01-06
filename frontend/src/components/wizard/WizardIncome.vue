@@ -47,6 +47,35 @@
           </select>
         </div>
 
+        <!-- Expected pay day for monthly -->
+        <div v-if="source.frequency === 'monthly'">
+          <label class="block text-sm font-medium text-gray-700 mb-1">
+            Expected pay day of month
+          </label>
+          <input
+            v-model.number="source.expectedDayOfMonth"
+            type="number"
+            min="1"
+            max="31"
+            placeholder="1"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+          />
+          <p class="text-xs text-gray-500 mt-1">Helps us recognize regular income.</p>
+        </div>
+
+        <!-- Last payment date for weekly/biweekly -->
+        <div v-if="source.frequency === 'weekly' || source.frequency === 'biweekly'">
+          <label class="block text-sm font-medium text-gray-700 mb-1">
+            Last payment date
+          </label>
+          <input
+            v-model="source.lastPaymentDate"
+            type="date"
+            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+          />
+          <p class="text-xs text-gray-500 mt-1">Used to predict your next expected deposit.</p>
+        </div>
+
         <!-- Hours per week (only for hourly) -->
         <div v-if="source.frequency === 'hourly'">
           <label class="block text-sm font-medium text-gray-700 mb-1">
@@ -176,7 +205,14 @@ import { ref, computed, onMounted } from 'vue';
 import { useWizardStore } from '@/stores/wizard';
 
 const emit = defineEmits<{
-  next: [data: { sources: Array<{ name: string; amount: number }> }];
+  next: [data: { sources: Array<{
+    name: string;
+    monthly_amount: number;
+    frequency?: 'hourly' | 'weekly' | 'biweekly' | 'semimonthly' | 'monthly' | 'annually';
+    expected_day_of_month?: number | null;
+    hours_per_week?: number | null;
+    last_payment_date?: string | null;
+  }> }];
   back: [];
 }>();
 
@@ -187,19 +223,24 @@ interface IncomeSource {
   amount: number;
   frequency: 'monthly' | 'hourly' | 'weekly' | 'biweekly' | 'semimonthly' | 'annually';
   hoursPerWeek?: number;
+  expectedDayOfMonth?: number | null;
+  lastPaymentDate?: string | null;
 }
 
 const sources = ref<IncomeSource[]>([
-  { name: '', amount: 0, frequency: 'monthly', hoursPerWeek: 40 }
+  { name: '', amount: 0, frequency: 'monthly', hoursPerWeek: 40, expectedDayOfMonth: 1, lastPaymentDate: null }
 ]);
 
 onMounted(() => {
   // Pre-populate from stored answers if they exist
   if (wizardStore.answers.income_sources && wizardStore.answers.income_sources.length > 0) {
     sources.value = wizardStore.answers.income_sources.map(s => ({ 
-      ...s, 
-      frequency: 'monthly' as const,
-      hoursPerWeek: 40 
+      name: s.name,
+      amount: (s as any).monthly_amount ?? (s as any).amount ?? 0,
+      frequency: s.frequency || 'monthly',
+      hoursPerWeek: s.hours_per_week ?? 40,
+      expectedDayOfMonth: s.expected_day_of_month ?? 1,
+      lastPaymentDate: s.last_payment_date ?? null
     }));
   }
 });
@@ -248,12 +289,14 @@ const isValid = computed(() => {
     const hasName = s.name.trim().length > 0;
     const hasAmount = s.amount > 0;
     const hasHoursIfHourly = s.frequency !== 'hourly' || (s.hoursPerWeek && s.hoursPerWeek > 0);
-    return hasName && hasAmount && hasHoursIfHourly;
+    const hasExpectedDayIfMonthly = s.frequency !== 'monthly' || (!!s.expectedDayOfMonth && s.expectedDayOfMonth >= 1 && s.expectedDayOfMonth <= 31);
+    const hasLastPaymentIfWeekly = !['weekly', 'biweekly'].includes(s.frequency) || !!s.lastPaymentDate;
+    return hasName && hasAmount && hasHoursIfHourly && hasExpectedDayIfMonthly && hasLastPaymentIfWeekly;
   });
 });
 
 function addSource() {
-  sources.value.push({ name: '', amount: 0, frequency: 'monthly', hoursPerWeek: 40 });
+  sources.value.push({ name: '', amount: 0, frequency: 'monthly', hoursPerWeek: 40, expectedDayOfMonth: 1, lastPaymentDate: null });
 }
 
 function removeSource(index: number) {
@@ -265,7 +308,11 @@ function handleNext() {
     .filter(s => s.name.trim() && s.amount > 0)
     .map(s => ({
       name: s.name,
-      amount: convertToMonthly(s) // Store the calculated monthly amount
+      monthly_amount: convertToMonthly(s),
+      frequency: s.frequency,
+      expected_day_of_month: s.frequency === 'monthly' ? (s.expectedDayOfMonth ?? null) : null,
+      hours_per_week: s.frequency === 'hourly' ? (s.hoursPerWeek ?? null) : null,
+      last_payment_date: ['weekly', 'biweekly'].includes(s.frequency) ? (s.lastPaymentDate ?? null) : null
     }));
   emit('next', { sources: validSources });
 }

@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import api from '@/services/api';
-import type { Transaction, CreateTransactionData } from '@/types';
+import type { Transaction, CreateTransactionData, SplitData, SplitResult, TransactionCreateResult, ExtraMoneyEntry } from '@/types';
 
 export const useTransactionsStore = defineStore('transactions', () => {
   // State
@@ -29,14 +29,22 @@ export const useTransactionsStore = defineStore('transactions', () => {
     }
   }
 
-  async function createTransaction(data: CreateTransactionData): Promise<Transaction> {
+  async function createTransaction(data: CreateTransactionData): Promise<TransactionCreateResult> {
     isLoading.value = true;
     error.value = null;
     try {
       const response = await api.post('/transactions', data);
-      const newTransaction = response.data.data;
+      const responseData = response.data.data as Transaction & {
+        extra_money_detected?: boolean;
+        extra_money_entry?: ExtraMoneyEntry | null;
+      };
+      const newTransaction = responseData;
       transactions.value.unshift(newTransaction);
-      return newTransaction;
+      return {
+        transaction: newTransaction,
+        extra_money_detected: responseData.extra_money_detected ?? false,
+        extra_money_entry: responseData.extra_money_entry ?? null
+      };
     } catch (err: any) {
       error.value = err.response?.data?.error || 'Failed to create transaction';
       throw err;
@@ -100,6 +108,89 @@ export const useTransactionsStore = defineStore('transactions', () => {
     error.value = null;
   }
 
+  // Split Transaction Actions
+  async function splitTransaction(id: string, splits: SplitData[]): Promise<SplitResult> {
+    isLoading.value = true;
+    error.value = null;
+    try {
+      const response = await api.post(`/transactions/${id}/split`, { splits });
+      const result = response.data.data;
+
+      // Update the parent transaction in the local state
+      const index = transactions.value.findIndex((t) => t.id === id);
+      if (index !== -1) {
+        transactions.value[index] = result.parent;
+      }
+
+      return result;
+    } catch (err: any) {
+      error.value = err.response?.data?.error || 'Failed to split transaction';
+      throw err;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  async function getSplits(id: string): Promise<SplitResult> {
+    isLoading.value = true;
+    error.value = null;
+    try {
+      const response = await api.get(`/transactions/${id}/splits`);
+      return response.data.data;
+    } catch (err: any) {
+      error.value = err.response?.data?.error || 'Failed to get split details';
+      throw err;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  async function updateSplits(id: string, splits: SplitData[]): Promise<SplitResult> {
+    isLoading.value = true;
+    error.value = null;
+    try {
+      const response = await api.patch(`/transactions/${id}/splits`, { splits });
+      const result = response.data.data;
+
+      // Update the parent transaction in the local state
+      const index = transactions.value.findIndex((t) => t.id === id);
+      if (index !== -1) {
+        transactions.value[index] = result.parent;
+      }
+
+      return result;
+    } catch (err: any) {
+      error.value = err.response?.data?.error || 'Failed to update splits';
+      throw err;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  async function unsplitTransaction(id: string, categoryId?: string | null): Promise<Transaction> {
+    isLoading.value = true;
+    error.value = null;
+    try {
+      const response = await api.delete(`/transactions/${id}/split`, {
+        data: { category_id: categoryId }
+      });
+      const unsplitTransaction = response.data.data;
+
+      // Update the transaction in the local state
+      const index = transactions.value.findIndex((t) => t.id === id);
+      if (index !== -1) {
+        transactions.value[index] = unsplitTransaction;
+      }
+
+      return unsplitTransaction;
+    } catch (err: any) {
+      error.value = err.response?.data?.error || 'Failed to unsplit transaction';
+      throw err;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
   return {
     // State
     transactions,
@@ -112,5 +203,10 @@ export const useTransactionsStore = defineStore('transactions', () => {
     deleteTransaction,
     clearTransaction,
     clearError,
+    // Split Actions
+    splitTransaction,
+    getSplits,
+    updateSplits,
+    unsplitTransaction,
   };
 });

@@ -23,7 +23,7 @@
           class="flex justify-between text-sm"
         >
           <span class="text-gray-700">{{ source.name }}</span>
-          <span class="font-medium">{{ formatCurrency(source.amount) }}</span>
+          <span class="font-medium">{{ formatCurrency(source.monthly_amount) }}</span>
         </div>
         <div class="pt-2 border-t border-gray-200 flex justify-between font-semibold">
           <span>Total Income:</span>
@@ -87,7 +87,7 @@
         💚 Great! You have money left over for savings or other goals.
       </p>
       <p v-else-if="remainingAmount < 0" class="text-sm text-red-700 mt-2">
-        ⚠️ Your expenses are higher than your income. You may want to review and adjust some amounts.
+        ⚠️ You’re planning more than your income. That’s okay—adjust a few categories or add income when it arrives.
       </p>
       <p v-else class="text-sm text-gray-700 mt-2">
         ✓ Your budget is perfectly balanced!
@@ -134,7 +134,7 @@ defineEmits<{
 }>();
 
 const totalIncome = computed(() => {
-  return props.answers.income_sources?.reduce((sum, s) => sum + s.amount, 0) || 0;
+  return props.answers.income_sources?.reduce((sum, s) => sum + s.monthly_amount, 0) || 0;
 });
 
 const totalDebtPayments = computed(() => {
@@ -146,14 +146,18 @@ const totalDebtPayments = computed(() => {
 const totalFlexibleSpending = computed(() => {
   return (props.answers.groceries_estimate || 0) +
          (props.answers.dining_out_estimate || 0) +
-         (props.answers.entertainment_estimate || 0);
+         (props.answers.entertainment_estimate || 0) +
+         (props.answers.gas_transportation_estimate || 0) +
+         (props.answers.shopping_estimate || 0) +
+         (props.answers.personal_care_estimate || 0);
 });
 
 const totalExpenses = computed(() => {
   const carPayments = props.answers.car_payments?.reduce((sum, p) => sum + p.amount, 0) || 0;
+  const carInsurance = props.answers.car_insurance_payments?.reduce((sum, p) => sum + p.amount, 0) || 0;
   return (props.answers.housing_amount || 0) +
          carPayments +
-         (props.answers.car_insurance_amount || 0) +
+         (carInsurance || props.answers.car_insurance_amount || 0) +
          (props.answers.utilities_estimate || 0) +
          (props.answers.internet_phone_estimate || 0) +
          totalDebtPayments.value +

@@ -23,10 +23,9 @@ const route = useRoute();
 const navItems = [
   { name: 'dashboard', label: 'Dashboard', icon: '📊', path: '/' },
   { name: 'accounts', label: 'Accounts', icon: '💰', path: '/accounts' },
-  { name: 'transactions', label: 'Transactions', icon: '📝', path: '/transactions' },
   { name: 'budget', label: 'Budget', icon: '📈', path: '/budget' },
-  { name: 'debts', label: 'Debts', icon: '💳', path: '/debts' },
-  { name: 'goals', label: 'Goals', icon: '🎯', path: '/goals' },
+  { name: 'extra-money', label: 'Extra', icon: '💸', path: '/extra-money' },
+  { name: 'transactions', label: 'Activity', icon: '📝', path: '/transactions' },
 ];
 
 function isActive(path: string): boolean {

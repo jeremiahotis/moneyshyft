@@ -5,6 +5,7 @@ export interface User {
   lastName: string;
   householdId: string | null;
   role: string;
+  setupWizardCompleted?: boolean;
   createdAt: string;
 }
 
@@ -40,6 +41,7 @@ export interface Account {
 export interface CreateAccountData {
   name: string;
   type: 'checking' | 'savings' | 'credit' | 'cash' | 'investment';
+  current_balance?: number;
   starting_balance?: number;
   is_active?: boolean;
 }
@@ -63,6 +65,7 @@ export interface Transaction {
   household_id: string;
   account_id: string;
   category_id: string | null;
+  debt_id?: string | null;  // NEW: Optional debt link
   payee: string;
   amount: number;
   transaction_date: string;
@@ -70,13 +73,22 @@ export interface Transaction {
   is_cleared: boolean;
   is_reconciled: boolean;
   created_by_user_id: string;
+  parent_transaction_id: string | null;
+  is_split_child: boolean;
   created_at: string;
   updated_at: string;
+}
+
+export interface TransactionCreateResult {
+  transaction: Transaction;
+  extra_money_detected: boolean;
+  extra_money_entry?: ExtraMoneyEntry | null;
 }
 
 export interface CreateTransactionData {
   account_id: string;
   category_id?: string | null;
+  debt_id?: string | null;  // NEW: Optional debt link
   payee: string;
   amount: number;
   transaction_date: string;
@@ -150,6 +162,10 @@ export interface IncomeSource {
   household_id: string;
   name: string;
   monthly_amount: number;
+  frequency: 'hourly' | 'weekly' | 'biweekly' | 'semimonthly' | 'monthly' | 'annually' | null;
+  expected_day_of_month: number | null;
+  hours_per_week: number | null;
+  last_payment_date: string | null;
   is_active: boolean;
   sort_order: number;
   notes: string | null;
@@ -160,6 +176,10 @@ export interface IncomeSource {
 export interface CreateIncomeSourceData {
   name: string;
   monthly_amount: number;
+  frequency?: 'hourly' | 'weekly' | 'biweekly' | 'semimonthly' | 'monthly' | 'annually';
+  expected_day_of_month?: number | null;
+  hours_per_week?: number | null;
+  last_payment_date?: string | null;
   is_active?: boolean;
   notes?: string;
 }
@@ -167,6 +187,10 @@ export interface CreateIncomeSourceData {
 export interface UpdateIncomeSourceData {
   name?: string;
   monthly_amount?: number;
+  frequency?: 'hourly' | 'weekly' | 'biweekly' | 'semimonthly' | 'monthly' | 'annually' | null;
+  expected_day_of_month?: number | null;
+  hours_per_week?: number | null;
+  last_payment_date?: string | null;
   is_active?: boolean;
   sort_order?: number;
   notes?: string;
@@ -175,7 +199,21 @@ export interface UpdateIncomeSourceData {
 // Wizard state tracking
 export interface WizardAnswers {
   // Income step
-  income_sources: Array<{ name: string; amount: number }>;
+  income_sources: Array<{
+    name: string;
+    monthly_amount: number;
+    frequency?: 'hourly' | 'weekly' | 'biweekly' | 'semimonthly' | 'monthly' | 'annually';
+    expected_day_of_month?: number | null;
+    hours_per_week?: number | null;
+    last_payment_date?: string | null;
+  }>;
+
+  // Accounts step (NEW)
+  accounts?: Array<{
+    name: string;
+    type: 'checking' | 'savings' | 'credit' | 'cash' | 'investment';
+    current_balance: number;
+  }>;
 
   // Housing step
   housing_type: 'rent' | 'own' | 'other';
@@ -214,6 +252,15 @@ export interface WizardAnswers {
   groceries_estimate?: number;
   dining_out_estimate?: number;
   entertainment_estimate?: number;
+  gas_transportation_estimate?: number;
+  shopping_estimate?: number;
+  personal_care_estimate?: number;
+
+  // Balance assignment step (NEW)
+  balance_assignments?: Record<string, number>; // category_id -> amount
+
+  // Extra Money Plan step (NEW - step 8)
+  extra_money_percentages?: SavePreferencesData;
 }
 
 export interface SectionSummary {
@@ -346,6 +393,7 @@ export interface DebtPayment {
   amount: number;
   payment_date: string;
   notes: string | null;
+  transaction_id?: string | null;  // NEW: Link to transaction
   created_at: string;
 }
 
@@ -353,6 +401,7 @@ export interface AddDebtPaymentData {
   amount: number;
   payment_date: string;
   notes?: string;
+  account_id: string;  // NEW: Required account to pay from
 }
 
 export interface PayoffStrategyDebt {
@@ -405,4 +454,228 @@ export interface AutoAssignmentResult {
   assignments: IncomeAssignment[];
   total_assigned: number;
   remaining: number;
+}
+
+// ===========================
+// SPLIT TRANSACTIONS
+// ===========================
+
+export interface SplitData {
+  category_id: string;
+  amount: number;
+  notes?: string | null;
+}
+
+export interface SplitResult {
+  parent: Transaction;
+  splits: Transaction[];
+}
+
+export interface CreateSplitData {
+  splits: SplitData[];
+}
+
+export interface UpdateSplitData {
+  splits: SplitData[];
+}
+
+export interface UnsplitData {
+  category_id?: string | null;
+}
+
+// ===========================
+// RECURRING TRANSACTIONS
+// ===========================
+
+export type FrequencyType = 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'yearly';
+export type InstanceStatus = 'pending' | 'approved' | 'posted' | 'skipped';
+
+export interface RecurringTransaction {
+  id: string;
+  household_id: string;
+  account_id: string;
+  category_id: string | null;
+  category_name?: string | null;  // Added: populated via join
+  payee: string;
+  amount: number;
+  notes: string | null;
+  frequency: FrequencyType;
+  start_date: string;
+  end_date: string | null;
+  next_occurrence: string;
+  auto_post: boolean;
+  skip_weekends: boolean;
+  advance_notice_days: number;
+  is_active: boolean;
+  created_by_user_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface RecurringTransactionInstance {
+  id: string;
+  household_id: string;
+  recurring_transaction_id: string;
+  account_id: string;
+  category_id: string | null;
+  category_name?: string | null;  // Added: populated via join
+  payee: string;
+  amount: number;
+  notes: string | null;
+  due_date: string;
+  status: InstanceStatus;
+  transaction_id: string | null;
+  approved_by_user_id: string | null;
+  approved_at: string | null;
+  posted_at: string | null;
+  skipped_by_user_id: string | null;
+  skipped_at: string | null;
+  skip_reason: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateRecurringData {
+  account_id: string;
+  category_id?: string | null;
+  payee: string;
+  amount: number;
+  notes?: string | null;
+  frequency: FrequencyType;
+  start_date: string;
+  end_date?: string | null;
+  auto_post?: boolean;
+  skip_weekends?: boolean;
+  advance_notice_days?: number;
+}
+
+export interface UpdateRecurringData {
+  account_id?: string;
+  category_id?: string | null;
+  payee?: string;
+  amount?: number;
+  notes?: string | null;
+  frequency?: FrequencyType;
+  auto_post?: boolean;
+  skip_weekends?: boolean;
+  advance_notice_days?: number;
+}
+
+export interface UpdateInstanceData {
+  amount?: number;
+  category_id?: string | null;
+  payee?: string;
+  notes?: string | null;
+}
+
+export interface SkipInstanceData {
+  reason?: string | null;
+}
+
+export interface UserPreferences {
+  id: string;
+  user_id: string;
+  household_id: string;
+  recurring_auto_approve: boolean;
+  recurring_auto_post: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+// Extra Money (Irregular Income)
+export interface ExtraMoneyEntry {
+  id: string;
+  household_id: string;
+  transaction_id: string | null;
+  source: string;
+  amount: number;
+  received_date: string;
+  notes: string | null;
+  auto_detected: boolean;
+  detection_reason: string | null;
+  status: 'pending' | 'assigned' | 'ignored';
+  savings_reserve?: number;
+  assigned_at: string | null;
+  assigned_by_user_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ExtraMoneyAssignment {
+  category_id?: string | null;
+  category_name?: string | null;
+  section_id?: string | null;
+  section_name?: string | null;
+  amount: number;
+}
+
+export interface ExtraMoneyWithAssignments extends ExtraMoneyEntry {
+  assignments: ExtraMoneyAssignment[];
+}
+
+export interface CreateExtraMoneyData {
+  transaction_id?: string | null;
+  source: string;
+  amount: number;
+  received_date: string;
+  notes?: string | null;
+}
+
+export interface AssignExtraMoneyData {
+  assignments: Array<{
+    category_id?: string | null;
+    section_id?: string | null;
+    amount: number;
+  }>;
+  savings_reserve?: number;
+}
+
+// Extra Money Preferences (for wizard step 8)
+export interface ExtraMoneyPreferences {
+  id: string;
+  household_id: string;
+  category_percentages: Record<string, number>; // category_id -> decimal (0.00-1.00)
+  section_percentages?: Record<string, number>; // section_id -> decimal (0.00-1.00)
+  default_categories: {
+    giving?: string;
+    debt?: string;
+    fun?: string;
+    savings?: string;
+    helping?: string;
+  };
+  default_sections?: {
+    debt?: string;
+    fun?: string;
+  };
+  reserve_percentage?: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SavePreferencesData {
+  category_percentages: Record<string, number>;
+  section_percentages?: Record<string, number>;
+  default_categories: {
+    giving?: string;
+    debt?: string;
+    fun?: string;
+    savings?: string;
+    helping?: string;
+  };
+  default_sections?: {
+    debt?: string;
+    fun?: string;
+  };
+  reserve_percentage?: number;
+}
+
+export interface ExtraMoneyRecommendation {
+  category_id?: string | null;
+  category_name?: string | null;
+  section_id?: string | null;
+  section_name?: string | null;
+  amount: number;
+  percentage: number; // Display as 0-100
+  type?: 'category' | 'section' | 'reserve';
 }

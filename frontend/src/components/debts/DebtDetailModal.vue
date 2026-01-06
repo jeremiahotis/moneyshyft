@@ -113,6 +113,27 @@
               </div>
             </div>
 
+            <!-- Payment Account -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">
+                Payment Account <span class="text-red-500">*</span>
+              </label>
+              <select
+                v-model="paymentForm.account_id"
+                required
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              >
+                <option value="">Select account...</option>
+                <option
+                  v-for="account in accountsStore.accounts"
+                  :key="account.id"
+                  :value="account.id"
+                >
+                  {{ account.name }} ({{ formatCurrency(account.current_balance) }})
+                </option>
+              </select>
+            </div>
+
             <!-- Payment Notes -->
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">
@@ -194,8 +215,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import { useDebtsStore } from '@/stores/debts';
+import { useAccountsStore } from '@/stores/accounts';
+import { useTransactionsStore } from '@/stores/transactions';
 import type { Debt, DebtPayment, AddDebtPaymentData } from '@/types';
 
 const props = defineProps<{
@@ -211,6 +234,8 @@ const emit = defineEmits<{
 }>();
 
 const debtsStore = useDebtsStore();
+const accountsStore = useAccountsStore();
+const transactionsStore = useTransactionsStore();
 const isAddingPayment = ref(false);
 const isLoadingPayments = ref(false);
 const isDeleting = ref(false);
@@ -221,6 +246,12 @@ const paymentForm = ref<AddDebtPaymentData>({
   amount: 0,
   payment_date: new Date().toISOString().slice(0, 10), // Today's date
   notes: '',
+  account_id: '',  // NEW: Account to pay from
+});
+
+// Load accounts on component mount
+onMounted(async () => {
+  await accountsStore.fetchAccounts();
 });
 
 const progressPercent = computed(() => {
@@ -258,12 +289,19 @@ function resetPaymentForm() {
     amount: 0,
     payment_date: new Date().toISOString().slice(0, 10),
     notes: '',
+    account_id: '',  // Reset account selection
   };
   error.value = null;
 }
 
 async function handleAddPayment() {
   if (!props.debt) return;
+
+  // Validate account selection
+  if (!paymentForm.value.account_id) {
+    error.value = 'Please select an account to pay from';
+    return;
+  }
 
   error.value = null;
   isAddingPayment.value = true;
@@ -272,6 +310,7 @@ async function handleAddPayment() {
     const data: AddDebtPaymentData = {
       amount: paymentForm.value.amount,
       payment_date: paymentForm.value.payment_date,
+      account_id: paymentForm.value.account_id,  // NEW: Include account
     };
 
     if (paymentForm.value.notes && paymentForm.value.notes.trim()) {
@@ -282,6 +321,12 @@ async function handleAddPayment() {
 
     // Reload payment history
     await loadPaymentHistory();
+
+    // Refresh transactions to show new payment transaction
+    await transactionsStore.fetchTransactions();
+
+    // Refresh accounts to show updated balance
+    await accountsStore.fetchAccounts();
 
     // Reset form
     resetPaymentForm();

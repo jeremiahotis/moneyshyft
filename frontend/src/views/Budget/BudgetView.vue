@@ -12,8 +12,8 @@
       <div class="mt-6 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg shadow-lg p-6">
         <div class="flex justify-between items-center">
           <div>
-            <p class="text-sm opacity-90 mb-1">Ready to Assign</p>
-            <h2 class="text-4xl font-bold">
+            <p class="text-sm opacity-90 mb-1" title="Unassigned cash available to budget">Ready to Assign</p>
+            <h2 class="text-4xl font-bold privacy-value">
               {{ formatCurrency(budgetsStore.toBeAssigned) }}
             </h2>
             <p class="text-sm opacity-75 mt-2">
@@ -32,23 +32,34 @@
         <!-- Income Summary Grid -->
         <div class="mt-4 pt-4 border-t border-white/20 grid grid-cols-3 gap-4">
           <div>
-            <p class="text-xs opacity-75">Planned Income</p>
-            <p class="text-lg font-semibold">
+            <p class="text-xs opacity-75" title="What you expect to earn this month">Planned Income</p>
+            <p class="text-lg font-semibold privacy-value">
               {{ formatCurrency(budgetsStore.totalPlannedIncome) }}
             </p>
           </div>
           <div>
-            <p class="text-xs opacity-75">Actual Income</p>
-            <p class="text-lg font-semibold" :class="budgetsStore.incomeVariance >= 0 ? '' : 'text-red-200'">
+            <p class="text-xs opacity-75" title="Income recorded from transactions">Actual Income</p>
+            <p class="text-lg font-semibold privacy-value" :class="budgetsStore.incomeVariance >= 0 ? '' : 'text-red-200'">
               {{ formatCurrency(budgetsStore.totalRealIncome) }}
             </p>
           </div>
           <div>
-            <p class="text-xs opacity-75">Difference</p>
-            <p class="text-sm font-medium" :class="budgetsStore.incomeVariance >= 0 ? 'text-green-200' : 'text-red-200'">
+            <p class="text-xs opacity-75" title="Actual minus planned income">Difference</p>
+            <p class="text-sm font-medium privacy-value" :class="budgetsStore.incomeVariance >= 0 ? 'text-green-200' : 'text-red-200'">
               {{ budgetsStore.incomeVariance >= 0 ? '+' : '' }}{{ formatCurrency(budgetsStore.incomeVariance) }}
             </p>
           </div>
+        </div>
+
+        <div v-if="budgetsStore.toBeAssigned === 0" class="mt-4 p-3 bg-white/20 rounded-lg">
+          <p class="text-sm">
+            ✨ Budget balanced! You’re ready for anything this month.
+          </p>
+        </div>
+        <div v-else-if="budgetsStore.toBeAssigned < 0" class="mt-4 p-3 bg-white/20 rounded-lg">
+          <p class="text-sm">
+            You’re over-planned right now. No stress—adjust a category or add income when it arrives.
+          </p>
         </div>
       </div>
 
@@ -68,7 +79,7 @@
             </div>
           </div>
           <div class="flex items-center gap-4">
-            <span class="text-xl font-bold text-primary-600">
+            <span class="text-xl font-bold text-primary-600 privacy-value">
               {{ formatCurrency(incomeStore.totalMonthlyIncome) }}
             </span>
             <svg
@@ -108,7 +119,7 @@
                 <p v-if="source.notes" class="text-sm text-gray-600 mt-1">{{ source.notes }}</p>
               </div>
               <div class="flex items-center gap-3">
-                <span class="text-lg font-semibold text-gray-900">
+                <span class="text-lg font-semibold text-gray-900 privacy-value">
                   {{ formatCurrency(source.monthly_amount) }}
                 </span>
                 <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition">
@@ -132,7 +143,7 @@
 
             <div class="pt-3 border-t border-gray-200 flex justify-between items-center">
               <span class="font-semibold text-gray-900">Total Monthly Income:</span>
-              <span class="text-xl font-bold text-primary-600">
+              <span class="text-xl font-bold text-primary-600 privacy-value">
                 {{ formatCurrency(incomeStore.totalMonthlyIncome) }}
               </span>
             </div>
@@ -230,25 +241,25 @@
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-gradient-to-br from-orange-50 to-red-50 rounded-lg">
               <div>
                 <p class="text-xs text-gray-600 mb-1">Planned</p>
-                <p class="text-lg font-semibold text-gray-900">
+                <p class="text-lg font-semibold text-gray-900 privacy-value">
                   {{ formatCurrency(debtSection.allocated) }}
                 </p>
               </div>
               <div>
                 <p class="text-xs text-gray-600 mb-1">Assigned</p>
-                <p class="text-lg font-semibold text-blue-600">
+                <p class="text-lg font-semibold text-blue-600 privacy-value">
                   {{ formatCurrency(debtSection.assigned) }}
                 </p>
               </div>
               <div>
                 <p class="text-xs text-gray-600 mb-1">Spent</p>
-                <p class="text-lg font-semibold text-orange-600">
+                <p class="text-lg font-semibold text-orange-600 privacy-value">
                   {{ formatCurrency(debtSection.spent) }}
                 </p>
               </div>
               <div>
                 <p class="text-xs text-gray-600 mb-1">Available</p>
-                <p class="text-lg font-semibold" :class="debtSection.available >= 0 ? 'text-green-600' : 'text-red-600'">
+                <p class="text-lg font-semibold privacy-value" :class="debtSection.available >= 0 ? 'text-green-600' : 'text-red-600'">
                   {{ formatCurrency(debtSection.available) }}
                 </p>
               </div>
@@ -263,14 +274,14 @@
                 ></div>
               </div>
               <p class="text-xs text-gray-600 mt-2 text-center">
-                {{ formatCurrency(debtSection.assigned) }} of {{ formatCurrency(debtSection.allocated) }} assigned this month
+                <span class="privacy-value">{{ formatCurrency(debtSection.assigned) }}</span> of <span class="privacy-value">{{ formatCurrency(debtSection.allocated) }}</span> assigned this month
               </p>
             </div>
 
             <!-- Need More Message -->
             <div v-if="debtSection.need > 0" class="mt-3 text-center">
               <p class="text-sm text-orange-600 font-medium">
-                Need {{ formatCurrency(debtSection.need) }} more to reach budget
+                Need <span class="privacy-value">{{ formatCurrency(debtSection.need) }}</span> more to reach budget
               </p>
             </div>
           </div>
@@ -299,13 +310,13 @@
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 bg-gradient-to-br from-primary-50 to-purple-50 rounded-lg">
               <div>
                 <p class="text-xs text-gray-600 mb-1">Planned</p>
-                <p class="text-lg font-semibold text-gray-900">
+                <p class="text-lg font-semibold text-gray-900 privacy-value">
                   {{ formatCurrency(goalsSection.allocated) }}
                 </p>
               </div>
               <div>
                 <p class="text-xs text-gray-600 mb-1">Contributed</p>
-                <p class="text-lg font-semibold text-green-600">
+                <p class="text-lg font-semibold text-green-600 privacy-value">
                   {{ formatCurrency(goalsSection.assigned) }}
                 </p>
               </div>
@@ -317,7 +328,7 @@
               </div>
               <div>
                 <p class="text-xs text-gray-600 mb-1">Still Needed</p>
-                <p class="text-lg font-semibold" :class="goalsSection.need > 0 ? 'text-orange-600' : 'text-gray-400'">
+                <p class="text-lg font-semibold privacy-value" :class="goalsSection.need > 0 ? 'text-orange-600' : 'text-gray-400'">
                   {{ formatCurrency(goalsSection.need) }}
                 </p>
               </div>
@@ -332,7 +343,7 @@
                 ></div>
               </div>
               <p class="text-xs text-gray-600 mt-2 text-center">
-                {{ formatCurrency(goalsSection.assigned) }} of {{ formatCurrency(goalsSection.allocated) }} saved this month
+                <span class="privacy-value">{{ formatCurrency(goalsSection.assigned) }}</span> of <span class="privacy-value">{{ formatCurrency(goalsSection.allocated) }}</span> saved this month
               </p>
             </div>
           </div>
@@ -350,22 +361,25 @@
       <!-- Summary Card (sticky bottom on mobile) -->
       <div v-if="budgetsStore.currentSummary" class="mt-6 bg-white rounded-lg shadow p-4 sticky bottom-20 md:relative md:bottom-0">
         <div class="flex justify-between items-center">
-          <span class="font-medium">Total Planned:</span>
-          <span class="text-xl font-bold text-primary-600">
+          <span class="font-medium" title="Total of all category plans for the month">Total Planned:</span>
+          <span class="text-xl font-bold text-primary-600 privacy-value">
             {{ formatCurrency(budgetsStore.totalAllocated) }}
           </span>
         </div>
         <div class="flex justify-between items-center mt-2">
-          <span class="font-medium">Total Spent:</span>
-          <span class="text-xl font-bold" :class="spentColor">
+          <span class="font-medium" title="Actual spending recorded this month">Total Spent:</span>
+          <span class="text-xl font-bold privacy-value" :class="spentColor">
             {{ formatCurrency(budgetsStore.totalSpent) }}
           </span>
         </div>
         <div v-if="budgetsStore.toBeAssigned !== 0" class="mt-3 pt-3 border-t border-gray-200 text-center">
           <span :class="budgetsStore.toBeAssigned > 0 ? 'text-yellow-600' : 'text-red-600'">
             {{ budgetsStore.toBeAssigned > 0 ? 'Ready to plan' : 'Over-planned' }}:
-            <span class="font-bold">{{ formatCurrency(Math.abs(budgetsStore.toBeAssigned)) }}</span>
+            <span class="font-bold privacy-value">{{ formatCurrency(Math.abs(budgetsStore.toBeAssigned)) }}</span>
           </span>
+          <p v-if="budgetsStore.toBeAssigned < 0" class="text-xs text-gray-500 mt-1">
+            It’s okay to be over-planned—adjust when you’re ready.
+          </p>
         </div>
       </div>
     </div>

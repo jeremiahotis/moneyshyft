@@ -115,6 +115,14 @@
           </form>
         </div>
       </div>
+
+      <!-- Balance Assignment Modal -->
+      <AccountBalanceAssignmentModal
+        v-if="showBalanceAssignment && newlyCreatedAccount"
+        :account="newlyCreatedAccount"
+        @close="closeBalanceAssignmentModal"
+        @assigned="handleBalanceAssigned"
+      />
     </div>
   </AppLayout>
 </template>
@@ -123,18 +131,23 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAccountsStore } from '@/stores/accounts';
+import { useBudgetsStore } from '@/stores/budgets';
 import AppLayout from '@/components/layout/AppLayout.vue';
 import AccountCard from '@/components/accounts/AccountCard.vue';
 import CreditCardStatusCard from '@/components/accounts/CreditCardStatusCard.vue';
+import AccountBalanceAssignmentModal from '@/components/accounts/AccountBalanceAssignmentModal.vue';
 import type { Account, CreateAccountData, CreditCardStatus } from '@/types';
 
 const router = useRouter();
 const accountsStore = useAccountsStore();
+const budgetsStore = useBudgetsStore();
 
 const showAddModal = ref(false);
 const editingAccount = ref<Account | null>(null);
 const showCreditStatus = ref(false);
 const creditStatus = ref<CreditCardStatus | null>(null);
+const showBalanceAssignment = ref(false);
+const newlyCreatedAccount = ref<Account | null>(null);
 
 const formData = ref<CreateAccountData>({
   name: '',
@@ -189,12 +202,31 @@ async function handleSubmit() {
   try {
     if (editingAccount.value) {
       await accountsStore.updateAccount(editingAccount.value.id, formData.value);
+      closeModal();
     } else {
-      await accountsStore.createAccount(formData.value);
+      // Create new account
+      const newAccount = await accountsStore.createAccount(formData.value);
+      closeModal();
+
+      // If account has a positive balance, prompt for balance assignment
+      if (newAccount && newAccount.current_balance > 0) {
+        newlyCreatedAccount.value = newAccount;
+        showBalanceAssignment.value = true;
+      }
     }
-    closeModal();
   } catch (error) {
     console.error('Failed to save account:', error);
   }
+}
+
+function closeBalanceAssignmentModal() {
+  showBalanceAssignment.value = false;
+  newlyCreatedAccount.value = null;
+}
+
+async function handleBalanceAssigned() {
+  // Refresh budget to show updated assignments
+  const currentMonth = new Date().toISOString().slice(0, 7);
+  await budgetsStore.fetchBudgetSummary(currentMonth);
 }
 </script>

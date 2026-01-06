@@ -38,7 +38,29 @@ router.get('/current', asyncHandler(async (req: Request, res: Response) => {
     name: household.name,
     invitation_code: household.invitation_code,
     member_count: parseInt(memberCount?.count as string || '0'),
+    setup_wizard_completed: household.setup_wizard_completed,
+    setup_wizard_completed_at: household.setup_wizard_completed_at,
     created_at: household.created_at
+  });
+}));
+
+/**
+ * PATCH /api/v1/households/setup-wizard
+ * Mark setup wizard as completed for the current household
+ */
+router.patch('/setup-wizard', asyncHandler(async (req: Request, res: Response) => {
+  const householdId = req.user!.householdId!;
+
+  await db('households')
+    .where({ id: householdId })
+    .update({
+      setup_wizard_completed: true,
+      setup_wizard_completed_at: db.fn.now()
+    });
+
+  res.json({
+    success: true,
+    message: 'Setup wizard marked as completed'
   });
 }));
 

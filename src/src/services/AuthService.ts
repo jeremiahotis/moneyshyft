@@ -3,6 +3,7 @@ import db from '../config/knex';
 import { generateAccessToken, generateRefreshToken, JWTPayload } from '../utils/jwt';
 import { generateInvitationCode } from '../utils/invitationCode';
 import logger from '../utils/logger';
+import { createRecommendedSections } from '../seeds/production/001_recommended_sections';
 
 const BCRYPT_ROUNDS = 12;
 
@@ -28,6 +29,7 @@ export interface UserResponse {
   lastName: string;
   householdId: string | null;
   role: string;
+  setupWizardCompleted?: boolean;
   createdAt: Date;
 }
 
@@ -134,6 +136,8 @@ class AuthService {
             is_system: true,
           });
 
+        await createRecommendedSections(trx, householdId);
+
         logger.info(`Created default Income category for household: ${householdId}`);
       }
 
@@ -207,7 +211,7 @@ class AuthService {
     const refreshToken = generateRefreshToken(payload);
 
     const response: AuthResponse = {
-      user: this.formatUserResponse(result.user),
+      user: await this.formatUserResponse(result.user),
       accessToken,
       refreshToken,
     };
@@ -257,7 +261,7 @@ class AuthService {
     const refreshToken = generateRefreshToken(payload, rememberMe);
 
     return {
-      user: this.formatUserResponse(user),
+      user: await this.formatUserResponse(user),
       accessToken,
       refreshToken,
     };
@@ -267,7 +271,11 @@ class AuthService {
    * Get user by ID
    */
   async getUserById(userId: string): Promise<UserResponse | null> {
-    const user = await db('users').where({ id: userId }).first();
+    const user = await db('users')
+      .leftJoin('households', 'users.household_id', 'households.id')
+      .select('users.*', 'households.setup_wizard_completed')
+      .where({ 'users.id': userId })
+      .first();
     if (!user) {
       return null;
     }
@@ -277,7 +285,17 @@ class AuthService {
   /**
    * Format user response (remove sensitive data)
    */
-  private formatUserResponse(user: any): UserResponse {
+  private async formatUserResponse(user: any): Promise<UserResponse> {
+    let setupWizardCompleted: boolean | undefined = user.setup_wizard_completed;
+
+    if (setupWizardCompleted === undefined && user.household_id) {
+      const household = await db('households')
+        .select('setup_wizard_completed')
+        .where({ id: user.household_id })
+        .first();
+      setupWizardCompleted = household?.setup_wizard_completed ?? undefined;
+    }
+
     return {
       id: user.id,
       email: user.email,
@@ -285,6 +303,7 @@ class AuthService {
       lastName: user.last_name,
       householdId: user.household_id,
       role: user.role,
+      setupWizardCompleted,
       createdAt: user.created_at,
     };
   }

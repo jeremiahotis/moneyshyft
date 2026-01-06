@@ -34,6 +34,12 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true }
   },
   {
+    path: '/recurring-transactions',
+    name: 'recurring-transactions',
+    component: () => import('@/views/Transactions/RecurringTransactionsView.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
     path: '/budget',
     name: 'budget',
     component: () => import('@/views/Budget/BudgetView.vue'),
@@ -55,6 +61,12 @@ const routes: RouteRecordRaw[] = [
     path: '/debts',
     name: 'debts',
     component: () => import('@/views/Debts/DebtsView.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/extra-money',
+    name: 'extra-money',
+    component: () => import('@/views/ExtraMoneyView.vue'),
     meta: { requiresAuth: true }
   },
   {
@@ -87,6 +99,13 @@ router.beforeEach(async (to, _from, next) => {
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
     // Redirect to login if route requires auth and user is not authenticated
     next({ name: 'login', query: { redirect: to.fullPath } });
+  } else if (
+    authStore.isAuthenticated &&
+    authStore.user?.householdId &&
+    authStore.user?.setupWizardCompleted === false &&
+    to.name !== 'budget-setup'
+  ) {
+    next({ name: 'budget-setup' });
   } else if (to.meta.requiresGuest && authStore.isAuthenticated) {
     // Redirect to dashboard if route is for guests only and user is authenticated
     next({ name: 'dashboard' });
