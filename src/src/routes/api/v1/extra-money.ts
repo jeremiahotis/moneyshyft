@@ -23,6 +23,9 @@ router.get('/', async (req, res) => {
   try {
     const { status } = req.query;
     const householdId = req.user!.householdId;
+    if (!householdId) {
+      return res.status(403).json({ error: 'User must belong to a household' });
+    }
 
     // Validate query params
     if (status) {
@@ -51,6 +54,9 @@ router.get('/', async (req, res) => {
 router.get('/pending', async (req, res) => {
   try {
     const householdId = req.user!.householdId;
+    if (!householdId) {
+      return res.status(403).json({ error: 'User must belong to a household' });
+    }
     const entries = await ExtraMoneyService.getPendingEntries(householdId);
 
     res.json({ data: entries });
@@ -72,6 +78,9 @@ router.post('/', async (req, res) => {
     }
 
     const householdId = req.user!.householdId;
+    if (!householdId) {
+      return res.status(403).json({ error: 'User must belong to a household' });
+    }
     const userId = req.user!.userId;
 
     const entry = await ExtraMoneyService.createExtraMoneyEntry({
@@ -101,6 +110,9 @@ router.post('/:id/assign', async (req, res) => {
     const { id } = req.params;
     const { assignments, savings_reserve } = req.body;
     const householdId = req.user!.householdId;
+    if (!householdId) {
+      return res.status(403).json({ error: 'User must belong to a household' });
+    }
     const userId = req.user!.userId;
 
     const entry = await ExtraMoneyService.assignToCategories(
@@ -132,6 +144,9 @@ router.post('/:id/assign-goals', async (req, res) => {
     const { id } = req.params;
     const { allocations } = req.body;
     const householdId = req.user!.householdId;
+    if (!householdId) {
+      return res.status(403).json({ error: 'User must belong to a household' });
+    }
     const userId = req.user!.userId;
 
     const entry = await ExtraMoneyService.assignSavingsToGoals(
@@ -156,6 +171,9 @@ router.post('/:id/ignore', async (req, res) => {
   try {
     const { id } = req.params;
     const householdId = req.user!.householdId;
+    if (!householdId) {
+      return res.status(403).json({ error: 'User must belong to a household' });
+    }
     const userId = req.user!.userId;
 
     const entry = await ExtraMoneyService.ignoreEntry(id, householdId, userId);
@@ -175,6 +193,9 @@ router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const householdId = req.user!.householdId;
+    if (!householdId) {
+      return res.status(403).json({ error: 'User must belong to a household' });
+    }
 
     await ExtraMoneyService.deleteEntry(id, householdId);
 
@@ -192,6 +213,9 @@ router.delete('/:id', async (req, res) => {
 router.post('/scan', async (req, res) => {
   try {
     const householdId = req.user!.householdId;
+    if (!householdId) {
+      return res.status(403).json({ error: 'User must belong to a household' });
+    }
 
     const flaggedCount = await ExtraMoneyService.runDetectionScan(householdId);
 
@@ -213,6 +237,9 @@ router.post('/scan', async (req, res) => {
 router.get('/preferences', async (req, res) => {
   try {
     const householdId = req.user!.householdId;
+    if (!householdId) {
+      return res.status(403).json({ error: 'User must belong to a household' });
+    }
     const preferences = await ExtraMoneyService.getPreferences(householdId);
 
     res.json({ data: preferences });
@@ -234,6 +261,9 @@ router.post('/preferences', async (req, res) => {
     }
 
     const householdId = req.user!.householdId;
+    if (!householdId) {
+      return res.status(403).json({ error: 'User must belong to a household' });
+    }
     const {
       category_percentages,
       section_percentages,

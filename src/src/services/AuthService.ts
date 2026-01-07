@@ -155,16 +155,18 @@ class AuthService {
         })
         .returning('*');
 
-      await AnalyticsService.recordEvent(
-        'signup_completed',
-        householdId,
-        user.id,
-        {
-          createdHousehold: !!householdName,
-          usedInvitationCode: !!invitationCode,
-        },
-        trx
-      );
+      if (householdId) {
+        await AnalyticsService.recordEvent(
+          'signup_completed',
+          householdId,
+          user.id,
+          {
+            createdHousehold: !!householdName,
+            usedInvitationCode: !!invitationCode,
+          },
+          trx
+        );
+      }
 
       // Log user creation details
       logger.info(`User created successfully`, {
