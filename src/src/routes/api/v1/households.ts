@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { asyncHandler } from '../../../middleware/errorHandler';
-import { authenticateToken, requireHouseholdAccess, requireRole } from '../../../middleware/auth';
+import { authenticateToken, requireHouseholdAccess } from '../../../middleware/auth';
 import db from '../../../config/knex';
 import logger from '../../../utils/logger';
 import { AnalyticsService } from '../../../services/AnalyticsService';
@@ -77,9 +77,15 @@ router.patch('/setup-wizard', asyncHandler(async (req: Request, res: Response) =
  * POST /api/v1/households/reset
  * Reset all household data except users (admin only)
  */
-router.post('/reset', requireRole('admin'), asyncHandler(async (req: Request, res: Response) => {
+router.post('/reset', asyncHandler(async (req: Request, res: Response) => {
   const householdId = req.user!.householdId!;
-  const { confirm } = req.body ?? {};
+  const { confirm, resetToken } = req.body ?? {};
+  const headerToken = req.header('x-reset-token');
+  const expectedToken = process.env.RESET_TOKEN;
+
+  if (!expectedToken || (resetToken !== expectedToken && headerToken !== expectedToken)) {
+    return res.status(403).json({ error: 'Invalid reset token.' });
+  }
 
   if (confirm !== 'RESET') {
     return res.status(400).json({ error: 'Confirmation required. Send { confirm: \"RESET\" }.' });

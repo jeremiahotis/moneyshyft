@@ -65,11 +65,12 @@ Reset household data (keeps users + household, clears everything else and resets
 ```bash
 curl -X POST \
   -H "Content-Type: application/json" \
+  -H "x-reset-token: <RESET_TOKEN>" \
   -b "access_token=<cookie>" \
-  -d '{"confirm":"RESET"}' \
+  -d '{"confirm":"RESET","resetToken":"<RESET_TOKEN>"}' \
   https://<your-domain>/api/v1/households/reset
 ```
 
 Notes:
-- Admin-only; requires an authenticated session.
+- Requires an authenticated session plus `RESET_TOKEN` (set in the server environment).
 - This is destructive and intended for recovery/testing workflows.
