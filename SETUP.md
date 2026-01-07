@@ -57,3 +57,19 @@ CI uses the same variables via GitHub Secrets:
 - `STAGING_URL` (mapped to `BASE_URL`)
 - `TEST_EMAIL`
 - `TEST_PASSWORD`
+
+## Admin Utilities
+
+Reset household data (keeps users + household, clears everything else and resets wizard):
+
+```bash
+curl -X POST \
+  -H "Content-Type: application/json" \
+  -b "access_token=<cookie>" \
+  -d '{"confirm":"RESET"}' \
+  https://<your-domain>/api/v1/households/reset
+```
+
+Notes:
+- Admin-only; requires an authenticated session.
+- This is destructive and intended for recovery/testing workflows.

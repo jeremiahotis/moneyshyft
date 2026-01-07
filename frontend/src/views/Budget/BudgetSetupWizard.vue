@@ -113,7 +113,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import { useWizardStore } from '@/stores/wizard';
@@ -148,6 +148,7 @@ const categoriesStore = useCategoriesStore();
 const budgetsStore = useBudgetsStore();
 const debtsStore = useDebtsStore();
 const celebrationStore = useCelebrationStore();
+const wizardCompletionSynced = ref(false);
 
 const progressPercent = computed(() => {
   return ((wizardStore.currentStep + 1) / 12) * 100;
@@ -486,14 +487,25 @@ async function applyBalanceAssignments() {
   }
 }
 
-async function completeWizard() {
+async function markWizardComplete() {
+  if (wizardCompletionSynced.value || authStore.user?.setupWizardCompleted) {
+    return;
+  }
+
   try {
     await api.patch('/households/setup-wizard');
     if (authStore.user) {
       authStore.user.setupWizardCompleted = true;
     }
+    wizardCompletionSynced.value = true;
   } catch (error) {
     console.error('Failed to mark setup wizard complete:', error);
+  }
+}
+
+async function completeWizard() {
+  try {
+    await markWizardComplete();
   } finally {
     wizardStore.markComplete();
     if (!localStorage.getItem('msyft_first_budget_complete')) {
@@ -513,6 +525,15 @@ async function handleLogout() {
 onMounted(() => {
   wizardStore.loadProgress();
 });
+
+watch(
+  () => wizardStore.currentStep,
+  async (step) => {
+    if (step === 11) {
+      await markWizardComplete();
+    }
+  }
+);
 </script>
 
 <style scoped>

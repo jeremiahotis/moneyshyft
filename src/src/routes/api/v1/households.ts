@@ -1,6 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { asyncHandler } from '../../../middleware/errorHandler';
-import { authenticateToken, requireHouseholdAccess } from '../../../middleware/auth';
+import { authenticateToken, requireHouseholdAccess, requireRole } from '../../../middleware/auth';
 import db from '../../../config/knex';
 import logger from '../../../utils/logger';
 import { AnalyticsService } from '../../../services/AnalyticsService';
@@ -70,6 +70,80 @@ router.patch('/setup-wizard', asyncHandler(async (req: Request, res: Response) =
   res.json({
     success: true,
     message: 'Setup wizard marked as completed'
+  });
+}));
+
+/**
+ * POST /api/v1/households/reset
+ * Reset all household data except users (admin only)
+ */
+router.post('/reset', requireRole('admin'), asyncHandler(async (req: Request, res: Response) => {
+  const householdId = req.user!.householdId!;
+  const { confirm } = req.body ?? {};
+
+  if (confirm !== 'RESET') {
+    return res.status(400).json({ error: 'Confirmation required. Send { confirm: \"RESET\" }.' });
+  }
+
+  await db.transaction(async (trx) => {
+    const goalsQuery = trx('goals').select('id').where({ household_id: householdId });
+    const debtPlansQuery = trx('debt_payment_plans').select('id').where({ household_id: householdId });
+    const debtsQuery = trx('debts').select('id').where({ household_id: householdId });
+    const budgetMonthsQuery = trx('budget_months').select('id').where({ household_id: householdId });
+    const extraMoneyEntriesQuery = trx('extra_money_entries').select('id').where({ household_id: householdId });
+
+    await trx('extra_money_goal_allocations')
+      .whereIn('extra_money_entry_id', extraMoneyEntriesQuery)
+      .del();
+    await trx('extra_money_assignments')
+      .whereIn('extra_money_entry_id', extraMoneyEntriesQuery)
+      .del();
+    await trx('extra_money_entries').where({ household_id: householdId }).del();
+    await trx('extra_money_preferences').where({ household_id: householdId }).del();
+
+    await trx('account_balance_assignments').where({ household_id: householdId }).del();
+    await trx('assignment_transfers').where({ household_id: householdId }).del();
+    await trx('income_assignments').where({ household_id: householdId }).del();
+    await trx('income_sources').where({ household_id: householdId }).del();
+
+    await trx('recurring_transaction_instances').where({ household_id: householdId }).del();
+    await trx('recurring_transactions').where({ household_id: householdId }).del();
+    await trx('user_preferences').where({ household_id: householdId }).del();
+
+    await trx('debt_payment_schedule').whereIn('plan_id', debtPlansQuery).del();
+    await trx('debt_payment_plans').where({ household_id: householdId }).del();
+    await trx('debt_payments').whereIn('debt_id', debtsQuery).del();
+    await trx('debts').where({ household_id: householdId }).del();
+
+    await trx('goal_contributions').whereIn('goal_id', goalsQuery).del();
+    await trx('goals').where({ household_id: householdId }).del();
+
+    await trx('budget_allocations').whereIn('budget_month_id', budgetMonthsQuery).del();
+    await trx('budget_months').where({ household_id: householdId }).del();
+
+    await trx('transactions').where({ household_id: householdId }).del();
+    await trx('categories').where({ household_id: householdId }).del();
+    await trx('category_sections').where({ household_id: householdId }).del();
+    await trx('accounts').where({ household_id: householdId }).del();
+
+    await trx('household_invitations').where({ household_id: householdId }).del();
+    await trx('household_settings').where({ household_id: householdId }).del();
+    await trx('analytics_events').where({ household_id: householdId }).del();
+
+    await trx('households')
+      .where({ id: householdId })
+      .update({
+        setup_wizard_completed: false,
+        setup_wizard_completed_at: null,
+      });
+  });
+
+  logger.info('Household reset completed', { householdId, userId: req.user!.userId });
+
+  res.json({
+    success: true,
+    message: 'Household data reset',
+    householdId,
   });
 }));
 
