@@ -337,16 +337,6 @@ async function createBudgetFromWizard() {
       });
     }
 
-    // Internet & Phone
-    if (answers.internet_phone_estimate) {
-      const internetCat = await ensureCategory(fixedSection.id, 'Internet & Phone');
-      await budgetsStore.setAllocation(currentMonth, {
-        category_id: internetCat.id,
-        allocated_amount: answers.internet_phone_estimate,
-        rollup_mode: false,
-      });
-    }
-
     // 3. Create Debt Records using Debt Tracker
     // Credit card debts
     if (answers.has_credit_card_debt && answers.credit_card_debts && answers.credit_card_debts.length > 0) {

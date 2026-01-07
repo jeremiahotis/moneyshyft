@@ -242,7 +242,6 @@ function getBudgetAmount(categoryName: string): number {
     return insurance.reduce((sum, p) => sum + p.amount, 0)
   }
   if (categoryName === 'Utilities') return answers.utilities_estimate || 0
-  if (categoryName === 'Internet & Phone') return answers.internet_phone_estimate || 0
   if (categoryName === 'Minimum Debt Payments') {
     const ccPayments = answers.credit_card_debts?.reduce((sum: number, p: any) => sum + p.minimum_payment, 0) || 0
     const otherPayments = answers.other_debts?.reduce((sum: number, p: any) => sum + p.minimum_payment, 0) || 0

@@ -54,13 +54,21 @@
           <span class="text-gray-700"><span class="mr-2">🛡️</span>Car Insurance</span>
           <span class="font-medium">{{ formatCurrency(answers.car_insurance_amount) }}</span>
         </div>
-        <div v-if="answers.utilities_estimate" class="flex justify-between">
-          <span class="text-gray-700"><span class="mr-2">💡</span>Utilities</span>
-          <span class="font-medium">{{ formatCurrency(answers.utilities_estimate) }}</span>
-        </div>
-        <div v-if="answers.internet_phone_estimate" class="flex justify-between">
-          <span class="text-gray-700"><span class="mr-2">📱</span>Internet & Phone</span>
-          <span class="font-medium">{{ formatCurrency(answers.internet_phone_estimate) }}</span>
+        <div v-if="utilitiesTotal > 0" class="space-y-1">
+          <div class="flex justify-between">
+            <span class="text-gray-700"><span class="mr-2">💡</span>Utilities</span>
+            <span class="font-medium">{{ formatCurrency(utilitiesTotal) }}</span>
+          </div>
+          <div v-if="utilitiesBreakdown.length > 0" class="pl-6 text-xs text-gray-500 space-y-1">
+            <div
+              v-for="(item, index) in utilitiesBreakdown"
+              :key="index"
+              class="flex justify-between"
+            >
+              <span>{{ item.label }}</span>
+              <span>{{ formatCurrency(item.amount) }}</span>
+            </div>
+          </div>
         </div>
         <div v-if="totalDebtPayments > 0" class="flex justify-between">
           <span class="text-gray-700"><span class="mr-2">💳</span>Debt Payments</span>
@@ -156,14 +164,33 @@ const totalFlexibleSpending = computed(() => {
          (props.answers.personal_care_estimate || 0);
 });
 
+const utilitiesBreakdown = computed(() => {
+  if (props.answers.utilities_breakdown && props.answers.utilities_breakdown.length > 0) {
+    return props.answers.utilities_breakdown;
+  }
+
+  const legacyItems = [];
+  if (props.answers.utilities_estimate) {
+    legacyItems.push({ label: 'Utilities', amount: props.answers.utilities_estimate });
+  }
+  if (props.answers.internet_phone_estimate) {
+    legacyItems.push({ label: 'Internet & Phone', amount: props.answers.internet_phone_estimate });
+  }
+  return legacyItems;
+});
+
+const utilitiesTotal = computed(() => {
+  return (props.answers.utilities_estimate || 0) +
+         (props.answers.internet_phone_estimate || 0);
+});
+
 const totalExpenses = computed(() => {
   const carPayments = props.answers.car_payments?.reduce((sum, p) => sum + p.amount, 0) || 0;
   const carInsurance = props.answers.car_insurance_payments?.reduce((sum, p) => sum + p.amount, 0) || 0;
   return (props.answers.housing_amount || 0) +
          carPayments +
          (carInsurance || props.answers.car_insurance_amount || 0) +
-         (props.answers.utilities_estimate || 0) +
-         (props.answers.internet_phone_estimate || 0) +
+         utilitiesTotal.value +
          totalDebtPayments.value +
          totalFlexibleSpending.value;
 });

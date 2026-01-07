@@ -12,53 +12,86 @@
       </p>
     </div>
 
-    <!-- Utilities -->
-    <div class="mb-6">
-      <label class="block text-sm font-medium text-gray-700 mb-1">
-        Utilities (electric, gas, water, trash)
-      </label>
-      <div class="relative">
-        <span class="absolute left-3 top-3 text-gray-500">$</span>
-        <input
-          v-model.number="utilitiesEstimate"
-          type="number"
-          step="0.01"
-          placeholder="0.00"
-          class="w-full pl-8 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-        />
-      </div>
-      <p class="text-xs text-gray-500 mt-2">
-        💡 Tip: Check your last few bills and take an average
+    <!-- Utilities breakdown -->
+    <div class="mb-6 space-y-4">
+      <p class="text-sm text-gray-700">
+        Pick the utilities you pay for, then add the monthly amount. We’ll roll them into one Utilities category.
       </p>
-      <p v-if="utilitiesEstimate >= 50 && utilitiesEstimate < 150" class="text-xs text-green-600 mt-1">
-        ✓ Typical range for utilities
-      </p>
-      <p v-else-if="utilitiesEstimate >= 150 && utilitiesEstimate < 300" class="text-xs text-green-600 mt-1">
-        ✓ Common for larger homes or extreme weather
-      </p>
-    </div>
 
-    <!-- Internet & Phone -->
-    <div class="mb-6">
-      <label class="block text-sm font-medium text-gray-700 mb-1">
-        Internet & Phone
-      </label>
-      <div class="relative">
-        <span class="absolute left-3 top-3 text-gray-500">$</span>
-        <input
-          v-model.number="internetPhoneEstimate"
-          type="number"
-          step="0.01"
-          placeholder="0.00"
-          class="w-full pl-8 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-        />
+      <div class="space-y-3">
+        <div
+          v-for="utility in presetUtilities"
+          :key="utility.key"
+          class="flex items-center gap-3"
+        >
+          <input
+            v-model="utility.enabled"
+            type="checkbox"
+            class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+          />
+          <span class="min-w-[140px] text-sm text-gray-700">{{ utility.label }}</span>
+          <div class="relative flex-1">
+            <span class="absolute left-3 top-3 text-gray-500">$</span>
+            <input
+              v-model.number="utility.amount"
+              :disabled="!utility.enabled"
+              type="number"
+              step="0.01"
+              placeholder="0.00"
+              class="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 disabled:bg-gray-100"
+            />
+          </div>
+        </div>
       </div>
-      <p class="text-xs text-gray-500 mt-2">
-        💡 Tip: Include internet, mobile phone, and any streaming services you consider essential
-      </p>
-      <p v-if="internetPhoneEstimate >= 50 && internetPhoneEstimate < 150" class="text-xs text-green-600 mt-1">
-        ✓ Typical range for internet and phone
-      </p>
+
+      <div class="pt-4 border-t border-gray-200">
+        <div class="flex items-center justify-between mb-3">
+          <span class="text-sm font-medium text-gray-700">Other utilities</span>
+          <button
+            type="button"
+            @click="addCustomUtility"
+            class="text-sm text-primary-600 hover:text-primary-700 font-medium"
+          >
+            + Add a utility
+          </button>
+        </div>
+
+        <div v-if="customUtilities.length > 0" class="space-y-2">
+          <div
+            v-for="utility in customUtilities"
+            :key="utility.id"
+            class="flex items-center gap-3"
+          >
+            <input
+              v-model="utility.label"
+              type="text"
+              placeholder="Utility name"
+              class="w-full max-w-[180px] px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+            />
+            <div class="relative flex-1">
+              <span class="absolute left-3 top-3 text-gray-500">$</span>
+              <input
+                v-model.number="utility.amount"
+                type="number"
+                step="0.01"
+                placeholder="0.00"
+                class="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              />
+            </div>
+            <button
+              type="button"
+              @click="removeCustomUtility(utility.id)"
+              class="text-sm text-gray-400 hover:text-gray-600"
+            >
+              Remove
+            </button>
+          </div>
+        </div>
+
+        <p v-else class="text-xs text-gray-500">
+          Add anything like HOA utilities, propane, or bundled services.
+        </p>
+      </div>
     </div>
 
     <!-- Total display -->
@@ -113,38 +146,96 @@ import { ref, computed, onMounted } from 'vue';
 import { useWizardStore } from '@/stores/wizard';
 
 const emit = defineEmits<{
-  next: [data: { utilities_estimate?: number; internet_phone_estimate?: number }];
+  next: [data: { utilities_estimate?: number; utilities_breakdown?: Array<{ label: string; amount: number }> }];
   back: [];
 }>();
 
 const wizardStore = useWizardStore();
 
-const utilitiesEstimate = ref(0);
-const internetPhoneEstimate = ref(0);
+const presetUtilities = ref([
+  { key: 'electric', label: 'Electric', enabled: false, amount: 0 },
+  { key: 'gas', label: 'Gas', enabled: false, amount: 0 },
+  { key: 'water', label: 'Water/Sewer', enabled: false, amount: 0 },
+  { key: 'trash', label: 'Trash', enabled: false, amount: 0 },
+  { key: 'internet', label: 'Internet', enabled: false, amount: 0 },
+  { key: 'phone', label: 'Phone', enabled: false, amount: 0 },
+  { key: 'streaming', label: 'Streaming', enabled: false, amount: 0 },
+]);
+const customUtilities = ref<Array<{ id: string; label: string; amount: number }>>([]);
 
 onMounted(() => {
   // Pre-populate from stored answers if they exist
-  if (wizardStore.answers.utilities_estimate) {
-    utilitiesEstimate.value = wizardStore.answers.utilities_estimate;
-  }
-  if (wizardStore.answers.internet_phone_estimate) {
-    internetPhoneEstimate.value = wizardStore.answers.internet_phone_estimate;
+  if (wizardStore.answers.utilities_breakdown && wizardStore.answers.utilities_breakdown.length > 0) {
+    const presetByLabel = new Map(presetUtilities.value.map((item) => [item.label.toLowerCase(), item]));
+    wizardStore.answers.utilities_breakdown.forEach((item) => {
+      const preset = presetByLabel.get(item.label.toLowerCase());
+      if (preset) {
+        preset.enabled = true;
+        preset.amount = item.amount;
+      } else {
+        customUtilities.value.push({
+          id: crypto.randomUUID(),
+          label: item.label,
+          amount: item.amount,
+        });
+      }
+    });
+  } else {
+    if (wizardStore.answers.utilities_estimate) {
+      customUtilities.value.push({
+        id: crypto.randomUUID(),
+        label: 'Utilities (combined)',
+        amount: wizardStore.answers.utilities_estimate,
+      });
+    }
+    if (wizardStore.answers.internet_phone_estimate) {
+      customUtilities.value.push({
+        id: crypto.randomUUID(),
+        label: 'Internet & Phone',
+        amount: wizardStore.answers.internet_phone_estimate,
+      });
+    }
   }
 });
 
 const totalUtilities = computed(() => {
-  return (utilitiesEstimate.value || 0) + (internetPhoneEstimate.value || 0);
+  const presetTotal = presetUtilities.value.reduce((sum, item) => {
+    return sum + (item.enabled ? (item.amount || 0) : 0);
+  }, 0);
+  const customTotal = customUtilities.value.reduce((sum, item) => sum + (item.amount || 0), 0);
+  return presetTotal + customTotal;
 });
 
 function handleNext() {
+  const breakdown = [
+    ...presetUtilities.value
+      .filter((item) => item.enabled && item.amount)
+      .map((item) => ({ label: item.label, amount: item.amount })),
+    ...customUtilities.value
+      .filter((item) => item.label && item.amount)
+      .map((item) => ({ label: item.label, amount: item.amount })),
+  ];
+
   emit('next', {
-    utilities_estimate: utilitiesEstimate.value || undefined,
-    internet_phone_estimate: internetPhoneEstimate.value || undefined,
+    utilities_estimate: totalUtilities.value || undefined,
+    utilities_breakdown: breakdown.length > 0 ? breakdown : undefined,
   });
 }
 
 function handleSkip() {
   emit('next', {});
+}
+
+function addCustomUtility(): void {
+  customUtilities.value.push({
+    id: crypto.randomUUID(),
+    label: '',
+    amount: 0,
+  });
+}
+
+function removeCustomUtility(id: string): void {
+  customUtilities.value = customUtilities.value.filter((item) => item.id !== id);
 }
 
 function formatCurrency(amount: number): string {

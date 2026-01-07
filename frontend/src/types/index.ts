@@ -231,7 +231,8 @@ export interface WizardAnswers {
 
   // Utilities step
   utilities_estimate?: number;
-  internet_phone_estimate?: number;
+  utilities_breakdown?: Array<{ label: string; amount: number }>;
+  internet_phone_estimate?: number; // Legacy - for backward compatibility
 
   // Debt step
   has_credit_card_debt: boolean;
