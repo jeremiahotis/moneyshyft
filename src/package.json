@@ -1,6 +1,6 @@
 {
   "name": "moneyshyft",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "description": "Family-focused budgeting application",
   "main": "dist/server.js",
   "scripts": {

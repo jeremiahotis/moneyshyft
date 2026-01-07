@@ -1,5 +1,15 @@
 # Release Notes
 
+## v0.3.4
+
+Fixes
+- Added migration compatibility shim for legacy 004_add_envelope_budgeting.
+- Made envelope budgeting migration idempotent for existing databases.
+
+Deployment notes
+- Rebuild backend image.
+- Run migrations (use npm run migrate:latest:prod inside the container).
+
 ## v0.3.3
 
 Fixes

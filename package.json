@@ -1,5 +1,5 @@
 {
-  "version": "0.3.3",
+  "version": "0.3.4",
   "dependencies": {
     "uuid": "^13.0.0"
   },
