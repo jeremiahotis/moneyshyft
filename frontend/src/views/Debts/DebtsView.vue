@@ -4,12 +4,16 @@
       <!-- Header -->
       <div class="flex items-center justify-between mb-6">
         <div>
-          <h1 class="text-2xl font-bold text-gray-900">Debt Freedom Planner</h1>
-          <p class="text-gray-600 mt-2">Track your debts and find the fastest path to freedom</p>
+          <div class="flex items-center gap-2">
+            <h1 class="text-2xl font-bold text-gray-900">Debt Progress Planner</h1>
+            <InfoTooltip text="Track balances and plan payments without judgment." />
+          </div>
+          <p class="text-gray-600 mt-2">Track your debts and choose a plan that fits your pace.</p>
         </div>
         <button
           @click="showCreateModal = true"
           class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition font-medium"
+          data-testid="debts-add-button"
         >
           + Add Debt
         </button>
@@ -18,19 +22,31 @@
       <!-- Overview Stats -->
       <div v-if="debtsStore.activeDebts.length > 0" class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         <div class="bg-white rounded-lg shadow p-6">
-          <p class="text-sm text-gray-600 mb-1">Total Debt</p>
+          <div class="flex items-center gap-2 mb-1">
+            <p class="text-sm text-gray-600">Total Debt</p>
+            <InfoTooltip text="Total remaining balances across active debts." />
+          </div>
           <p class="text-2xl font-bold text-orange-600">{{ formatCurrency(debtsStore.totalDebt) }}</p>
         </div>
         <div class="bg-white rounded-lg shadow p-6">
-          <p class="text-sm text-gray-600 mb-1">Monthly Minimums</p>
+          <div class="flex items-center gap-2 mb-1">
+            <p class="text-sm text-gray-600">Monthly Minimums</p>
+            <InfoTooltip text="Minimum payment total across active debts." />
+          </div>
           <p class="text-2xl font-bold text-gray-900">{{ formatCurrency(debtsStore.totalMinimumPayments) }}</p>
         </div>
         <div class="bg-white rounded-lg shadow p-6">
-          <p class="text-sm text-gray-600 mb-1">Highest APR</p>
+          <div class="flex items-center gap-2 mb-1">
+            <p class="text-sm text-gray-600">Highest APR</p>
+            <InfoTooltip text="Highest interest rate among active debts." />
+          </div>
           <p class="text-2xl font-bold text-red-600">{{ debtsStore.highestInterestRate.toFixed(2) }}%</p>
         </div>
         <div class="bg-white rounded-lg shadow p-6">
-          <p class="text-sm text-gray-600 mb-1">Debts Paid Off</p>
+          <div class="flex items-center gap-2 mb-1">
+            <p class="text-sm text-gray-600">Debts Paid Off</p>
+            <InfoTooltip text="Count of debts marked as paid off." />
+          </div>
           <p class="text-2xl font-bold text-green-600">{{ debtsStore.paidOffDebts.length }}</p>
         </div>
       </div>
@@ -87,9 +103,12 @@
       <!-- Strategy Comparison -->
       <div v-if="debtsStore.activeDebts.length > 1" class="mb-8">
         <div class="bg-gradient-to-br from-primary-50 to-secondary-50 rounded-lg shadow p-6">
-          <h2 class="text-xl font-bold text-gray-900 mb-4">Payoff Strategy Calculator</h2>
+          <div class="flex items-center gap-2 mb-4">
+            <h2 class="text-xl font-bold text-gray-900">Payment Strategy Calculator</h2>
+            <InfoTooltip text="Compare payoff strategies based on your monthly amount." />
+          </div>
           <p class="text-gray-700 mb-4">
-            Enter how much you can pay toward debt each month to see which strategy gets you debt-free faster.
+            Enter how much you can put toward debt each month to see which strategy builds progress sooner.
           </p>
 
           <div class="flex gap-4 items-end mb-6">
@@ -134,7 +153,7 @@
               <p class="text-sm text-gray-600 mb-4">Pay smallest balance first for quick wins</p>
               <div class="space-y-2">
                 <div class="flex justify-between">
-                  <span class="text-sm text-gray-600">Time to debt-free:</span>
+                  <span class="text-sm text-gray-600">Time to payoff:</span>
                   <span class="font-semibold">{{ debtsStore.strategyComparison.snowball.months_to_payoff }} months</span>
                 </div>
                 <div class="flex justify-between">
@@ -155,7 +174,7 @@
               <p class="text-sm text-gray-600 mb-4">Pay highest interest first to save money</p>
               <div class="space-y-2">
                 <div class="flex justify-between">
-                  <span class="text-sm text-gray-600">Time to debt-free:</span>
+                  <span class="text-sm text-gray-600">Time to payoff:</span>
                   <span class="font-semibold">{{ debtsStore.strategyComparison.avalanche.months_to_payoff }} months</span>
                 </div>
                 <div class="flex justify-between">
@@ -171,7 +190,7 @@
             <p class="text-green-900 font-semibold">
               💰 Avalanche saves you {{ formatCurrency(debtsStore.strategyComparison.interest_savings) }} in interest
               <span v-if="debtsStore.strategyComparison.time_savings_months > 0">
-                and gets you debt-free {{ debtsStore.strategyComparison.time_savings_months }} months faster!
+                and can shorten payoff by {{ debtsStore.strategyComparison.time_savings_months }} months.
               </span>
             </p>
           </div>
@@ -208,11 +227,12 @@
       <!-- Empty State -->
       <div v-else-if="debtsStore.debts.length === 0" class="text-center py-12 bg-white rounded-lg shadow">
         <span class="text-6xl mb-4 block">💳</span>
-        <h3 class="text-xl font-semibold text-gray-900 mb-2">No Debts Tracked</h3>
-        <p class="text-gray-600 mb-6">Start tracking your debts to create a payoff plan!</p>
+        <h3 class="text-xl font-semibold text-gray-900 mb-2">No debts listed yet</h3>
+        <p class="text-gray-600 mb-6">Add a debt if you want help tracking balances and payments.</p>
         <button
           @click="showCreateModal = true"
           class="px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition font-medium"
+          data-testid="debts-add-button"
         >
           Add Your First Debt
         </button>
@@ -229,6 +249,7 @@
               :key="debt.id"
               @click="openDebtDetail(debt)"
               class="bg-white rounded-lg shadow hover:shadow-lg transition cursor-pointer p-6"
+              :data-testid="`debt-card-${debt.id}`"
             >
               <div class="flex items-center justify-between mb-4">
                 <h3 class="text-lg font-semibold text-gray-900 truncate">{{ debt.name }}</h3>
@@ -329,6 +350,7 @@ import AppLayout from '@/components/layout/AppLayout.vue';
 import CreateDebtModal from '@/components/debts/CreateDebtModal.vue';
 import DebtDetailModal from '@/components/debts/DebtDetailModal.vue';
 import EditDebtModal from '@/components/debts/EditDebtModal.vue';
+import InfoTooltip from '@/components/common/InfoTooltip.vue';
 import type { Debt } from '@/types';
 
 const debtsStore = useDebtsStore();

@@ -36,3 +36,24 @@ The `.env` file in `src/` contains configuration. For production:
 - All credentials should be unique per environment
 - The `.gitignore` file prevents sensitive files from being committed
 - Always use environment variables for secrets in production
+
+## QA Regression (Playwright)
+
+Playwright tests run against a live app. Set these env vars before running:
+
+```bash
+export BASE_URL=http://localhost:5173
+export TEST_EMAIL=you@example.com
+export TEST_PASSWORD=yourpassword
+```
+
+Run the suite:
+
+```bash
+npx playwright test
+```
+
+CI uses the same variables via GitHub Secrets:
+- `STAGING_URL` (mapped to `BASE_URL`)
+- `TEST_EMAIL`
+- `TEST_PASSWORD`

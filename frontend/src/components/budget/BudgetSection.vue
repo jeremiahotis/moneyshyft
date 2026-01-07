@@ -56,7 +56,7 @@
         <div class="flex justify-between items-center mt-1">
           <span class="text-xs text-gray-500">{{ progressPercentage }}% used</span>
           <span class="text-xs font-medium" :class="remainingColor">
-            {{ formatCurrency(summary.remaining) }} remaining
+            {{ formatCurrency(remainingAmount) }} {{ remainingLabel }}
           </span>
         </div>
       </div>
@@ -368,6 +368,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { useCategoriesStore } from '@/stores/categories';
+import { useUndoStore } from '@/stores/undo';
 import type { CategorySection, SectionSummary, CategorySummary } from '@/types';
 import AddCategoryModal from './AddCategoryModal.vue';
 import EditSectionModal from './EditSectionModal.vue';
@@ -386,6 +387,7 @@ const emit = defineEmits<{
 }>();
 
 const categoriesStore = useCategoriesStore();
+const undoStore = useUndoStore();
 
 const expanded = ref(true);
 const editingCategoryAllocation = ref<string | null>(null);
@@ -475,11 +477,26 @@ const remainingColor = computed(() => {
   return 'text-green-600';
 });
 
+const remainingLabel = computed(() => {
+  if (!props.summary) return 'remaining';
+  if (props.summary.remaining < 0) return 'over by';
+  return 'remaining';
+});
+
+const remainingAmount = computed(() => {
+  if (!props.summary) return 0;
+  return Math.abs(props.summary.remaining);
+});
+
 // Envelope icon helpers
 function getEnvelopeIcon(category: CategorySummary): string {
   // Has a plan but no money assigned yet
   if (category.assigned === 0 && category.allocated > 0) {
     return '📭'; // Empty/open envelope
+  }
+  // Over plan or overspent
+  if (category.available < 0) {
+    return '⚠️'; // Needs attention
   }
   // Has money available to spend
   if (category.available > 0) {
@@ -491,12 +508,15 @@ function getEnvelopeIcon(category: CategorySummary): string {
 
 function getEnvelopeStatusText(category: CategorySummary): string {
   if (category.assigned === 0 && category.allocated > 0) {
-    return 'Empty - Needs funding';
+    return 'Waiting for funding';
+  }
+  if (category.available < 0) {
+    return `Over by $${Math.abs(category.available).toFixed(2)} - Move money or adjust your plan`;
   }
   if (category.available > 0) {
     return `Has money - $${category.available.toFixed(2)} available`;
   }
-  return 'Fully spent';
+  return 'All used';
 }
 
 function startEdit(categoryId: string, currentAmount: number) {
@@ -571,15 +591,23 @@ async function deleteSection() {
     ? `Are you sure you want to delete "${props.section.name}"? This will also delete ${categoryCount} categor${categoryCount === 1 ? 'y' : 'ies'}. This action cannot be undone.`
     : `Are you sure you want to delete "${props.section.name}"? This action cannot be undone.`;
 
-  if (confirm(message)) {
-    try {
-      await categoriesStore.deleteSection(props.section.id);
-      emit('refresh');
-    } catch (error) {
-      console.error('Failed to delete section:', error);
-      alert('Failed to delete section. Please try again.');
-    }
-  }
+  if (!confirm(message)) return;
+
+  const sectionId = props.section.id;
+  const sectionName = props.section.name;
+  undoStore.schedule({
+    message: `Deleting "${sectionName}"...`,
+    timeoutMs: 5000,
+    onCommit: async () => {
+      try {
+        await categoriesStore.deleteSection(sectionId);
+        emit('refresh');
+      } catch (error) {
+        console.error('Failed to delete section:', error);
+        alert('Failed to delete section. Please try again.');
+      }
+    },
+  });
 }
 
 function editCategory(category: CategorySummary) {
@@ -588,15 +616,25 @@ function editCategory(category: CategorySummary) {
 }
 
 async function deleteCategory(category: CategorySummary) {
-  if (confirm(`Are you sure you want to delete "${category.category_name}"? This action cannot be undone.`)) {
-    try {
-      await categoriesStore.deleteCategory(category.category_id);
-      emit('refresh');
-    } catch (error) {
-      console.error('Failed to delete category:', error);
-      alert('Failed to delete category. Please try again.');
-    }
+  if (!confirm(`Are you sure you want to delete "${category.category_name}"? This action cannot be undone.`)) {
+    return;
   }
+
+  const categoryId = category.category_id;
+  const categoryName = category.category_name;
+  undoStore.schedule({
+    message: `Deleting "${categoryName}"...`,
+    timeoutMs: 5000,
+    onCommit: async () => {
+      try {
+        await categoriesStore.deleteCategory(categoryId);
+        emit('refresh');
+      } catch (error) {
+        console.error('Failed to delete category:', error);
+        alert('Failed to delete category. Please try again.');
+      }
+    },
+  });
 }
 
 function handleEditSection() {

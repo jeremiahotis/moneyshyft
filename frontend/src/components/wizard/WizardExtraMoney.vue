@@ -1,6 +1,9 @@
 <template>
   <div class="max-w-3xl mx-auto">
-    <h2 class="text-2xl font-bold text-gray-900 mb-2">💰 Extra Money Plan</h2>
+    <div class="flex items-center gap-2 mb-2">
+      <h2 class="text-2xl font-bold text-gray-900">💰 Extra Money Plan</h2>
+      <InfoTooltip text="Set a default plan for irregular income and windfalls." />
+    </div>
     <p class="text-gray-600 mb-6">
       When you receive irregular income (bonuses, tax refunds, gifts), how should we split it?
     </p>
@@ -185,7 +188,7 @@
           @click="handleSkip"
           class="px-6 py-3 text-gray-600 hover:text-gray-800 font-medium transition-colors"
         >
-          Skip for now
+          Not now
         </button>
         <button
           @click="handleNext"
@@ -200,6 +203,7 @@
 </template>
 
 <script setup lang="ts">
+import InfoTooltip from '@/components/common/InfoTooltip.vue';
 import { ref, computed, onMounted } from 'vue';
 import { useCategoriesStore } from '@/stores/categories';
 import type { SavePreferencesData } from '@/types';

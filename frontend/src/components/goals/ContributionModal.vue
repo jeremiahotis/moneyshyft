@@ -3,6 +3,7 @@
     v-if="modelValue && goal"
     class="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50"
     @click.self="close"
+    data-testid="goal-contribution-modal"
   >
     <div class="flex min-h-full items-center justify-center p-4">
       <div class="relative bg-white rounded-lg shadow-xl max-w-md w-full p-6">
@@ -58,6 +59,7 @@
                 placeholder="0.00"
                 class="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                 required
+                data-testid="goal-contribution-amount"
               />
             </div>
             <p v-if="newProgress" class="text-xs text-green-600 mt-1">
@@ -75,6 +77,7 @@
               rows="2"
               placeholder="e.g., Tax refund, Birthday money, etc."
               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              data-testid="goal-contribution-notes"
             ></textarea>
           </div>
 
@@ -104,6 +107,7 @@
               type="submit"
               :disabled="!isValid || isSubmitting"
               class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+              data-testid="goal-contribution-submit"
             >
               {{ isSubmitting ? 'Adding...' : 'Add Contribution' }}
             </button>

@@ -4,6 +4,7 @@ import { generateAccessToken, generateRefreshToken, JWTPayload } from '../utils/
 import { generateInvitationCode } from '../utils/invitationCode';
 import logger from '../utils/logger';
 import { createRecommendedSections } from '../seeds/production/001_recommended_sections';
+import { AnalyticsService } from './AnalyticsService';
 
 const BCRYPT_ROUNDS = 12;
 
@@ -153,6 +154,17 @@ class AuthService {
           role: userRole,
         })
         .returning('*');
+
+      await AnalyticsService.recordEvent(
+        'signup_completed',
+        householdId,
+        user.id,
+        {
+          createdHousehold: !!householdName,
+          usedInvitationCode: !!invitationCode,
+        },
+        trx
+      );
 
       // Log user creation details
       logger.info(`User created successfully`, {

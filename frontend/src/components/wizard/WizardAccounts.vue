@@ -1,6 +1,9 @@
 <template>
   <div class="max-w-2xl mx-auto">
-    <h2 class="text-2xl font-bold mb-2">Set Up Your Accounts</h2>
+    <div class="flex items-center gap-2 mb-2">
+      <h2 class="text-2xl font-bold">Set Up Your Accounts</h2>
+      <InfoTooltip text="Accounts show where your money lives so you can budget it." />
+    </div>
     <p class="text-gray-600 mb-6">
       Add your bank accounts, credit cards, and cash. We'll collect their current balances so you can assign that money to your budget categories.
     </p>
@@ -156,13 +159,14 @@
         type="button"
         class="text-sm text-gray-500 hover:text-gray-700 underline"
       >
-        I'll add accounts later
+        Not now
       </button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import InfoTooltip from '@/components/common/InfoTooltip.vue';
 import { ref, computed } from 'vue'
 
 interface Account {

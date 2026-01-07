@@ -96,8 +96,8 @@ export const useRecurringStore = defineStore('recurring', () => {
 
       templates.value.unshift(newTemplate);
 
-      // Refresh pending instances since we created a new template
-      await fetchPendingInstances();
+      // Generate pending instances for the new template
+      await generateInstances(newTemplate.id, 30);
 
       return newTemplate;
     } catch (err: any) {
@@ -168,7 +168,7 @@ export const useRecurringStore = defineStore('recurring', () => {
     try {
       await api.post(`/recurring-transactions/${id}/generate-instances`, { days_ahead: daysAhead });
       // Refresh pending instances
-      await fetchPendingInstances();
+      await fetchPendingInstances(daysAhead);
     } catch (err: any) {
       error.value = err.response?.data?.error || 'Failed to generate instances';
       throw err;

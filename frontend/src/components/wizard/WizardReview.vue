@@ -2,9 +2,12 @@
   <div class="bg-white rounded-lg shadow-lg p-8">
     <div class="text-center mb-8">
       <div class="text-5xl mb-3">✨</div>
-      <h2 class="text-3xl font-bold text-gray-900 mb-2">
-        Let's review what we've got!
-      </h2>
+      <div class="flex items-center justify-center gap-2 mb-2">
+        <h2 class="text-3xl font-bold text-gray-900">
+          Let's review what we've got!
+        </h2>
+        <InfoTooltip text="Confirm your inputs before we create your budget." />
+      </div>
       <p class="text-gray-600">
         Here's a summary of your budget. We're about to create everything for you.
       </p>
@@ -121,6 +124,7 @@
 </template>
 
 <script setup lang="ts">
+import InfoTooltip from '@/components/common/InfoTooltip.vue';
 import { computed } from 'vue';
 import type { WizardAnswers } from '@/types';
 

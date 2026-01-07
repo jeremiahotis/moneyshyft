@@ -11,3 +11,11 @@ app.use(pinia);
 app.use(router);
 
 app.mount('#app');
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch((error) => {
+      console.error('Service worker registration failed:', error);
+    });
+  });
+}

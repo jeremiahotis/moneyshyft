@@ -7,6 +7,7 @@
         <button
           @click="showAddModal = true"
           class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium"
+          data-testid="recurring-add-button"
         >
           + Add Recurring Transaction
         </button>
@@ -21,6 +22,7 @@
               ? 'border-primary-500 text-primary-600'
               : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
             class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm"
+            data-testid="recurring-tab-templates"
           >
             Templates ({{ activeTemplates.length }})
           </button>
@@ -30,6 +32,7 @@
               ? 'border-primary-500 text-primary-600'
               : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
             class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm"
+            data-testid="recurring-tab-pending"
           >
             Pending Instances ({{ pendingInstances.length }})
           </button>
@@ -39,6 +42,7 @@
               ? 'border-primary-500 text-primary-600'
               : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'"
             class="whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm"
+            data-testid="recurring-tab-history"
           >
             History
           </button>
@@ -56,6 +60,7 @@
           <button
             @click="showAddModal = true"
             class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium"
+            data-testid="recurring-add-button"
           >
             Create Your First Recurring Transaction
           </button>
@@ -138,6 +143,7 @@
             :instance="instance"
             :badge-color="getBadgeColor(instance.due_date)"
             @approve="approveInstance(instance.id)"
+            @post="postInstance(instance.id)"
             @skip="skipInstance(instance.id)"
           />
         </div>
@@ -154,6 +160,7 @@
               ? 'bg-primary-600 text-white'
               : 'bg-white text-gray-700 border border-gray-300'"
             class="px-4 py-2 rounded-lg font-medium text-sm capitalize"
+            :data-testid="`recurring-history-status-${status}`"
           >
             {{ status }}
           </button>
@@ -172,10 +179,11 @@
             v-for="instance in allInstances"
             :key="instance.id"
             class="bg-white border border-gray-200 rounded-lg p-4"
+            :data-testid="`recurring-history-row-${instance.id}`"
           >
             <div class="flex items-start justify-between">
               <div class="flex-1">
-                <h3 class="font-semibold text-gray-900 mb-1">{{ instance.payee }}</h3>
+                <h3 class="font-semibold text-gray-900 mb-1" data-testid="recurring-history-payee">{{ instance.payee }}</h3>
                 <div class="text-sm text-gray-600">
                   <div>
                     {{ formatCurrency(instance.amount) }}
@@ -198,6 +206,7 @@
                   'bg-blue-100 text-blue-800': instance.status === 'approved'
                 }"
                 class="px-2 py-1 text-xs font-medium rounded capitalize"
+                data-testid="recurring-history-status"
               >
                 {{ instance.status }}
               </span>
@@ -219,12 +228,14 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue';
 import { useRecurringStore } from '@/stores/recurring';
+import { useUndoStore } from '@/stores/undo';
 import AppLayout from '@/components/layout/AppLayout.vue';
 import InstanceRow from '@/components/dashboard/InstanceRow.vue';
 import RecurringTransactionModal from '@/components/transactions/RecurringTransactionModal.vue';
 import type { RecurringTransaction, InstanceStatus } from '@/types';
 
 const recurringStore = useRecurringStore();
+const undoStore = useUndoStore();
 
 const activeTab = ref<'templates' | 'pending' | 'history'>('templates');
 const showAddModal = ref(false);
@@ -310,12 +321,20 @@ async function deleteTemplate(template: RecurringTransaction) {
     return;
   }
 
-  try {
-    await recurringStore.deleteRecurring(template.id);
-  } catch (error) {
-    console.error('Failed to delete template:', error);
-    alert('Failed to delete recurring transaction');
-  }
+  const templateId = template.id;
+  const templateName = template.payee;
+  undoStore.schedule({
+    message: `Deleting "${templateName}"...`,
+    timeoutMs: 5000,
+    onCommit: async () => {
+      try {
+        await recurringStore.deleteRecurring(templateId);
+      } catch (error) {
+        console.error('Failed to delete template:', error);
+        alert('Failed to delete recurring transaction');
+      }
+    },
+  });
 }
 
 async function approveInstance(id: string) {
@@ -324,6 +343,15 @@ async function approveInstance(id: string) {
   } catch (error) {
     console.error('Failed to approve instance:', error);
     alert('Failed to approve instance');
+  }
+}
+
+async function postInstance(id: string) {
+  try {
+    await recurringStore.postInstance(id);
+  } catch (error) {
+    console.error('Failed to post instance:', error);
+    alert('Failed to post instance');
   }
 }
 

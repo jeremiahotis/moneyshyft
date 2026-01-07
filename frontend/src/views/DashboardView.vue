@@ -3,7 +3,10 @@
     <div class="max-w-7xl mx-auto px-4 py-8">
       <!-- Welcome Section -->
       <div class="mb-8">
-        <h1 class="text-3xl font-bold text-gray-900">Dashboard</h1>
+        <div class="flex items-center gap-2">
+          <h1 class="text-3xl font-bold text-gray-900">Dashboard</h1>
+          <InfoTooltip text="A quick snapshot of your money this month." />
+        </div>
         <p class="text-gray-600 mt-2">Welcome back, {{ authStore.fullName }}!</p>
       </div>
 
@@ -15,6 +18,7 @@
           type="currency"
           icon="💰"
           :color-class="totalBalance >= 0 ? 'text-green-600' : 'text-red-600'"
+          tooltip-text="All account balances added together."
         />
         <StatCard
           title="Monthly Income"
@@ -22,6 +26,7 @@
           type="currency"
           icon="📈"
           color-class="text-primary-600"
+          tooltip-text="Planned income for the month from income sources."
         />
         <StatCard
           title="This Month Spent"
@@ -29,6 +34,7 @@
           type="currency"
           icon="📊"
           :color-class="monthlySpending < 0 ? 'text-red-600' : 'text-green-600'"
+          tooltip-text="Spending recorded so far this month."
         />
         <StatCard
           title="Ready to Plan"
@@ -37,6 +43,7 @@
           icon="💵"
           :color-class="budgetsStore.toBeAssigned > 0 ? 'text-green-600' : 'text-orange-600'"
           subtitle="Unassigned cash"
+          tooltip-text="Money not yet assigned to categories."
         />
       </div>
 
@@ -45,17 +52,23 @@
         <!-- Budget Health -->
         <div class="bg-white rounded-lg shadow">
           <div class="p-6 border-b">
-            <h2 class="text-lg font-semibold text-gray-900 flex items-center">
-              <span class="mr-2">📊</span>
-              Budget Health ({{ currentMonth }})
-            </h2>
+            <div class="flex items-center gap-2">
+              <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                <span class="mr-2">📊</span>
+                Budget Health ({{ currentMonth }})
+              </h2>
+              <InfoTooltip text="Compares income, plans, and spending for this month." />
+            </div>
           </div>
           <div class="p-6">
             <div v-if="budgetsStore.currentSummary" class="space-y-4">
               <!-- Income vs Planned -->
               <div>
                 <div class="flex justify-between items-center mb-2">
-                  <span class="text-sm text-gray-600">Income vs Planned</span>
+                  <div class="flex items-center gap-2">
+                    <span class="text-sm text-gray-600">Income vs Planned</span>
+                    <InfoTooltip text="How much of your income has been planned into categories." />
+                  </div>
                   <span class="text-sm font-medium">
                     <span class="privacy-value">{{ formatCurrency(budgetsStore.totalAllocated) }}</span> /
                     <span class="privacy-value">{{ formatCurrency(incomeStore.totalMonthlyIncome) }}</span>
@@ -74,7 +87,10 @@
               <!-- Planned vs Spent -->
               <div>
                 <div class="flex justify-between items-center mb-2">
-                  <span class="text-sm text-gray-600">Planned vs Spent</span>
+                  <div class="flex items-center gap-2">
+                    <span class="text-sm text-gray-600">Planned vs Spent</span>
+                    <InfoTooltip text="How much you have spent compared to your plan." />
+                  </div>
                   <span class="text-sm font-medium">
                     <span class="privacy-value">{{ formatCurrency(Math.abs(budgetsStore.totalSpent)) }}</span> /
                     <span class="privacy-value">{{ formatCurrency(budgetsStore.totalAllocated) }}</span>
@@ -93,11 +109,17 @@
               <!-- Summary Stats -->
               <div class="pt-4 border-t grid grid-cols-2 gap-4">
                 <div>
-                  <p class="text-xs text-gray-600">Total Income</p>
+                  <div class="flex items-center gap-2">
+                    <p class="text-xs text-gray-600">Total Income</p>
+                    <InfoTooltip text="Planned income for the current month." />
+                  </div>
                   <p class="text-lg font-bold text-primary-600 privacy-value">{{ formatCurrency(incomeStore.totalMonthlyIncome) }}</p>
                 </div>
                 <div>
-                  <p class="text-xs text-gray-600">Ready to Plan</p>
+                  <div class="flex items-center gap-2">
+                    <p class="text-xs text-gray-600">Ready to Plan</p>
+                    <InfoTooltip text="Money still waiting to be assigned." />
+                  </div>
                   <p class="text-lg font-bold privacy-value" :class="budgetsStore.toBeAssigned >= 0 ? 'text-green-600' : 'text-red-600'">
                     {{ formatCurrency(budgetsStore.toBeAssigned) }}
                   </p>
@@ -133,10 +155,13 @@
         <div class="bg-white rounded-lg shadow">
           <div class="p-6 border-b">
             <div class="flex items-center justify-between">
-              <h2 class="text-lg font-semibold text-gray-900 flex items-center">
-                <span class="mr-2">🎯</span>
-                Goals Progress
-              </h2>
+              <div class="flex items-center gap-2">
+                <h2 class="text-lg font-semibold text-gray-900 flex items-center">
+                  <span class="mr-2">🎯</span>
+                  Goals Progress
+                </h2>
+                <InfoTooltip text="Top goals and how close they are to completion." />
+              </div>
               <router-link to="/goals" class="text-sm text-primary-600 hover:text-primary-700">
                 View all →
               </router-link>
@@ -303,6 +328,7 @@ import { useRecurringStore } from '@/stores/recurring';
 import { useExtraMoneyStore } from '@/stores/extraMoney';
 import AppLayout from '@/components/layout/AppLayout.vue';
 import StatCard from '@/components/common/StatCard.vue';
+import InfoTooltip from '@/components/common/InfoTooltip.vue';
 import PendingRecurringCard from '@/components/dashboard/PendingRecurringCard.vue';
 import PendingExtraMoneyCard from '@/components/dashboard/PendingExtraMoneyCard.vue';
 import RecurringTransactionModal from '@/components/transactions/RecurringTransactionModal.vue';

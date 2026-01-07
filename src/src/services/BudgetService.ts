@@ -1,7 +1,9 @@
 import knex from '../config/knex';
+import type { Knex } from 'knex';
 import { NotFoundError, BadRequestError } from '../middleware/errorHandler';
 import { CategoryService } from './CategoryService';
 import { IncomeService } from './IncomeService';
+import { AnalyticsService } from './AnalyticsService';
 import logger from '../utils/logger';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -126,6 +128,17 @@ export class BudgetService {
         })
         .returning('*');
 
+      await AnalyticsService.recordEvent(
+        'budget_month_created',
+        householdId,
+        null,
+        {
+          month: normalizedMonth.toISOString().slice(0, 10),
+          copiedFromPrevious: !!previousBudget,
+        },
+        trx
+      );
+
       // If previous month exists, copy its allocations
       if (previousBudget) {
         const previousAllocations = await trx('budget_allocations')
@@ -133,7 +146,7 @@ export class BudgetService {
 
         if (previousAllocations.length > 0) {
           // Copy allocations to new month
-          const newAllocations = previousAllocations.map(alloc => ({
+          const newAllocations = previousAllocations.map((alloc: { category_id: string | null; section_id: string | null; allocated_amount: number; rollup_mode: boolean; notes: string | null }) => ({
             budget_month_id: budgetMonth.id,
             category_id: alloc.category_id,
             section_id: alloc.section_id,

@@ -12,7 +12,10 @@
       <div class="mt-6 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg shadow-lg p-6">
         <div class="flex justify-between items-center">
           <div>
-            <p class="text-sm opacity-90 mb-1" title="Unassigned cash available to budget">Ready to Assign</p>
+            <div class="flex items-center gap-2 mb-1">
+              <p class="text-sm opacity-90">Ready to Assign</p>
+              <InfoTooltip text="Unassigned cash available to plan for this month." />
+            </div>
             <h2 class="text-4xl font-bold privacy-value">
               {{ formatCurrency(budgetsStore.toBeAssigned) }}
             </h2>
@@ -32,19 +35,28 @@
         <!-- Income Summary Grid -->
         <div class="mt-4 pt-4 border-t border-white/20 grid grid-cols-3 gap-4">
           <div>
-            <p class="text-xs opacity-75" title="What you expect to earn this month">Planned Income</p>
+            <div class="flex items-center gap-2">
+              <p class="text-xs opacity-75">Planned Income</p>
+              <InfoTooltip text="What you expect to earn this month based on income sources." />
+            </div>
             <p class="text-lg font-semibold privacy-value">
               {{ formatCurrency(budgetsStore.totalPlannedIncome) }}
             </p>
           </div>
           <div>
-            <p class="text-xs opacity-75" title="Income recorded from transactions">Actual Income</p>
+            <div class="flex items-center gap-2">
+              <p class="text-xs opacity-75">Actual Income</p>
+              <InfoTooltip text="Income recorded from transactions so far this month." />
+            </div>
             <p class="text-lg font-semibold privacy-value" :class="budgetsStore.incomeVariance >= 0 ? '' : 'text-red-200'">
               {{ formatCurrency(budgetsStore.totalRealIncome) }}
             </p>
           </div>
           <div>
-            <p class="text-xs opacity-75" title="Actual minus planned income">Difference</p>
+            <div class="flex items-center gap-2">
+              <p class="text-xs opacity-75">Difference</p>
+              <InfoTooltip text="Actual income minus planned income for this month." />
+            </div>
             <p class="text-sm font-medium privacy-value" :class="budgetsStore.incomeVariance >= 0 ? 'text-green-200' : 'text-red-200'">
               {{ budgetsStore.incomeVariance >= 0 ? '+' : '' }}{{ formatCurrency(budgetsStore.incomeVariance) }}
             </p>
@@ -58,7 +70,7 @@
         </div>
         <div v-else-if="budgetsStore.toBeAssigned < 0" class="mt-4 p-3 bg-white/20 rounded-lg">
           <p class="text-sm">
-            You’re over-planned right now. No stress—adjust a category or add income when it arrives.
+            Your plan is ahead of available cash. No stress—adjust a category or add income when it arrives.
           </p>
         </div>
       </div>
@@ -411,18 +423,21 @@ import { useBudgetsStore } from '@/stores/budgets';
 import { useCategoriesStore } from '@/stores/categories';
 import { useIncomeStore } from '@/stores/income';
 import { useAssignmentsStore } from '@/stores/assignments';
+import { useUndoStore } from '@/stores/undo';
 import AppLayout from '@/components/layout/AppLayout.vue';
 import BudgetMonthSelector from '@/components/budget/BudgetMonthSelector.vue';
 import BudgetSection from '@/components/budget/BudgetSection.vue';
 import AddSectionModal from '@/components/budget/AddSectionModal.vue';
 import ManageIncomeModal from '@/components/budget/ManageIncomeModal.vue';
 import AssignmentModal from '@/components/budget/AssignmentModal.vue';
+import InfoTooltip from '@/components/common/InfoTooltip.vue';
 import type { IncomeSource } from '@/types';
 
 const budgetsStore = useBudgetsStore();
 const categoriesStore = useCategoriesStore();
 const incomeStore = useIncomeStore();
 const assignmentsStore = useAssignmentsStore();
+const undoStore = useUndoStore();
 
 const showAddSection = ref(false);
 const showIncomeSection = ref(false);
@@ -549,16 +564,26 @@ function editIncome(source: IncomeSource) {
 }
 
 async function deleteIncome(source: IncomeSource) {
-  if (confirm(`Are you sure you want to delete "${source.name}"? This action cannot be undone.`)) {
-    try {
-      await incomeStore.deleteIncomeSource(source.id);
-      // Refresh budget to update unallocated income
-      await budgetsStore.fetchBudgetSummary(budgetsStore.currentMonth);
-    } catch (error) {
-      console.error('Failed to delete income source:', error);
-      alert('Failed to delete income source. Please try again.');
-    }
+  if (!confirm(`Are you sure you want to delete "${source.name}"? This action cannot be undone.`)) {
+    return;
   }
+
+  const sourceId = source.id;
+  const sourceName = source.name;
+  undoStore.schedule({
+    message: `Deleting "${sourceName}"...`,
+    timeoutMs: 5000,
+    onCommit: async () => {
+      try {
+        await incomeStore.deleteIncomeSource(sourceId);
+        // Refresh budget to update unallocated income
+        await budgetsStore.fetchBudgetSummary(budgetsStore.currentMonth);
+      } catch (error) {
+        console.error('Failed to delete income source:', error);
+        alert('Failed to delete income source. Please try again.');
+      }
+    },
+  });
 }
 
 async function handleIncomeSaved() {

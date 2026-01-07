@@ -4,13 +4,17 @@
       <!-- Header -->
       <div class="flex items-center justify-between mb-6">
         <div>
-          <h1 class="text-2xl font-bold text-gray-900">💰 Extra Money Tracker</h1>
+          <div class="flex items-center gap-2">
+            <h1 class="text-2xl font-bold text-gray-900">💰 Extra Money Tracker</h1>
+            <InfoTooltip text="Track irregular income and decide how to allocate it." />
+          </div>
           <p class="text-sm text-gray-600">Manage irregular income like bonuses, tax refunds & gifts</p>
         </div>
         <div class="flex gap-3">
           <button
             @click="showCreateModal = true"
             class="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium"
+            data-testid="extra-money-add-button"
           >
             + Add Manually
           </button>
@@ -18,6 +22,10 @@
       </div>
 
       <div v-if="totalSavingsReserve > 0" class="mb-6 bg-emerald-50 border border-emerald-200 rounded-lg p-4">
+        <div class="flex items-center gap-2 mb-1 text-emerald-900">
+          <span class="text-sm font-medium">Savings Reserve</span>
+          <InfoTooltip text="A portion of extra money set aside for goals. Allocate it when you're ready." />
+        </div>
         <p class="text-sm text-emerald-800">
           🏦 You have {{ formatCurrency(totalSavingsReserve) }} set aside for goals.
           Open an entry to allocate it.
@@ -26,6 +34,10 @@
 
       <!-- Status Filter Tabs -->
       <div class="mb-6 border-b border-gray-200">
+        <div class="flex items-center gap-2 mb-2 text-xs text-gray-500">
+          <span>What this means</span>
+          <InfoTooltip text="Pending needs assignment. Assigned is already allocated. Ignored won't prompt you again." />
+        </div>
         <nav class="-mb-px flex space-x-8">
           <button
             v-for="tab in tabs"
@@ -37,6 +49,7 @@
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300',
               'whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm'
             ]"
+            :data-testid="`extra-money-tab-${tab.status}`"
           >
             {{ tab.label }}
             <span v-if="tab.count > 0" class="ml-2 py-0.5 px-2 rounded-full text-xs bg-gray-100">
@@ -62,6 +75,7 @@
           v-for="entry in filteredEntries"
           :key="entry.id"
           class="bg-white border rounded-lg p-6 hover:shadow-md transition"
+          :data-testid="`extra-money-entry-${entry.id}`"
         >
           <div class="flex items-start justify-between">
             <div class="flex-1">
@@ -125,6 +139,7 @@
                 v-if="entry.status === 'pending'"
                 @click="handleAssign(entry)"
                 class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium text-sm whitespace-nowrap"
+                data-testid="extra-money-assign-button"
               >
                 Assign →
               </button>
@@ -132,6 +147,7 @@
                 v-if="entry.savings_reserve && entry.savings_reserve > 0"
                 @click="handleAssign(entry)"
                 class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-medium text-sm whitespace-nowrap"
+                data-testid="extra-money-allocate-button"
               >
                 Allocate Savings
               </button>
@@ -139,12 +155,14 @@
                 v-if="entry.status === 'pending'"
                 @click="handleIgnore(entry)"
                 class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg font-medium text-sm"
+                data-testid="extra-money-ignore-button"
               >
                 Ignore
               </button>
               <button
                 @click="handleDelete(entry)"
                 class="px-4 py-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg font-medium text-sm"
+                data-testid="extra-money-delete-button"
               >
                 Delete
               </button>
@@ -172,7 +190,7 @@
 
       <!-- Create Modal -->
       <div v-if="showCreateModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div class="bg-white rounded-lg max-w-lg w-full p-6">
+        <div class="bg-white rounded-lg max-w-lg w-full p-6" data-testid="extra-money-create-modal">
           <h2 class="text-xl font-bold mb-4">Add Extra Money Entry</h2>
 
           <form @submit.prevent="handleCreate">
@@ -186,6 +204,7 @@
                 placeholder="e.g., Year-end Bonus, Tax Refund"
                 class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
                 required
+                data-testid="extra-money-source"
               />
             </div>
 
@@ -201,6 +220,7 @@
                 placeholder="0.00"
                 class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
                 required
+                data-testid="extra-money-amount"
               />
             </div>
 
@@ -213,6 +233,7 @@
                 type="date"
                 class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
                 required
+                data-testid="extra-money-date"
               />
             </div>
 
@@ -223,6 +244,7 @@
                 placeholder="Additional details..."
                 rows="3"
                 class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500"
+                data-testid="extra-money-notes"
               ></textarea>
             </div>
 
@@ -237,6 +259,7 @@
               <button
                 type="submit"
                 class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg"
+                data-testid="extra-money-submit"
               >
                 Add Entry
               </button>
@@ -259,11 +282,14 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { useExtraMoneyStore } from '@/stores/extraMoney';
+import { useUndoStore } from '@/stores/undo';
 import AppLayout from '@/components/layout/AppLayout.vue';
 import ExtraMoneyModal from '@/components/extraMoney/ExtraMoneyModal.vue';
+import InfoTooltip from '@/components/common/InfoTooltip.vue';
 import type { ExtraMoneyWithAssignments, CreateExtraMoneyData } from '@/types';
 
 const extraMoneyStore = useExtraMoneyStore();
+const undoStore = useUndoStore();
 
 const activeTab = ref<'all' | 'pending' | 'assigned' | 'ignored'>('pending');
 const showCreateModal = ref(false);
@@ -353,15 +379,24 @@ async function handleIgnore(entry: ExtraMoneyWithAssignments) {
 }
 
 async function handleDelete(entry: ExtraMoneyWithAssignments) {
-  if (confirm(`Delete "${entry.source}" ($${entry.amount})?`)) {
-    try {
-      await extraMoneyStore.deleteEntry(entry.id);
-      alert('Entry deleted successfully.');
-    } catch (error) {
-      console.error('Failed to delete entry:', error);
-      alert('Failed to delete entry.');
-    }
+  if (!confirm(`Delete "${entry.source}" ($${entry.amount})?`)) {
+    return;
   }
+
+  const entryId = entry.id;
+  const entryLabel = entry.source;
+  undoStore.schedule({
+    message: `Deleting "${entryLabel}"...`,
+    timeoutMs: 5000,
+    onCommit: async () => {
+      try {
+        await extraMoneyStore.deleteEntry(entryId);
+      } catch (error) {
+        console.error('Failed to delete entry:', error);
+        alert('Failed to delete entry.');
+      }
+    },
+  });
 }
 
 function handleAssignmentSaved() {

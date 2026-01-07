@@ -1,9 +1,12 @@
 <template>
   <div class="bg-white rounded-lg shadow-lg p-8">
     <div class="mb-6">
-      <h2 class="text-3xl font-bold text-gray-900 mb-2">
-        Let's estimate your utilities 💡
-      </h2>
+      <div class="flex items-center gap-2 mb-2">
+        <h2 class="text-3xl font-bold text-gray-900">
+          Let's estimate your utilities 💡
+        </h2>
+        <InfoTooltip text="Add core bills so they are covered in your budget." />
+      </div>
       <p class="text-gray-600">
         These are bills that keep your home running. Don't worry about being exact - estimates are fine!
       </p>
@@ -98,13 +101,14 @@
         @click="handleSkip"
         class="text-sm text-gray-500 hover:text-gray-700 underline"
       >
-        I'll add these later
+        Not now
       </button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import InfoTooltip from '@/components/common/InfoTooltip.vue';
 import { ref, computed, onMounted } from 'vue';
 import { useWizardStore } from '@/stores/wizard';
 

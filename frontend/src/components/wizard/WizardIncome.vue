@@ -1,9 +1,12 @@
 <template>
   <div class="bg-white rounded-lg shadow-lg p-8">
     <div class="mb-6">
-      <h2 class="text-3xl font-bold text-gray-900 mb-2">
-        Let's start with your income 💰
-      </h2>
+      <div class="flex items-center gap-2 mb-2">
+        <h2 class="text-3xl font-bold text-gray-900">
+          Let's start with your income 💰
+        </h2>
+        <InfoTooltip text="Your income helps us plan how much you can assign each month." />
+      </div>
       <p class="text-gray-600">
         Tell us about the money you bring in each month. This helps us understand how much you have to work with.
       </p>
@@ -194,13 +197,14 @@
         @click="handleSkip"
         class="text-sm text-gray-500 hover:text-gray-700 underline"
       >
-        I'll add this later
+        Not now
       </button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import InfoTooltip from '@/components/common/InfoTooltip.vue';
 import { ref, computed, onMounted } from 'vue';
 import { useWizardStore } from '@/stores/wizard';
 

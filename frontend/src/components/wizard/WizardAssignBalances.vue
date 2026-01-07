@@ -2,7 +2,10 @@
   <div class="max-w-3xl mx-auto">
     <div class="text-center mb-6">
       <div class="text-5xl mb-3">💰</div>
-      <h2 class="text-2xl font-bold mb-2">Assign Your Account Balances</h2>
+      <div class="flex items-center justify-center gap-2 mb-2">
+        <h2 class="text-2xl font-bold">Assign Your Account Balances</h2>
+        <InfoTooltip text="Match your real balances to categories so your budget starts accurate." />
+      </div>
       <p class="text-gray-600">
         You have <strong>{{ formatCurrency(totalAccountBalance) }}</strong> across your accounts.
         Let's assign this money to your budget categories to complete your setup.
@@ -170,13 +173,14 @@
         type="button"
         class="text-sm text-gray-500 hover:text-gray-700 underline"
       >
-        Skip for now - I'll assign money later
+        Not now
       </button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import InfoTooltip from '@/components/common/InfoTooltip.vue';
 import { ref, computed, onMounted } from 'vue'
 import { useCategoriesStore } from '@/stores/categories'
 import type { WizardAnswers } from '@/types'

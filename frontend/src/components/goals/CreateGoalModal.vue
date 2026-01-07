@@ -3,6 +3,7 @@
     v-if="modelValue"
     class="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50"
     @click.self="$emit('update:modelValue', false)"
+    data-testid="goal-create-modal"
   >
     <div class="flex min-h-full items-center justify-center p-4">
       <div class="relative bg-white rounded-lg shadow-xl max-w-md w-full p-6">
@@ -30,6 +31,7 @@
               placeholder="e.g., Emergency Fund, Vacation, New Car"
               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
               required
+              data-testid="goal-name"
             />
           </div>
 
@@ -43,6 +45,7 @@
               rows="2"
               placeholder="What's this goal for?"
               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              data-testid="goal-description"
             ></textarea>
           </div>
 
@@ -61,6 +64,7 @@
                 placeholder="0.00"
                 class="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                 required
+                data-testid="goal-target-amount"
               />
             </div>
           </div>
@@ -79,6 +83,7 @@
                 min="0"
                 placeholder="0.00"
                 class="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                data-testid="goal-starting-amount"
               />
             </div>
             <p class="text-xs text-gray-500 mt-1">
@@ -95,6 +100,7 @@
               v-model="goalData.target_date"
               type="date"
               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              data-testid="goal-target-date"
             />
             <p v-if="monthsRemaining > 0 && monthlyContribution > 0" class="text-xs text-primary-600 mt-1">
               💡 You'll need to save {{ formatCurrency(monthlyContribution) }}/month to reach this goal
@@ -114,6 +120,7 @@
               type="submit"
               :disabled="!isValid || isSubmitting"
               class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+              data-testid="goal-submit"
             >
               {{ isSubmitting ? 'Creating...' : 'Create Goal' }}
             </button>

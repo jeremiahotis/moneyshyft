@@ -1,7 +1,9 @@
 import knex from '../config/knex';
 import { NotFoundError, BadRequestError } from '../middleware/errorHandler';
+import type { Knex } from 'knex';
 import { AccountService } from './AccountService';
 import { ExtraMoneyService, type ExtraMoneyEntry } from './ExtraMoneyService';
+import { AnalyticsService } from './AnalyticsService';
 import logger from '../utils/logger';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -35,7 +37,7 @@ interface CreateTransactionData {
   debt_id?: string | null;  // NEW: Optional debt link
   payee: string;
   amount: number;
-  transaction_date: Date;
+  transaction_date: Date | string;
   notes?: string | null;
   is_cleared?: boolean;
   is_reconciled?: boolean;
@@ -45,7 +47,7 @@ interface UpdateTransactionData {
   category_id?: string | null;
   payee?: string;
   amount?: number;
-  transaction_date?: Date;
+  transaction_date?: Date | string;
   notes?: string | null;
   is_cleared?: boolean;
   is_reconciled?: boolean;
@@ -126,39 +128,42 @@ export class TransactionService {
   static async createTransaction(
     householdId: string,
     userId: string,
-    data: CreateTransactionData
+    data: CreateTransactionData,
+    trx?: Knex | Knex.Transaction
   ): Promise<TransactionCreateResult> {
     const { account_id, category_id, debt_id, payee, amount, transaction_date, notes, is_cleared = false, is_reconciled = false } = data;
+    const normalizedDate = typeof transaction_date === 'string'
+      ? transaction_date
+      : transaction_date.toISOString().split('T')[0];
 
-    // Verify account belongs to household
-    await AccountService.getAccountById(account_id, householdId);
+    const createInTransaction = async (t: Knex | Knex.Transaction): Promise<TransactionCreateResult> => {
+      // Verify account belongs to household
+      await AccountService.getAccountById(account_id, householdId, t);
 
-    // If category provided, verify it belongs to household
-    if (category_id) {
-      const category = await knex('categories')
-        .where({ id: category_id, household_id: householdId })
-        .first();
+      // If category provided, verify it belongs to household
+      if (category_id) {
+        const category = await t('categories')
+          .where({ id: category_id, household_id: householdId })
+          .first();
 
-      if (!category) {
-        throw new BadRequestError('Category not found or does not belong to this household');
+        if (!category) {
+          throw new BadRequestError('Category not found or does not belong to this household');
+        }
       }
-    }
 
-    // If debt provided, verify it belongs to household
-    if (debt_id) {
-      const debt = await knex('debts')
-        .where({ id: debt_id, household_id: householdId })
-        .first();
+      // If debt provided, verify it belongs to household
+      if (debt_id) {
+        const debt = await t('debts')
+          .where({ id: debt_id, household_id: householdId })
+          .first();
 
-      if (!debt) {
-        throw new BadRequestError('Debt not found or does not belong to this household');
+        if (!debt) {
+          throw new BadRequestError('Debt not found or does not belong to this household');
+        }
       }
-    }
 
-    // Use a transaction to ensure atomicity when creating debt payments
-    return await knex.transaction(async (trx) => {
       // Create transaction
-      const [transaction] = await trx('transactions')
+      const [transaction] = await t('transactions')
         .insert({
           household_id: householdId,
           account_id,
@@ -176,55 +181,61 @@ export class TransactionService {
         })
         .returning('*');
 
-      // If transaction is linked to a debt and uses the Debt Payments category, create debt_payment record
-      if (debt_id && category_id) {
-        const debtCategory = await trx('categories')
-          .where({ id: category_id, name: 'Debt Payments' })
-          .first();
+      await AnalyticsService.recordEvent(
+        'transaction_created',
+        householdId,
+        userId,
+        {
+          amount,
+          is_income: amount > 0,
+          has_category: !!category_id,
+          has_debt: !!debt_id,
+        },
+        t
+      );
 
-        if (debtCategory) {
-          // This is a debt payment transaction - create payment record
-          const paymentAmount = Math.abs(amount);  // Ensure positive for payment record
+      // If transaction is linked to a debt and is an expense, create debt_payment record
+      if (debt_id && amount < 0) {
+        const paymentAmount = Math.abs(amount);  // Ensure positive for payment record
 
-          await trx('debt_payments').insert({
-            id: uuidv4(),
-            debt_id: debt_id,
-            user_id: userId,
-            amount: paymentAmount,
-            payment_date: transaction_date,
-            notes: notes || null,
-            transaction_id: transaction.id,
+        await t('debt_payments').insert({
+          id: uuidv4(),
+          debt_id: debt_id,
+          user_id: userId,
+          amount: paymentAmount,
+          payment_date: normalizedDate,
+          notes: notes || null,
+          transaction_id: transaction.id,
+        });
+
+        // Update debt balance
+        await t('debts')
+          .where({ id: debt_id })
+          .decrement('current_balance', paymentAmount)
+          .update({
+            updated_at: t.fn.now()
           });
 
-          // Update debt balance
-          await trx('debts')
+        // Check if debt is now paid off
+        const updatedDebt = await t('debts')
+          .where({ id: debt_id })
+          .first();
+
+        if (updatedDebt && updatedDebt.current_balance <= 0) {
+          await t('debts')
             .where({ id: debt_id })
-            .decrement('current_balance', paymentAmount)
             .update({
-              updated_at: trx.fn.now()
+              is_paid_off: true,
+              paid_off_at: t.fn.now(),
+              current_balance: 0  // Ensure balance doesn't go negative
             });
-
-          // Check if debt is now paid off
-          const updatedDebt = await trx('debts')
-            .where({ id: debt_id })
-            .first();
-
-          if (updatedDebt && updatedDebt.current_balance <= 0) {
-            await trx('debts')
-              .where({ id: debt_id })
-              .update({
-                is_paid_off: true,
-                paid_off_at: trx.fn.now(),
-                current_balance: 0  // Ensure balance doesn't go negative
-              });
-          }
-
-          logger.info(`Debt payment transaction created: ${transaction.id}, debt_payment created for debt: ${debt_id}`);
         }
+
+        logger.info(`Debt payment transaction created: ${transaction.id}, debt_payment created for debt: ${debt_id}`);
       }
 
       // Recalculate account balance
-      await AccountService.recalculateBalance(account_id, householdId);
+      await AccountService.recalculateBalance(account_id, householdId, t);
 
       // AUTO-DETECT EXTRA MONEY (if positive income transaction)
       let extraMoneyDetected = false;
@@ -234,7 +245,7 @@ export class TransactionService {
         const { shouldFlag, reason } = await ExtraMoneyService.detectExtraMoney(
           householdId,
           transaction.id,
-          trx
+          t
         );
 
         if (shouldFlag) {
@@ -243,12 +254,12 @@ export class TransactionService {
             transaction_id: transaction.id,
             source: payee || 'Unknown Source',
             amount: amount,
-            received_date: transaction_date,
+            received_date: normalizedDate,
             notes: notes || null,
             auto_detected: true,
             detection_reason: reason,
             user_id: userId
-          }, trx);
+          }, t);
 
           extraMoneyDetected = true;
           logger.info(`Extra money detected for transaction: ${transaction.id}, entry: ${extraMoneyEntry.id}`);
@@ -263,7 +274,14 @@ export class TransactionService {
         extra_money_detected: extraMoneyDetected,
         extra_money_entry: extraMoneyEntry
       };
-    });
+    };
+
+    if (trx) {
+      return await createInTransaction(trx);
+    }
+
+    // Use a transaction to ensure atomicity when creating debt payments
+    return await knex.transaction(async (t) => createInTransaction(t));
   }
 
   /**

@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import type { Knex } from 'knex';
 import { CategoryService } from './CategoryService';
 import { BudgetService } from './BudgetService';
+import { AnalyticsService } from './AnalyticsService';
 
 export interface ExtraMoneyEntry {
   id: string;
@@ -582,6 +583,18 @@ export class ExtraMoneyService {
           updated_at: new Date()
         });
 
+      await AnalyticsService.recordEvent(
+        'extra_money_assigned',
+        householdId,
+        userId,
+        {
+          entry_id: extraMoneyId,
+          amount: Number(entry.amount),
+          savings_reserve: reserveAmount,
+        },
+        trx
+      );
+
       // 7. Return updated entry
       return await trx('extra_money_entries').where({ id: extraMoneyId }).first();
     });
@@ -659,6 +672,18 @@ export class ExtraMoneyService {
           savings_reserve: remainingReserve,
           updated_at: new Date()
         });
+
+      await AnalyticsService.recordEvent(
+        'extra_money_assigned',
+        householdId,
+        userId,
+        {
+          entry_id: extraMoneyId,
+          amount: totalAssigned,
+          savings_only: true,
+        },
+        trx
+      );
 
       return await trx('extra_money_entries').where({ id: extraMoneyId }).first();
     });

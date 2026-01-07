@@ -1,5 +1,5 @@
 <template>
-  <div v-if="modelValue" class="fixed inset-0 z-50 overflow-y-auto">
+  <div v-if="modelValue" class="fixed inset-0 z-50 overflow-y-auto" data-testid="split-modal">
     <!-- Backdrop -->
     <div class="fixed inset-0 bg-black bg-opacity-50 transition-opacity" @click="close"></div>
 
@@ -54,6 +54,7 @@
                 type="button"
                 @click="addSplit"
                 class="text-sm text-primary-600 hover:text-primary-700 font-medium"
+                data-testid="split-add"
               >
                 + Add Split
               </button>
@@ -76,6 +77,7 @@
                     v-model="split.category_id"
                     required
                     class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                    data-testid="split-category"
                   >
                     <option value="">Select category...</option>
                     <optgroup
@@ -108,6 +110,7 @@
                     required
                     class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                     placeholder="0.00"
+                    data-testid="split-amount"
                     @keydown="(e) => {
                       // Prevent entering negative sign
                       if (e.key === '-' || e.key === 'Minus') {
@@ -128,6 +131,7 @@
                     type="text"
                     class="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                     placeholder="Add notes..."
+                    data-testid="split-notes"
                   />
                 </div>
 
@@ -138,6 +142,7 @@
                   :disabled="splits.length <= 2"
                   class="mt-6 text-red-600 hover:text-red-700 disabled:text-gray-400 disabled:cursor-not-allowed"
                   title="Remove split"
+                  data-testid="split-remove"
                 >
                   <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -185,6 +190,7 @@
                 type="button"
                 @click="suggestEqualSplit"
                 class="text-sm text-gray-600 hover:text-gray-700 underline"
+                data-testid="split-equal"
               >
                 Use equal split across {{ splits.length }} categories
               </button>
@@ -209,6 +215,7 @@
               type="submit"
               :disabled="!isValidSum || splits.length < 2 || isSubmitting"
               class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+              data-testid="split-submit"
             >
               {{ isSubmitting ? 'Saving...' : (isEdit ? 'Update Splits' : 'Split Transaction') }}
             </button>

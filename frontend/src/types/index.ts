@@ -198,6 +198,9 @@ export interface UpdateIncomeSourceData {
 
 // Wizard state tracking
 export interface WizardAnswers {
+  // Optional quick start path
+  first_wins?: boolean;
+
   // Income step
   income_sources: Array<{
     name: string;

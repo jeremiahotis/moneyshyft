@@ -1,5 +1,9 @@
 <template>
-  <div v-if="modelValue" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+  <div
+    v-if="modelValue"
+    class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+    data-testid="extra-money-assign-modal"
+  >
     <div class="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-y-auto">
       <!-- Header -->
       <div class="sticky top-0 bg-white border-b border-gray-200 px-6 py-4">
@@ -75,6 +79,7 @@
                   step="0.01"
                   min="0"
                   class="w-full px-3 py-2 border border-gray-300 rounded-lg text-right focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  data-testid="extra-money-savings-reserve"
                 />
               </div>
             </div>
@@ -93,6 +98,7 @@
               <button
                 @click="addGoalAllocation"
                 class="px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"
+                data-testid="extra-money-add-goal"
               >
                 + Add Goal
               </button>
@@ -108,6 +114,7 @@
                   <select
                     v-model="allocation.goal_id"
                     class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                    data-testid="extra-money-goal-select"
                   >
                     <option value="">Select goal...</option>
                     <option
@@ -126,6 +133,7 @@
                     step="0.01"
                     min="0"
                     class="w-full px-3 py-2 border border-gray-300 rounded-lg text-right focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                    data-testid="extra-money-goal-amount"
                   />
                 </div>
                 <button
@@ -148,6 +156,7 @@
                 @click="saveGoalAllocations"
                 :disabled="!canAssignGoals"
                 class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                data-testid="extra-money-apply-goals"
               >
                 Apply to Goals
               </button>
@@ -183,6 +192,7 @@
                   v-model="assignment.category_id"
                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                   @change="updateAssignment()"
+                  data-testid="extra-money-category"
                 >
                   <option value="">Select category...</option>
                   <optgroup
@@ -214,6 +224,7 @@
                   placeholder="0.00"
                   class="w-full px-3 py-2 border border-gray-300 rounded-lg text-right focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
                   @input="updateAssignment()"
+                  data-testid="extra-money-category-amount"
                 />
               </div>
 
@@ -235,6 +246,7 @@
           <button
             @click="addAssignment"
             class="w-full px-4 py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-600 hover:border-primary-500 hover:text-primary-600 font-medium"
+            data-testid="extra-money-add-category"
           >
             + Add Another Category
           </button>
@@ -245,12 +257,14 @@
             @click="assignRemaining"
             :disabled="!localAssignments.find(a => (a.category_id || a.section_id) && a.amount === 0)"
             class="flex-1 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            data-testid="extra-money-assign-remaining"
           >
             Assign Remaining to Selected
           </button>
             <button
               @click="clearAssignments"
               class="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium"
+              data-testid="extra-money-clear-assignments"
             >
               Clear All
             </button>
@@ -280,6 +294,7 @@
             @click="saveAssignments"
             :disabled="!canSave"
             class="px-6 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            data-testid="extra-money-assign-submit"
           >
             Assign Money
           </button>
@@ -294,6 +309,7 @@ import { ref, computed, watch } from 'vue';
 import { useExtraMoneyStore } from '@/stores/extraMoney';
 import { useCategoriesStore } from '@/stores/categories';
 import { useGoalsStore } from '@/stores/goals';
+import { useCelebrationStore } from '@/stores/celebration';
 import api from '@/services/api';
 import type { ExtraMoneyWithAssignments, ExtraMoneyRecommendation } from '@/types';
 
@@ -311,6 +327,7 @@ const emit = defineEmits<{
 const extraMoneyStore = useExtraMoneyStore();
 const categoriesStore = useCategoriesStore();
 const goalsStore = useGoalsStore();
+const celebrationStore = useCelebrationStore();
 
 interface LocalAssignment {
   category_id?: string | null;
@@ -445,6 +462,21 @@ async function loadRecommendations(amount: number) {
 
       savingsReserve.value = reserveRec ? reserveRec.amount : 0;
 
+      const assignedTotal = assignmentRecs.reduce((sum, rec) => sum + rec.amount, 0);
+      const reserveTotal = reserveRec ? reserveRec.amount : 0;
+      const delta = Math.round((amount - (assignedTotal + reserveTotal)) * 100) / 100;
+      if (Math.abs(delta) >= 0.01) {
+        if (reserveRec) {
+          savingsReserve.value = Math.max(0, savingsReserve.value + delta);
+        } else if (localAssignments.value.length > 0) {
+          const lastIndex = localAssignments.value.length - 1;
+          localAssignments.value[lastIndex].amount = Math.max(
+            0,
+            localAssignments.value[lastIndex].amount + delta
+          );
+        }
+      }
+
       hasRecommendations.value = true;
     }
   } catch (error) {
@@ -507,6 +539,11 @@ async function saveGoalAllocations() {
     goalAllocations.value = [{ goal_id: '', amount: 0 }];
     await goalsStore.fetchGoals();
     await extraMoneyStore.fetchAllEntries();
+
+    if (!localStorage.getItem('msyft_first_extra_money_assignment')) {
+      localStorage.setItem('msyft_first_extra_money_assignment', 'true');
+      celebrationStore.show('First extra money assignment complete!', '💜');
+    }
   } catch (error) {
     console.error('Failed to assign savings to goals:', error);
     alert('Failed to assign savings to goals. Please try again.');
@@ -526,6 +563,11 @@ async function saveAssignments() {
       assignments: validAssignments,
       savings_reserve: savingsReserve.value
     });
+
+    if (!localStorage.getItem('msyft_first_extra_money_assignment')) {
+      localStorage.setItem('msyft_first_extra_money_assignment', 'true');
+      celebrationStore.show('First extra money assignment complete!', '💜');
+    }
 
     emit('saved');
     closeModal();

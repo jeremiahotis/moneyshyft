@@ -8,7 +8,10 @@
         <div class="flex items-center gap-3">
           <span class="text-3xl">💰</span>
           <div>
-            <h3 class="text-xl font-bold text-gray-900">Extra Money Detected!</h3>
+            <div class="flex items-center gap-2">
+              <h3 class="text-xl font-bold text-gray-900">Extra Money Detected!</h3>
+              <InfoTooltip text="Irregular income that is waiting to be assigned to categories." />
+            </div>
             <p class="text-sm text-gray-600">Irregular income needs your attention</p>
           </div>
         </div>
@@ -78,7 +81,10 @@
         <div class="flex items-center gap-3">
           <span class="text-3xl">💰</span>
           <div>
-            <h3 class="text-xl font-bold text-gray-900">Extra Money Tracker</h3>
+            <div class="flex items-center gap-2">
+              <h3 class="text-xl font-bold text-gray-900">Extra Money Tracker</h3>
+              <InfoTooltip text="Manage bonuses, refunds, and other irregular income." />
+            </div>
             <p class="text-sm text-gray-600">Track irregular income like bonuses, tax refunds & gifts</p>
           </div>
         </div>
@@ -112,6 +118,7 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue';
 import { useExtraMoneyStore } from '@/stores/extraMoney';
+import InfoTooltip from '@/components/common/InfoTooltip.vue';
 import type { ExtraMoneyWithAssignments } from '@/types';
 
 const emit = defineEmits<{

@@ -14,6 +14,7 @@
           <button
             @click="showAddModal = true"
             class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium"
+            data-testid="transactions-add-button"
           >
             + Add Transaction
           </button>
@@ -31,6 +32,7 @@
           v-for="transaction in transactions"
           :key="transaction.id"
           class="p-4 border-b last:border-b-0 hover:bg-gray-50"
+          :data-testid="`transaction-row-${transaction.id}`"
         >
           <div class="flex items-start justify-between">
             <div class="flex-1">
@@ -93,6 +95,7 @@
                   v-if="transaction.category_id === null && !transaction.is_split_child"
                   @click="openEditSplitModal(transaction)"
                   class="text-xs text-blue-600 hover:text-blue-700"
+                  data-testid="transaction-edit-split-button"
                 >
                   Edit Splits
                 </button>
@@ -100,6 +103,7 @@
                   v-else-if="!transaction.is_split_child && transaction.parent_transaction_id === null"
                   @click="openSplitModal(transaction)"
                   class="text-xs text-blue-600 hover:text-blue-700"
+                  data-testid="transaction-split-button"
                 >
                   Split
                 </button>
@@ -107,6 +111,7 @@
                   v-if="transaction.category_id === null && !transaction.is_split_child"
                   @click="unsplitTransaction(transaction)"
                   class="text-xs text-red-600 hover:text-red-700"
+                  data-testid="transaction-unsplit-button"
                 >
                   Unsplit
                 </button>
@@ -122,6 +127,7 @@
         <button
           @click="showAddModal = true"
           class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium"
+          data-testid="transactions-add-button"
         >
           + Add Transaction
         </button>
@@ -132,6 +138,7 @@
         v-if="showAddModal"
         class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
         @click.self="closeModal"
+        data-testid="transaction-modal"
       >
         <div class="bg-white rounded-lg shadow-lg p-6 max-w-md w-full max-h-[90vh] overflow-y-auto">
           <h2 class="text-xl font-semibold mb-4">
@@ -144,6 +151,7 @@
                 v-model="formData.account_id"
                 required
                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                data-testid="transaction-account"
               >
                 <option value="">Select an account</option>
                 <option v-for="account in accounts" :key="account.id" :value="account.id">
@@ -159,6 +167,7 @@
                 required
                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
                 placeholder="e.g., Whole Foods"
+                data-testid="transaction-payee"
               />
             </div>
             <div>
@@ -192,6 +201,7 @@
                 required
                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
                 placeholder="0.00"
+                data-testid="transaction-amount"
               />
             </div>
             <div>
@@ -201,6 +211,7 @@
                 type="date"
                 required
                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                data-testid="transaction-date"
               />
             </div>
             <div>
@@ -208,6 +219,7 @@
               <select
                 v-model="formData.category_id"
                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+                data-testid="transaction-category"
               >
                 <option :value="null">Uncategorized</option>
                 <optgroup v-for="section in sections" :key="section.id" :label="section.name">
@@ -329,6 +341,7 @@
                 rows="2"
                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
                 placeholder="Add any notes..."
+                data-testid="transaction-notes"
               ></textarea>
             </div>
             <div class="flex gap-2 pt-4">
@@ -343,6 +356,7 @@
                 type="submit"
                 :disabled="transactionsStore.isLoading"
                 class="flex-1 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium disabled:opacity-50"
+                data-testid="transaction-submit"
               >
                 {{ editingTransaction ? 'Update' : 'Create' }}
               </button>
@@ -375,6 +389,7 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import { useTransactionsStore } from '@/stores/transactions';
+import { useCelebrationStore } from '@/stores/celebration';
 import { useAccountsStore } from '@/stores/accounts';
 import { useCategoriesStore } from '@/stores/categories';
 import { useGoalsStore } from '@/stores/goals';
@@ -387,6 +402,7 @@ import type { CreateTransactionData, Transaction, SplitData, ExtraMoneyWithAssig
 
 const route = useRoute();
 const transactionsStore = useTransactionsStore();
+const celebrationStore = useCelebrationStore();
 const accountsStore = useAccountsStore();
 const categoriesStore = useCategoriesStore();
 const goalsStore = useGoalsStore();
@@ -533,6 +549,7 @@ async function handleSubmit() {
       });
       transaction = result.transaction;
       extraMoneyEntry = result.extra_money_entry;
+      updateTransactionStreak(formData.value.transaction_date);
     }
 
     // If a goal is selected, create a contribution
@@ -558,6 +575,33 @@ async function handleSubmit() {
   } catch (error) {
     console.error('Failed to save transaction:', error);
   }
+}
+
+function updateTransactionStreak(transactionDate: string) {
+  const dateKey = transactionDate || new Date().toISOString().split('T')[0];
+  const lastDate = localStorage.getItem('msyft_last_txn_date');
+  const streakRaw = localStorage.getItem('msyft_txn_streak') || '0';
+  let streak = Number(streakRaw) || 0;
+
+  if (lastDate === dateKey) {
+    return;
+  }
+
+  const last = lastDate ? new Date(lastDate) : null;
+  const current = new Date(dateKey);
+  const dayMs = 24 * 60 * 60 * 1000;
+
+  if (last && Math.round((current.getTime() - last.getTime()) / dayMs) === 1) {
+    streak += 1;
+  } else {
+    streak = 1;
+  }
+
+  localStorage.setItem('msyft_last_txn_date', dateKey);
+  localStorage.setItem('msyft_txn_streak', String(streak));
+
+  const label = streak === 1 ? '1-day streak' : `${streak}-day streak`;
+  celebrationStore.show(`Nice work! ${label}.`, '🔥');
 }
 
 async function clearTransaction(id: string) {

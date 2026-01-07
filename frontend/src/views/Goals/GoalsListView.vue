@@ -4,12 +4,16 @@
       <!-- Header -->
       <div class="flex items-center justify-between mb-6">
         <div>
-          <h1 class="text-2xl font-bold text-gray-900">Goals</h1>
+          <div class="flex items-center gap-2">
+            <h1 class="text-2xl font-bold text-gray-900">Goals</h1>
+            <InfoTooltip text="Track savings goals and celebrate progress over time." />
+          </div>
           <p class="text-gray-600 mt-2">Save for what matters most</p>
         </div>
         <button
           @click="showCreateModal = true"
           class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition font-medium"
+          data-testid="goals-add-button"
         >
           + New Goal
         </button>
@@ -18,15 +22,24 @@
       <!-- Overview Stats -->
       <div v-if="goalsStore.activeGoals.length > 0" class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         <div class="bg-white rounded-lg shadow p-6">
-          <p class="text-sm text-gray-600 mb-1">Total Goal Amount</p>
+          <div class="flex items-center gap-2 mb-1">
+            <p class="text-sm text-gray-600">Total Goal Amount</p>
+            <InfoTooltip text="Sum of target amounts for active goals." />
+          </div>
           <p class="text-2xl font-bold text-primary-600">{{ formatCurrency(goalsStore.totalGoalsAmount) }}</p>
         </div>
         <div class="bg-white rounded-lg shadow p-6">
-          <p class="text-sm text-gray-600 mb-1">Total Saved</p>
+          <div class="flex items-center gap-2 mb-1">
+            <p class="text-sm text-gray-600">Total Saved</p>
+            <InfoTooltip text="Total saved so far across active goals." />
+          </div>
           <p class="text-2xl font-bold text-green-600">{{ formatCurrency(goalsStore.totalSavedAmount) }}</p>
         </div>
         <div class="bg-white rounded-lg shadow p-6">
-          <p class="text-sm text-gray-600 mb-1">Overall Progress</p>
+          <div class="flex items-center gap-2 mb-1">
+            <p class="text-sm text-gray-600">Overall Progress</p>
+            <InfoTooltip text="Average progress across active goals." />
+          </div>
           <p class="text-2xl font-bold text-gray-900">{{ goalsStore.overallProgress.toFixed(1) }}%</p>
         </div>
       </div>
@@ -55,6 +68,7 @@
         <button
           @click="showCreateModal = true"
           class="px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition font-medium"
+          data-testid="goals-add-button"
         >
           Create Your First Goal
         </button>
@@ -71,6 +85,7 @@
               :key="goal.id"
               @click="openGoalDetail(goal)"
               class="bg-white rounded-lg shadow hover:shadow-lg transition cursor-pointer p-6"
+              :data-testid="`goal-card-${goal.id}`"
             >
               <div class="flex items-center justify-between mb-4">
                 <h3 class="text-lg font-semibold text-gray-900 truncate">{{ goal.name }}</h3>
@@ -106,6 +121,7 @@
               <button
                 @click.stop="openContributionModal(goal)"
                 class="mt-4 w-full py-2 px-4 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition text-sm"
+                data-testid="goal-contribution-button"
               >
                 💵 Add Contribution
               </button>
@@ -167,6 +183,7 @@ import AppLayout from '@/components/layout/AppLayout.vue';
 import CreateGoalModal from '@/components/goals/CreateGoalModal.vue';
 import GoalDetailModal from '@/components/goals/GoalDetailModal.vue';
 import ContributionModal from '@/components/goals/ContributionModal.vue';
+import InfoTooltip from '@/components/common/InfoTooltip.vue';
 import type { Goal } from '@/types';
 
 const goalsStore = useGoalsStore();

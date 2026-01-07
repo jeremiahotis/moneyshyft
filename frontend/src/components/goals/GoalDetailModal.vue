@@ -144,6 +144,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { useGoalsStore } from '@/stores/goals';
+import { useUndoStore } from '@/stores/undo';
 import type { Goal } from '@/types';
 
 const props = defineProps<{
@@ -157,6 +158,7 @@ const emit = defineEmits<{
 }>();
 
 const goalsStore = useGoalsStore();
+const undoStore = useUndoStore();
 const isSubmitting = ref(false);
 const contributionAmount = ref(0);
 const contributionDate = ref(new Date().toISOString().split('T')[0]);
@@ -200,16 +202,27 @@ async function handleAddContribution() {
 async function handleDelete() {
   if (!props.goal) return;
 
-  if (confirm(`Are you sure you want to delete "${props.goal.name}"? This action cannot be undone.`)) {
-    try {
-      await goalsStore.deleteGoal(props.goal.id);
-      emit('update:modelValue', false);
-      emit('deleted');
-    } catch (error) {
-      console.error('Failed to delete goal:', error);
-      alert('Failed to delete goal. Please try again.');
-    }
+  if (!confirm(`Are you sure you want to delete "${props.goal.name}"? This action cannot be undone.`)) {
+    return;
   }
+
+  const goalId = props.goal.id;
+  const goalName = props.goal.name;
+  emit('update:modelValue', false);
+
+  undoStore.schedule({
+    message: `Deleting "${goalName}"...`,
+    timeoutMs: 5000,
+    onCommit: async () => {
+      try {
+        await goalsStore.deleteGoal(goalId);
+        emit('deleted');
+      } catch (error) {
+        console.error('Failed to delete goal:', error);
+        alert('Failed to delete goal. Please try again.');
+      }
+    },
+  });
 }
 
 function formatCurrency(amount: number): string {

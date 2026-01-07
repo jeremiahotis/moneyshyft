@@ -1,9 +1,12 @@
 <template>
   <div class="bg-white rounded-lg shadow-lg p-8">
     <div class="mb-6">
-      <h2 class="text-3xl font-bold text-gray-900 mb-2">
-        Let's talk about debt payments 💳
-      </h2>
+      <div class="flex items-center gap-2 mb-2">
+        <h2 class="text-3xl font-bold text-gray-900">
+          Let's talk about debt payments 💳
+        </h2>
+        <InfoTooltip text="Optional: add debts so payments are part of your plan." />
+      </div>
       <p class="text-gray-600">
         Many people have debt - it's nothing to feel bad about. Tracking it helps you make progress on paying it off.
       </p>
@@ -240,7 +243,7 @@
     <!-- Helper text -->
     <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
       <p class="text-sm text-blue-900">
-        💡 <strong>Remember:</strong> Tracking your debt payments helps you see progress over time. Every payment gets you closer to being debt-free!
+        💡 <strong>Remember:</strong> Tracking your debt payments helps you see progress over time. Every payment is progress.
       </p>
     </div>
 
@@ -267,13 +270,14 @@
         @click="handleSkip"
         class="text-sm text-gray-500 hover:text-gray-700 underline"
       >
-        I don't have debt payments
+        Not now
       </button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import InfoTooltip from '@/components/common/InfoTooltip.vue';
 import { ref, onMounted } from 'vue';
 import { useWizardStore } from '@/stores/wizard';
 

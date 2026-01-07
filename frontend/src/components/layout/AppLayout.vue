@@ -10,10 +10,18 @@
 
     <!-- Bottom Navigation -->
     <AppMobileNav />
+
+    <!-- Undo Toast -->
+    <UndoToast />
+
+    <!-- Celebration Toast -->
+    <CelebrationToast />
   </div>
 </template>
 
 <script setup lang="ts">
 import AppHeader from './AppHeader.vue';
 import AppMobileNav from './AppMobileNav.vue';
+import UndoToast from '@/components/common/UndoToast.vue';
+import CelebrationToast from '@/components/common/CelebrationToast.vue';
 </script>

@@ -2,9 +2,12 @@
   <div class="bg-white rounded-lg shadow-lg p-8 text-center">
     <div class="mb-6">
       <div class="text-7xl mb-4 animate-bounce">🎉</div>
-      <h2 class="text-4xl font-bold text-gray-900 mb-3">
-        You're all set!
-      </h2>
+      <div class="flex items-center justify-center gap-2 mb-3">
+        <h2 class="text-4xl font-bold text-gray-900">
+          You're all set!
+        </h2>
+        <InfoTooltip text="You can return and tweak your budget anytime." />
+      </div>
       <p class="text-lg text-gray-600">
         Your budget has been created and is ready to use
       </p>
@@ -58,6 +61,7 @@
 </template>
 
 <script setup lang="ts">
+import InfoTooltip from '@/components/common/InfoTooltip.vue';
 defineEmits<{
   done: [];
 }>();

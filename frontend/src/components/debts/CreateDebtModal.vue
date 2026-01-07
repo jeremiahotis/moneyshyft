@@ -1,5 +1,9 @@
 <template>
-  <div v-if="modelValue" class="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center p-4">
+  <div
+    v-if="modelValue"
+    class="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center p-4"
+    data-testid="debt-create-modal"
+  >
     <div class="bg-white rounded-lg shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
       <!-- Header -->
       <div class="sticky top-0 bg-white border-b border-gray-200 px-6 py-4">
@@ -27,6 +31,7 @@
             placeholder="e.g., Chase Visa, Car Loan"
             required
             class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+            data-testid="debt-name"
           />
         </div>
 
@@ -39,6 +44,7 @@
             v-model="form.debt_type"
             required
             class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+            data-testid="debt-type"
           >
             <option value="">Select type...</option>
             <option value="credit_card">💳 Credit Card</option>
@@ -66,6 +72,7 @@
               placeholder="0.00"
               required
               class="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              data-testid="debt-current-balance"
             />
           </div>
         </div>
@@ -84,6 +91,7 @@
               min="0"
               placeholder="0.00"
               class="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              data-testid="debt-original-balance"
             />
           </div>
           <p class="text-xs text-gray-600 mt-1">💡 Helps track your progress over time</p>
@@ -104,6 +112,7 @@
               placeholder="0.00"
               required
               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              data-testid="debt-interest-rate"
             />
             <span class="absolute right-3 top-2 text-gray-500">%</span>
           </div>
@@ -124,6 +133,7 @@
               placeholder="0.00"
               required
               class="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              data-testid="debt-minimum-payment"
             />
           </div>
         </div>
@@ -138,6 +148,7 @@
             rows="3"
             placeholder="Add any additional details..."
             class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 resize-none"
+            data-testid="debt-notes"
           ></textarea>
         </div>
 
@@ -159,6 +170,7 @@
             type="submit"
             :disabled="isLoading"
             class="flex-1 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+            data-testid="debt-submit"
           >
             {{ isLoading ? 'Adding...' : 'Add Debt' }}
           </button>

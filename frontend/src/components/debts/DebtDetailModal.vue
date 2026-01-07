@@ -1,5 +1,9 @@
 <template>
-  <div v-if="modelValue && debt" class="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center p-4">
+  <div
+    v-if="modelValue && debt"
+    class="fixed inset-0 z-50 overflow-y-auto bg-black bg-opacity-50 flex items-center justify-center p-4"
+    data-testid="debt-detail-modal"
+  >
     <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
       <!-- Header -->
       <div class="sticky top-0 bg-white border-b border-gray-200 px-6 py-4">
@@ -95,6 +99,7 @@
                     placeholder="0.00"
                     required
                     class="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                    data-testid="debt-payment-amount"
                   />
                 </div>
               </div>
@@ -109,6 +114,7 @@
                   type="date"
                   required
                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  data-testid="debt-payment-date"
                 />
               </div>
             </div>
@@ -122,6 +128,7 @@
                 v-model="paymentForm.account_id"
                 required
                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                data-testid="debt-payment-account"
               >
                 <option value="">Select account...</option>
                 <option
@@ -144,6 +151,7 @@
                 type="text"
                 placeholder="e.g., Extra payment from bonus"
                 class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                data-testid="debt-payment-notes"
               />
             </div>
 
@@ -152,6 +160,7 @@
               type="submit"
               :disabled="isAddingPayment"
               class="w-full px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              data-testid="debt-payment-submit"
             >
               {{ isAddingPayment ? 'Recording Payment...' : 'Record Payment' }}
             </button>
@@ -219,6 +228,8 @@ import { ref, computed, watch, onMounted } from 'vue';
 import { useDebtsStore } from '@/stores/debts';
 import { useAccountsStore } from '@/stores/accounts';
 import { useTransactionsStore } from '@/stores/transactions';
+import { useUndoStore } from '@/stores/undo';
+import { useCelebrationStore } from '@/stores/celebration';
 import type { Debt, DebtPayment, AddDebtPaymentData } from '@/types';
 
 const props = defineProps<{
@@ -236,6 +247,8 @@ const emit = defineEmits<{
 const debtsStore = useDebtsStore();
 const accountsStore = useAccountsStore();
 const transactionsStore = useTransactionsStore();
+const undoStore = useUndoStore();
+const celebrationStore = useCelebrationStore();
 const isAddingPayment = ref(false);
 const isLoadingPayments = ref(false);
 const isDeleting = ref(false);
@@ -331,6 +344,11 @@ async function handleAddPayment() {
     // Reset form
     resetPaymentForm();
 
+    if (!localStorage.getItem('msyft_first_debt_payment')) {
+      localStorage.setItem('msyft_first_debt_payment', 'true');
+      celebrationStore.show('First debt payment recorded!', '💪');
+    }
+
     // Notify parent to refresh
     emit('updated');
   } catch (err: any) {
@@ -355,18 +373,24 @@ async function handleDelete() {
 
   if (!confirmed) return;
 
-  isDeleting.value = true;
   error.value = null;
+  const debtId = props.debt.id;
+  const debtName = props.debt.name;
+  closeModal();
 
-  try {
-    await debtsStore.deleteDebt(props.debt.id);
-    emit('deleted');
-    closeModal();
-  } catch (err: any) {
-    error.value = err.response?.data?.error || 'Failed to delete debt. Please try again.';
-  } finally {
-    isDeleting.value = false;
-  }
+  undoStore.schedule({
+    message: `Deleting "${debtName}"...`,
+    timeoutMs: 5000,
+    onCommit: async () => {
+      try {
+        await debtsStore.deleteDebt(debtId);
+        emit('deleted');
+      } catch (err: any) {
+        error.value = err.response?.data?.error || 'Failed to delete debt. Please try again.';
+        alert('Failed to delete debt. Please try again.');
+      }
+    },
+  });
 }
 
 function closeModal() {

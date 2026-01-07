@@ -47,6 +47,7 @@
             :instance="instance"
             badge-color="red"
             @approve="handleApprove(instance.id)"
+            @post="handlePost(instance.id)"
             @skip="handleSkip(instance.id)"
           />
         </div>
@@ -62,6 +63,7 @@
             :instance="instance"
             badge-color="yellow"
             @approve="handleApprove(instance.id)"
+            @post="handlePost(instance.id)"
             @skip="handleSkip(instance.id)"
           />
         </div>
@@ -77,6 +79,7 @@
             :instance="instance"
             badge-color="blue"
             @approve="handleApprove(instance.id)"
+            @post="handlePost(instance.id)"
             @skip="handleSkip(instance.id)"
           />
         </div>
@@ -112,6 +115,14 @@ async function handleApprove(id: string) {
     await recurringStore.approveInstance(id);
   } catch (error) {
     console.error('Failed to approve instance:', error);
+  }
+}
+
+async function handlePost(id: string) {
+  try {
+    await recurringStore.postInstance(id);
+  } catch (error) {
+    console.error('Failed to post instance:', error);
   }
 }
 

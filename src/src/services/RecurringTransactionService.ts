@@ -1,4 +1,5 @@
 import knex from '../config/knex';
+import type { Knex } from 'knex';
 import { NotFoundError, BadRequestError } from '../middleware/errorHandler';
 import { TransactionService } from './TransactionService';
 import logger from '../utils/logger';
@@ -541,12 +542,10 @@ export class RecurringTransactionService {
     instanceId: string,
     householdId: string,
     userId: string,
-    trx?: any
+    trx?: Knex | Knex.Transaction
   ): Promise<RecurringTransactionInstance> {
-    const db = trx || knex;
-
-    return await (trx ? Promise.resolve(db) : db.transaction(async (t: any) => t))(async (t: any) => {
-      const instance = await (t || db)('recurring_transaction_instances')
+    const postWithTransaction = async (t: Knex | Knex.Transaction): Promise<RecurringTransactionInstance> => {
+      const instance = await t('recurring_transaction_instances')
         .where({ id: instanceId, household_id: householdId })
         .first();
 
@@ -571,26 +570,32 @@ export class RecurringTransactionService {
         transaction_date: new Date(instance.due_date).toISOString().split('T')[0],
         notes: instance.notes || undefined,
         is_cleared: false
-      }, t || db);
+      }, t);
 
       // Update instance
-      const [updated] = await (t || db)('recurring_transaction_instances')
+      const [updated] = await t('recurring_transaction_instances')
         .where({ id: instanceId })
         .update({
           status: 'posted',
           transaction_id: transaction.id,
-          posted_at: (t || db).fn.now(),
-          updated_at: (t || db).fn.now(),
+          posted_at: t.fn.now(),
+          updated_at: t.fn.now(),
           // Also record approval if not already approved
           approved_by_user_id: instance.approved_by_user_id || userId,
-          approved_at: instance.approved_at || (t || db).fn.now()
+          approved_at: instance.approved_at || t.fn.now()
         })
         .returning('*');
 
       logger.info(`Posted recurring instance ${instanceId} as transaction ${transaction.id}`);
 
       return updated;
-    });
+    };
+
+    if (trx) {
+      return await postWithTransaction(trx);
+    }
+
+    return await knex.transaction(async (t) => postWithTransaction(t));
   }
 
   /**

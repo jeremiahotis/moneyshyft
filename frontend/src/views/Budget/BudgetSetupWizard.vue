@@ -14,13 +14,22 @@
       <div class="mb-8 bg-white rounded-lg shadow p-4">
         <div class="flex justify-between items-center mb-2">
           <span class="text-sm text-gray-600">Step {{ wizardStore.currentStep + 1 }} of 12</span>
-          <button
-            v-if="wizardStore.currentStep > 0 && wizardStore.currentStep < 11"
-            @click="skipWizard"
-            class="text-sm text-gray-500 hover:text-gray-700"
-          >
-            Skip for now
-          </button>
+          <div class="flex items-center gap-3">
+            <button
+              v-if="wizardStore.currentStep > 0 && wizardStore.currentStep < 11"
+              @click="handlePause"
+              class="text-sm text-gray-500 hover:text-gray-700"
+            >
+              Pause & Save
+            </button>
+            <button
+              v-if="wizardStore.currentStep > 0 && wizardStore.currentStep < 11"
+              @click="skipWizard"
+              class="text-sm text-gray-500 hover:text-gray-700"
+            >
+              Not now
+            </button>
+          </div>
         </div>
         <div class="w-full bg-gray-200 rounded-full h-2">
           <div
@@ -36,6 +45,8 @@
           v-if="wizardStore.currentStep === 0"
           @next="wizardStore.nextStep"
           @skip="skipWizard"
+          @pause="handlePause"
+          @first-wins="handleFirstWins"
         />
         <WizardIncome
           v-else-if="wizardStore.currentStep === 1"
@@ -102,7 +113,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import { useWizardStore } from '@/stores/wizard';
@@ -111,6 +122,7 @@ import { useAccountsStore } from '@/stores/accounts';
 import { useCategoriesStore } from '@/stores/categories';
 import { useBudgetsStore } from '@/stores/budgets';
 import { useDebtsStore } from '@/stores/debts';
+import { useCelebrationStore } from '@/stores/celebration';
 import api from '@/services/api';
 
 // Import wizard step components
@@ -135,6 +147,7 @@ const accountsStore = useAccountsStore();  // NEW
 const categoriesStore = useCategoriesStore();
 const budgetsStore = useBudgetsStore();
 const debtsStore = useDebtsStore();
+const celebrationStore = useCelebrationStore();
 
 const progressPercent = computed(() => {
   return ((wizardStore.currentStep + 1) / 12) * 100;
@@ -144,6 +157,24 @@ function skipWizard() {
   if (confirm('Are you sure you want to skip setup? You can always set up your budget manually later.')) {
     router.push('/budget');
   }
+}
+
+function handlePause() {
+  wizardStore.saveProgress();
+  router.push('/dashboard');
+}
+
+function handleFirstWins() {
+  wizardStore.updateAnswers({
+    first_wins: true,
+    income_sources: [],
+    housing_type: 'other',
+    has_car_payment: false,
+    has_car_insurance: false,
+    has_credit_card_debt: false,
+    has_other_debt: false,
+  });
+  wizardStore.setStep(9);
 }
 
 async function handleIncomeNext(data: any) {
@@ -390,6 +421,13 @@ async function createBudgetFromWizard() {
       { name: 'Personal Care', amount: answers.personal_care_estimate || 0 }
     ];
 
+    if (answers.first_wins) {
+      await ensureCategory(fixedSection.id, 'Rent/Mortgage');
+      await ensureCategory(fixedSection.id, 'Utilities');
+      await ensureCategory(fixedSection.id, 'Transportation');
+      await ensureCategory(flexSection.id, 'Groceries');
+    }
+
     for (const allocation of flexAllocations) {
       if (allocation.amount > 0) {
         const category = await ensureCategory(flexSection.id, allocation.name);
@@ -458,6 +496,10 @@ async function completeWizard() {
     console.error('Failed to mark setup wizard complete:', error);
   } finally {
     wizardStore.markComplete();
+    if (!localStorage.getItem('msyft_first_budget_complete')) {
+      localStorage.setItem('msyft_first_budget_complete', 'true');
+      celebrationStore.show('First budget created!', '🎉');
+    }
     router.push('/budget');
   }
 }
@@ -467,6 +509,10 @@ async function handleLogout() {
   wizardStore.reset();
   router.push('/login');
 }
+
+onMounted(() => {
+  wizardStore.loadProgress();
+});
 </script>
 
 <style scoped>

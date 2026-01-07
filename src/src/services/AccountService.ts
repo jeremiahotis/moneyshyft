@@ -1,5 +1,6 @@
 import knex from '../config/knex';
 import { NotFoundError } from '../middleware/errorHandler';
+import type { Knex } from 'knex';
 import logger from '../utils/logger';
 
 interface Account {
@@ -43,8 +44,12 @@ export class AccountService {
   /**
    * Get a single account by ID
    */
-  static async getAccountById(accountId: string, householdId: string): Promise<Account> {
-    const account = await knex('accounts')
+  static async getAccountById(
+    accountId: string,
+    householdId: string,
+    trx: Knex | Knex.Transaction = knex
+  ): Promise<Account> {
+    const account = await trx('accounts')
       .where({ id: accountId, household_id: householdId })
       .first();
 
@@ -157,23 +162,27 @@ export class AccountService {
    * Update account balance (called after transaction changes)
    * This recalculates balance from transactions
    */
-  static async recalculateBalance(accountId: string, householdId: string): Promise<void> {
-    const account = await this.getAccountById(accountId, householdId);
+  static async recalculateBalance(
+    accountId: string,
+    householdId: string,
+    trx: Knex | Knex.Transaction = knex
+  ): Promise<void> {
+    const account = await this.getAccountById(accountId, householdId, trx);
 
     // Calculate sum of all transactions for this account
-    const result = await knex('transactions')
-      .where({ account_id: accountId })
+    const result = await trx('transactions')
+      .where({ account_id: accountId, household_id: householdId, is_split_child: false })
       .sum('amount as total')
       .first();
 
     const transactionTotal = Number(result?.total || 0);
     const newBalance = Number(account.starting_balance) + transactionTotal;
 
-    await knex('accounts')
+    await trx('accounts')
       .where({ id: accountId })
       .update({
         current_balance: newBalance,
-        updated_at: knex.fn.now()
+        updated_at: trx.fn.now()
       });
 
     logger.info(`Account balance recalculated: ${accountId}, new balance: ${newBalance}`);

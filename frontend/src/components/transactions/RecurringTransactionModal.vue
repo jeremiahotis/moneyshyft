@@ -3,6 +3,7 @@
     v-if="modelValue"
     class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
     @click.self="closeModal"
+    data-testid="recurring-modal"
   >
     <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
       <!-- Header -->
@@ -23,6 +24,7 @@
             v-model="form.account_id"
             required
             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
+            data-testid="recurring-account"
           >
             <option value="">Select an account</option>
             <option v-for="account in accounts" :key="account.id" :value="account.id">
@@ -42,6 +44,7 @@
             required
             placeholder="e.g., Netflix, Rent, Electric Company"
             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
+            data-testid="recurring-payee"
           />
         </div>
 
@@ -57,6 +60,7 @@
             required
             placeholder="0.00"
             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
+            data-testid="recurring-amount"
           />
           <p class="text-xs text-gray-500 mt-1">
             Use negative for expenses, positive for income
@@ -71,6 +75,7 @@
           <select
             v-model="form.category_id"
             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
+            data-testid="recurring-category"
           >
             <option :value="null">Uncategorized</option>
             <option v-for="category in categories" :key="category.id" :value="category.id">
@@ -88,6 +93,7 @@
             v-model="form.frequency"
             required
             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
+            data-testid="recurring-frequency"
           >
             <option value="daily">Daily</option>
             <option value="weekly">Weekly</option>
@@ -107,6 +113,7 @@
             type="date"
             required
             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
+            data-testid="recurring-start-date"
           />
         </div>
 
@@ -155,6 +162,7 @@
               type="checkbox"
               id="auto-post"
               class="mt-0.5 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+              data-testid="recurring-auto-post"
             />
             <div>
               <label for="auto-post" class="text-sm font-medium text-gray-700">
@@ -230,6 +238,7 @@
             type="submit"
             :disabled="isLoading"
             class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium disabled:opacity-50"
+            data-testid="recurring-submit"
           >
             {{ isLoading ? 'Saving...' : (isEdit ? 'Update' : 'Create') }}
           </button>

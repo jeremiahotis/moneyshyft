@@ -3,6 +3,7 @@ import { asyncHandler } from '../../../middleware/errorHandler';
 import { authenticateToken, requireHouseholdAccess } from '../../../middleware/auth';
 import db from '../../../config/knex';
 import logger from '../../../utils/logger';
+import { AnalyticsService } from '../../../services/AnalyticsService';
 
 const router = Router();
 
@@ -50,6 +51,7 @@ router.get('/current', asyncHandler(async (req: Request, res: Response) => {
  */
 router.patch('/setup-wizard', asyncHandler(async (req: Request, res: Response) => {
   const householdId = req.user!.householdId!;
+  const userId = req.user!.userId;
 
   await db('households')
     .where({ id: householdId })
@@ -57,6 +59,13 @@ router.patch('/setup-wizard', asyncHandler(async (req: Request, res: Response) =
       setup_wizard_completed: true,
       setup_wizard_completed_at: db.fn.now()
     });
+
+  await AnalyticsService.recordEvent(
+    'setup_wizard_completed',
+    householdId,
+    userId,
+    {}
+  );
 
   res.json({
     success: true,
