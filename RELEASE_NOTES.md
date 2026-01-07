@@ -1,5 +1,13 @@
 # Release Notes
 
+## v0.3.6
+
+Fixes
+- Household reset endpoint now requires a server-side RESET_TOKEN instead of an admin role.
+
+Deployment notes
+- Rebuild backend image.
+
 ## v0.3.5
 
 Fixes
