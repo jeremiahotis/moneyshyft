@@ -49,3 +49,10 @@ Docker:
 ## Configuration Tips
 - Backend env lives in `src/.env` (gitignored). Frontend uses Vite env via `import.meta.env`.
 - Do not commit secrets; copy `docker-compose.example.yml` when setting up locally.
+
+## Production Context (MoneyShyft)
+- Prod deploy uses Docker Compose with `node` built from `src/Dockerfile` and Postgres in Docker; nginx is host-managed and serves `frontend/dist`.
+- Prod `docker-compose.yml` uses `NODE_ENV=production` and `src/.env` via `env_file`.
+- Prod nginx config proxies `/api/` to `127.0.0.1:3000` and serves the Vue SPA from `/home/jeremiahotis/projects/moneyshyft/frontend/dist`.
+- Prod build runs `npm run build` inside `src/Dockerfile` and must succeed with TypeScript strictness.
+- Prod migrations should use `npm run migrate:latest:prod` inside the container.

@@ -1,5 +1,14 @@
 # Release Notes
 
+## v0.3.2
+
+Fixes
+- Guarded extra money recommendations when household_id is missing.
+
+Deployment notes
+- Rebuild backend image.
+- Run migrations (use npm run migrate:latest:prod inside the container).
+
 ## v0.3.1
 
 Fixes
@@ -25,4 +34,3 @@ Details
 - Docs: Playwright env vars documented in `SETUP.md`.
 - UI: added selectors in transaction, recurring, extra money, debt, goal, and split flows.
 - Backend: analytics events migration and service; recurring generation tweaks.
-

@@ -301,6 +301,9 @@ router.post('/recommendations', async (req, res) => {
     }
 
     const householdId = req.user!.householdId;
+    if (!householdId) {
+      return res.status(403).json({ error: 'User must belong to a household' });
+    }
     const recommendations = await ExtraMoneyService.calculateRecommendations(
       householdId,
       amount

@@ -240,3 +240,8 @@ PGPASSWORD=<password> psql -h localhost -U <username> -d moneyshyft
 - Docker Compose only runs `postgres` and `node` services
 - Production `docker-compose.yml` is environment-specific (not in git)
 - Frontend built and served via nginx as static files
+
+## Production Deployment Details (Current)
+- Backend container built from `src/Dockerfile` with `NODE_ENV=production`.
+- Prod migrations should use `npm run migrate:latest:prod` inside container.
+- Nginx serves `frontend/dist` and proxies `/api/` to `127.0.0.1:3000`.
