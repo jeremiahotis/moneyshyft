@@ -1,5 +1,14 @@
 # Release Notes
 
+## v0.3.3
+
+Fixes
+- Guarded createRecommendedSections call when household_id is missing.
+
+Deployment notes
+- Rebuild backend image.
+- Run migrations (use npm run migrate:latest:prod inside the container).
+
 ## v0.3.2
 
 Fixes

@@ -137,7 +137,9 @@ class AuthService {
             is_system: true,
           });
 
-        await createRecommendedSections(trx, householdId);
+        if (householdId) {
+          await createRecommendedSections(trx, householdId);
+        }
 
         logger.info(`Created default Income category for household: ${householdId}`);
       }
