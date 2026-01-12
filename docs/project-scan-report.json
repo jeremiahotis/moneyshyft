@@ -1,0 +1,123 @@
+{
+  "workflow_version": "1.2.0",
+  "timestamps": {
+    "started": "2026-01-08T04:52:24-05:00",
+    "last_updated": "2026-01-08T05:16:54-05:00",
+    "completed": "2026-01-08T05:09:13-05:00"
+  },
+  "mode": "initial_scan",
+  "scan_level": "exhaustive",
+  "project_root": "/Users/jeremiahotis/moneyshyft",
+  "output_folder": "/Users/jeremiahotis/moneyshyft/docs",
+  "completed_steps": [
+    {
+      "step": "step_1",
+      "status": "completed",
+      "timestamp": "2026-01-08T04:52:24-05:00",
+      "summary": "Classified as monorepo with 2 parts"
+    },
+    {
+      "step": "step_2",
+      "status": "completed",
+      "timestamp": "2026-01-08T05:05:13-05:00",
+      "summary": "Found 15 existing docs"
+    },
+    {
+      "step": "step_3",
+      "status": "completed",
+      "timestamp": "2026-01-08T05:05:13-05:00",
+      "summary": "Tech stack: Vue 3 + Express"
+    },
+    {
+      "step": "step_4",
+      "status": "completed",
+      "timestamp": "2026-01-08T05:05:13-05:00",
+      "summary": "Conditional analysis complete, 4 files written"
+    },
+    {
+      "step": "step_5",
+      "status": "completed",
+      "timestamp": "2026-01-08T05:05:13-05:00",
+      "summary": "Source tree documented"
+    },
+    {
+      "step": "step_8",
+      "status": "completed",
+      "timestamp": "2026-01-08T05:05:13-05:00",
+      "summary": "Architecture docs written for 2 parts"
+    },
+    {
+      "step": "step_9",
+      "status": "completed",
+      "timestamp": "2026-01-08T05:05:13-05:00",
+      "summary": "All supporting docs written"
+    },
+    {
+      "step": "step_10",
+      "status": "completed",
+      "timestamp": "2026-01-08T05:05:13-05:00",
+      "summary": "Master index generated"
+    },
+    {
+      "step": "step_11",
+      "status": "completed",
+      "timestamp": "2026-01-08T05:09:13-05:00",
+      "summary": "Validation and review complete"
+    },
+    {
+      "step": "step_12",
+      "status": "completed",
+      "timestamp": "2026-01-08T05:09:13-05:00",
+      "summary": "Workflow complete"
+    }
+  ],
+  "current_step": "completed",
+  "findings": {
+    "project_classification": "monorepo with 2 parts: frontend (web), src (backend)",
+    "technology_stack": "frontend: Vue 3 + Vite + Pinia, backend: Express + Knex + PostgreSQL",
+    "batches_completed": [
+      {
+        "path": "frontend/",
+        "files_scanned": 88,
+        "summary": "Frontend source and config scanned"
+      },
+      {
+        "path": "src/",
+        "files_scanned": 87,
+        "summary": "Backend source, routes, and migrations scanned"
+      }
+    ]
+  },
+  "outputs_generated": [
+    "project-scan-report.json",
+    "project-scan-outputs.md",
+    "api-contracts-frontend.md",
+    "api-contracts-src.md",
+    "data-models-frontend.md",
+    "data-models-src.md",
+    "source-tree-analysis.md",
+    "project-overview.md",
+    "component-inventory-frontend.md",
+    "development-guide-frontend.md",
+    "development-guide-src.md",
+    "deployment-guide.md",
+    "architecture-frontend.md",
+    "architecture-src.md",
+    "integration-architecture.md",
+    "testing-guide.md",
+    "index.md"
+  ],
+  "resume_instructions": "Completed",
+  "project_types": [
+    {
+      "part_id": "frontend",
+      "project_type_id": "web",
+      "display_name": "Web"
+    },
+    {
+      "part_id": "src",
+      "project_type_id": "backend",
+      "display_name": "Backend"
+    }
+  ]
+}

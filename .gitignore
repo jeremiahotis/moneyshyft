@@ -44,6 +44,11 @@ coverage/
 *~
 .DS_Store
 
+# Local agent skills/caches (NOT project artifacts)
+.skills/
+.cursor/skills/
+.github/skills/
+
 # OS
 .DS_Store
 Thumbs.db

@@ -1,0 +1,153 @@
+# generated: 2026-01-11 21:35
+# project: moneyshyft
+# project_key: moneyshyft
+# tracking_system: file-system
+# story_location: _bmad-output/implementation-artifacts
+
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status:
+#   - backlog: Epic not yet started
+#   - in-progress: Epic actively being worked on
+#   - done: All stories in epic completed
+#
+# Story Status:
+#   - backlog: Story only exists in epic file
+#   - ready-for-dev: Story file created, ready for development
+#   - in-progress: Developer actively working on implementation
+#   - review: Implementation complete, ready for review
+#   - done: Story completed
+#
+# Retrospective Status:
+#   - optional: Can be completed but not required
+#   - done: Retrospective has been completed
+#
+# WORKFLOW NOTES:
+# ===============
+# - Mark epic as 'in-progress' when starting work on its first story
+# - SM typically creates next story ONLY after previous one is 'done' to incorporate learnings
+# - Dev moves story to 'review', then Dev runs code-review (fresh context, ideally different LLM)
+
+generated: 2026-01-11 21:35
+project: moneyshyft
+project_key: moneyshyft
+tracking_system: file-system
+story_location: _bmad-output/implementation-artifacts
+
+development_status:
+  # Platform Enablement (Pre-Epic)
+  epic-0: in-progress
+  0-0-commit-agent-tooling-scaffolding-tracked-fully: review
+  0-1-initialize-monorepo-structure: ready-for-dev
+  0-2-configure-tooling-baseline: backlog
+  0-3-create-shared-types-package: backlog
+  0-4-set-up-backend-api-skeleton: backlog
+  0-5-set-up-database-connectivity-migration-harness: backlog
+  0-6-set-up-baseline-ci-quality-gate: backlog
+  0-7-set-up-frontend-spa-skeleton: backlog
+  0-8-set-up-crisis-mode-11ty-skeleton-local-build: backlog
+  0-9-deploy-crisis-mode-independently: backlog
+  epic-0-retrospective: optional
+
+  # Crisis Intervention (Standalone)
+  epic-1: backlog
+  1-1-create-decision-tree-node-structure: backlog
+  1-2-implement-72-hour-question-intake: backlog
+  1-3-implement-crisis-type-categorization: backlog
+  1-4-implement-region-selection: backlog
+  1-5-create-resource-data-structure-and-path-based-filtered-routes: backlog
+  1-6-implement-resource-display-with-actions-and-type-selection: backlog
+  1-7-implement-exit-and-completion-handling: backlog
+  1-8-implement-offline-support-service-worker: backlog
+  1-9-implement-progressive-enhancement-javascript-enhancements: backlog
+  1-10-implement-anonymous-analytics-minimal-instrumentation: backlog
+  1-11-implement-internal-resource-trust-scores-should-have: backlog
+  epic-1-retrospective: optional
+
+  # User Authentication & Account Management
+  epic-2: backlog
+  2-1-implement-csrf-token-minting-requires-origin-allowlist-csrf-double-submit: backlog
+  2-2-implement-account-creation-signup: backlog
+  2-3-implement-login-requires-origin-allowlist-csrf-double-submit: backlog
+  2-4-implement-token-refresh: backlog
+  2-5-implement-logout-requires-origin-allowlist-csrf-double-submit: backlog
+  2-6-implement-password-reset-flow-requires-origin-allowlist-csrf-double-submit: backlog
+  2-7-implement-anonymous-to-authenticated-data-migration-requires-origin-allowlist-csrf-double-submit: backlog
+  2-8-implement-data-export: backlog
+  2-9-implement-account-deletion-with-complete-data-removal-requires-origin-allowlist-csrf-double-submit: backlog
+  epic-2-retrospective: optional
+
+  # Financial Awareness (Foundation Mode)
+  epic-3: backlog
+  3-1-create-foundation-mode-entry-and-anonymous-support: backlog
+  3-2-implement-transaction-data-structure-and-local-persistence: backlog
+  3-3-implement-transaction-logging-ui-and-flow: backlog
+  3-4-implement-foundation-mode-home-screen: backlog
+  3-5-implement-non-coercive-account-creation-offer: backlog
+  3-6-implement-pattern-insights-and-reality-mirror: backlog
+  3-7-implement-category-focus-should-have: backlog
+  3-8-implement-small-win-tracking-should-have: backlog
+  3-9-implement-foundation-mode-data-export: backlog
+  3-10-implement-foundation-mode-data-deletion: backlog
+  epic-3-retrospective: optional
+
+  # Goal Achievement (Builder Mode)
+  epic-4: backlog
+  4-1-create-builder-mode-entry-and-foundation-data-import: backlog
+  4-2-implement-goal-data-structure-and-single-active-goal: backlog
+  4-3-implement-scenario-comparison-two-scenarios: backlog
+  4-4-implement-basic-forecasting-calculations: backlog
+  4-5-implement-goal-progress-tracking: backlog
+  4-6-implement-scenario-action-impact-visualization: backlog
+  4-7-implement-goal-plan-adjustment: backlog
+  4-8-implement-goal-setback-handling: backlog
+  4-9-implement-goal-achievement-acknowledgment: backlog
+  4-10-implement-builder-mode-downgrade-to-foundation-should-have: backlog
+  epic-4-retrospective: optional
+
+  # Organization Management
+  epic-5: backlog
+  5-1-implement-organization-account-creation: backlog
+  5-2-implement-license-assignment-via-email-invitation: backlog
+  5-3-implement-client-list-view: backlog
+  5-4-implement-client-engagement-metrics: backlog
+  5-5-implement-aggregated-outcomes-data-view-opt-in-only: backlog
+  5-6-implement-billing-information-view: backlog
+  5-7-implement-end-sponsorship-for-individual-clients: backlog
+  5-8-implement-license-extension-should-have: backlog
+  5-9-implement-license-expiration-notifications-should-have: backlog
+  5-10-implement-automated-engagement-reports-future: backlog
+  epic-5-retrospective: optional
+
+  # License & Billing Management
+  epic-6: backlog
+  6-1-implement-license-lifecycle-state-machine: backlog
+  6-2-implement-active-client-tracking-engagement-based: backlog
+  6-3-implement-billing-calculation-base-overage-model: backlog
+  6-4-implement-license-transition-handling: backlog
+  6-5-implement-client-notifications-on-license-transitions: backlog
+  6-6-implement-fixed-term-and-indefinite-license-support: backlog
+  6-7-implement-license-expiration-and-renewal-workflows-should-have: backlog
+  epic-6-retrospective: optional
+
+  # Mode Progression & Safe Return
+  epic-7: backlog
+  7-1-implement-universal-return-contract-all-modes: backlog
+  7-2-implement-mode-switching-logic-behavior-based-triggers: backlog
+  7-3-implement-mode-specific-return-behavior: backlog
+  7-4-implement-builder-mode-readiness-detection-behavior-based-triggers: backlog
+  7-5-implement-builder-mode-progression-offers-non-coercive: backlog
+  7-6-implement-declinedefer-mode-progression-no-penalty: backlog
+  7-7-implement-mode-progression-intent-tracking-should-have-mvp-light: backlog
+  7-8-implement-progression-attempt-tracking-future-feature-flagged: backlog
+  epic-7-retrospective: optional
+
+  # Data Privacy & Security (System Constraint — Cross-Cutting, Gating)
+  epic-8: backlog
+  8-1-implement-multi-tenant-data-isolation-row-level-security: backlog
+  8-2-implement-data-anonymization-for-organization-admins: backlog
+  8-3-implement-opt-in-outcomes-sharing: backlog
+  8-4-implement-encryption-at-rest-and-in-transit: backlog
+  8-5-implement-data-access-event-logging-should-have: backlog
+  8-6-implement-organization-admin-action-logging-should-have: backlog
+  epic-8-retrospective: optional
