@@ -1,22 +1,12 @@
 # Dependencies
-node_modules
-**/node_modules
+**/node_modules/**
 
 # Build output
-dist
-**/dist
-build
-**/build
-coverage
-**/coverage
+**/dist/**
+**/build/**
+**/coverage/**
 
 # Vite / tooling output
-**/.vite
-**/.turbo
-
-# Frontend build output (legacy path)
-frontend/dist
-
-# Backend build output (legacy path)
-src/dist
+**/.vite/**
+**/.turbo/**
 

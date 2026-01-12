@@ -1,6 +1,6 @@
 # Story 0.2: Configure Tooling Baseline
 
-Status: review
+Status: done
 
 ## Story
 
@@ -79,17 +79,18 @@ GPT-5.2 (Cursor)
 - `pnpm add -w -D eslint prettier @typescript-eslint/parser @typescript-eslint/eslint-plugin eslint-plugin-vue vue-eslint-parser --store-dir <workspace>/.pnpm-store`
 - `pnpm -r exec eslint --version`
 - `pnpm -r exec prettier --version`
+- `pnpm exec eslint --print-config scripts/tooling-baseline.test.js`
 
 ### Completion Notes List
 
 - Added root `tsconfig.json` strict baseline (safe to extend for both `frontend/` and `src/`).
-- Added `scripts/tooling-baseline.test.js` (Task 1 active; later tasks marked TODO until implemented).
-- Added root ESLint config (`.eslintrc.cjs`) baseline covering TS + Vue + Node and extensible by packages.
+- Added `scripts/tooling-baseline.test.js` (verifies root configs + pnpm exec ACs).
+- Added root ESLint config (`eslint.config.js`) baseline for ESLint v9+ covering TS + Vue + Node.
 - Added root Prettier config (`.prettierrc`) and `.prettierignore`.
 - Installed ESLint + Prettier (and TS/Vue lint deps) at workspace root and verified recursive exec version commands succeed.
 - Extensibility patterns (validated/documented):
   - TypeScript: `frontend/tsconfig.json` or `src/tsconfig.json` can add `"extends": "../tsconfig.json"` and keep their app-specific overrides.
-  - ESLint: subprojects can rely on root `.eslintrc.cjs` (ESLint will discover it up the tree) or add a local `.eslintrc.cjs` that `extends: ["../.eslintrc.cjs"]`.
+  - ESLint: subprojects can rely on root `eslint.config.js` (ESLint discovers it up the tree) or add a local `eslint.config.js` that imports/extends the root array.
   - Prettier: subprojects inherit root `.prettierrc` automatically; add a local config only if overriding.
 
 ### File List
@@ -98,7 +99,7 @@ GPT-5.2 (Cursor)
 - package.json
 - pnpm-lock.yaml
 - tsconfig.json
-- .eslintrc.cjs
+- eslint.config.js
 - .prettierrc
 - .prettierignore
 - scripts/tooling-baseline.test.js
@@ -108,4 +109,19 @@ GPT-5.2 (Cursor)
 ## Change Log
 
 - 2026-01-12: Added root TS/ESLint/Prettier baselines + pnpm-managed lint/format deps; validated `pnpm -r exec eslint/prettier --version`.
+- 2026-01-12: Code review fixes: migrated ESLint config to v9 flat config (`eslint.config.js`), strengthened tests, and updated root `pnpm test` coverage.
+
+## Senior Developer Review (AI)
+
+**Reviewer:** Jeremiah  
+**Date:** 2026-01-12  
+**Outcome:** Approved (after fixes)
+
+### Issues Found (and fixed)
+
+- **HIGH:** ESLint v9 ignored `.eslintrc.cjs` (no `eslint.config.*` present) → added `eslint.config.js` (flat config) and removed legacy `.eslintrc.cjs`.
+- **MEDIUM:** Tests didn’t validate ESLint could load config → added `eslint --print-config` assertion in `scripts/tooling-baseline.test.js`.
+- **MEDIUM:** Root `pnpm test` didn’t include Story 0.2 tests → updated root `package.json` test script to run both Story 0.1 + 0.2 test files.
+- **MEDIUM:** Root `tsconfig.json` set `lib` to only ES2022 (could constrain frontend inheritance) → removed `lib` from root base config.
+- **LOW:** Removed duplicate/overlapping ignore patterns in `.gitignore` and `.prettierignore`.
 

@@ -22,12 +22,26 @@ test('Story 0.2 - root tsconfig.json exists with strict baseline', () => {
 });
 
 test('Story 0.2 - root ESLint config exists and covers TS + Vue + Node baseline', () => {
-  const eslintConfigPath = repoPath('.eslintrc.cjs');
-  assert.ok(fs.existsSync(eslintConfigPath), 'Expected root .eslintrc.cjs to exist');
+  const eslintConfigPath = repoPath('eslint.config.js');
+  assert.ok(fs.existsSync(eslintConfigPath), 'Expected root eslint.config.js to exist');
 
   const content = fs.readFileSync(eslintConfigPath, 'utf8');
   assert.match(content, /@typescript-eslint/, 'Expected ESLint config to reference @typescript-eslint for TS support');
   assert.match(content, /vue-eslint-parser|eslint-plugin-vue|plugin:vue/, 'Expected ESLint config to reference Vue support');
+});
+
+test('Story 0.2 - ESLint can load config (print-config succeeds)', () => {
+  const result = spawnSync('pnpm', ['exec', 'eslint', '--print-config', 'scripts/tooling-baseline.test.js'], {
+    cwd: repoPath(),
+    encoding: 'utf8',
+    stdio: 'pipe',
+  });
+
+  assert.equal(
+    result.status,
+    0,
+    `Expected eslint --print-config to exit 0. stderr:\\n${result.stderr}\\nstdout:\\n${result.stdout}`,
+  );
 });
 test('Story 0.2 - root Prettier config exists and .prettierignore exists', () => {
   const prettierCandidates = [

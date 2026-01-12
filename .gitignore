@@ -16,7 +16,6 @@ node_modules/
 # Build outputs
 dist/
 build/
-*.tsbuildinfo
 
 # Logs
 *.log
@@ -42,7 +41,6 @@ coverage/
 *.swp
 *.swo
 *~
-.DS_Store
 
 # Local agent skills/caches (NOT project artifacts)
 .skills/
