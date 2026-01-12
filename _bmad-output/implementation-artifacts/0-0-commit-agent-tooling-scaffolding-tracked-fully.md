@@ -24,8 +24,8 @@ so that a fresh clone contains everything needed for the AI-assisted workflow wi
 - [x] Task 2: Ensure tooling directories are tracked (AC: clean clone has scaffolding)
   - [x] Stage `_bmad/`
   - [x] Stage `_bmad-output/`
-  - [x] Stage `.claude/`
-  - [x] Stage `.codex/`
+  - [x] Stage `.claude/` (commands only; exclude local settings)
+  - [x] Stage `.codex/` (prompts/skills only; exclude auth/session/history)
   - [x] Stage `.cursor/rules/`
   - [x] Stage `.github/agents/`
   - [x] Stage `docs/`
@@ -55,6 +55,9 @@ GPT-5.2 (Cursor)
 ### Completion Notes List
 
 - Staged tooling-only scope (explicit paths) and validated no runtime sources were staged.
+- Security guardrail: local auth/session files are explicitly excluded and ignored:
+  - `.codex/auth.json`, `.codex/history.jsonl`, `.codex/sessions/`
+  - `.claude/settings.local.json`
 
 ### File List
 

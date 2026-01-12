@@ -664,6 +664,9 @@ So that a fresh clone contains everything needed for the AI-assisted workflow wi
 **Explicit non-scope (enforced):**
 - No changes to `frontend/**` source, API source, or runtime logic
 - No dependency changes beyond what’s required for tooling to run (prefer none)
+- No user-local auth/session artifacts or secrets (never commit):
+  - `.codex/auth.json`, `.codex/history.jsonl`, `.codex/sessions/`
+  - `.claude/settings.local.json`
 
 **Guardrails:**
 - Track `_bmad-output/` fully, but enforce staging discipline and avoid drive-by regeneration.
