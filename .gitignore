@@ -73,6 +73,8 @@ temp/
 .cache/
 .parcel-cache/
 .vite/
+.pnpm-store/
+pnpm-debug.log*
 
 # TypeScript
 *.tsbuildinfo

@@ -39,7 +39,7 @@ development_status:
   epic-0: in-progress
   0-0-commit-agent-tooling-scaffolding-tracked-fully: review
   0-1-initialize-monorepo-structure: done
-  0-2-configure-tooling-baseline: backlog
+  0-2-configure-tooling-baseline: review
   0-3-create-shared-types-package: backlog
   0-4-set-up-backend-api-skeleton: backlog
   0-5-set-up-database-connectivity-migration-harness: backlog
