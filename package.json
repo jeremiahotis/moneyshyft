@@ -8,10 +8,10 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "echo \"Not implemented (Story 0.6)\" && exit 1",
-    "build": "echo \"Not implemented (Story 0.6)\" && exit 1",
+    "dev": "node -e \"console.log('Not implemented (Story 0.6)')\"",
+    "build": "node -e \"console.log('Not implemented (Story 0.6)')\"",
     "test": "node --test scripts/monorepo-structure.test.js",
-    "lint": "echo \"Not implemented (Story 0.6)\" && exit 1"
+    "lint": "node -e \"console.log('Not implemented (Story 0.6)')\""
   },
   "dependencies": {
     "uuid": "^13.0.0"

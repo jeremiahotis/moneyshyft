@@ -1,6 +1,6 @@
 # Story 0.1: Initialize Monorepo Structure
 
-Status: review
+Status: done
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -120,7 +120,7 @@ Since this is a structural rewrite with existing production code, use this appro
     - 'packages/*'
   ```
 - Verify workspace recognition: `pnpm -r list` should show all workspace packages
-- **Binding note:** `frontend/**` is intentionally included in `pnpm-workspace.yaml` to support incremental migration; remove once `apps/app` replaces it.
+- **Binding note:** `frontend/**` and `src/**` are intentionally included in `pnpm-workspace.yaml` to support incremental migration; remove once `apps/app` and `apps/api` replace them.
 
 **Directory Structure:**
 - Create `apps/` directory at root
@@ -165,9 +165,9 @@ Since this is a structural rewrite with existing production code, use this appro
 3. Verify root `package.json` has workspace configuration
 4. Verify `pnpm-workspace.yaml` exists and defines correct packages
 
-**No Unit Tests Required:**
-- This is infrastructure setup, not application code
-- Verification is manual/integration-based
+**Verification Approach:**
+- Automated verification is provided via `node --test scripts/monorepo-structure.test.js` (also runs via `pnpm test`).
+- Manual spot-check remains acceptable (e.g., `pnpm -r list`).
 
 ### Project Structure Notes
 
@@ -235,4 +235,36 @@ GPT-5.2 (Cursor)
 - packages/shared/.gitkeep
 - _bmad-output/implementation-artifacts/0-1-initialize-monorepo-structure.md
 - _bmad-output/implementation-artifacts/sprint-status.yaml
+
+## Senior Developer Review (AI)
+
+**Reviewer:** Jeremiah  
+**Date:** 2026-01-12  
+**Outcome:** Approved (with minor improvements applied)
+
+### Scope Verified
+
+- Verified review against the Story 0.1 commit `8b4c19f`
+- Verified `pnpm test` passes (runs `node --test scripts/monorepo-structure.test.js`)
+
+### Findings
+
+#### 🟡 MEDIUM
+
+1. **Shell-specific placeholder scripts (exit 1)**: `scripts.dev|build|lint` used `exit 1`, which is unnecessarily sharp and shell-dependent.  
+   - **Fix applied:** changed to cross-platform `node -e "console.log(...)"` with exit 0.
+
+2. **Doc drift in verification posture**: Story said “No Unit Tests Required” while the implementation ships automated verification tests.  
+   - **Fix applied:** updated “Testing Requirements” to reflect the automated verification approach.
+
+3. **Incremental migration note incomplete**: `pnpm-workspace.yaml` includes both `frontend/` and `src/`, but the binding note only referenced `frontend/**`.  
+   - **Fix applied:** updated binding note to include both `frontend/**` and `src/**`.
+
+#### 🟢 LOW
+
+1. **Root dependencies at workspace root:** root `package.json` still contains runtime deps (pre-existing). Consider moving dependencies into app/package `package.json` files as migration progresses.
+
+### Change Log
+
+- 2026-01-12: Code review completed; minor improvements applied; story marked done.
 
