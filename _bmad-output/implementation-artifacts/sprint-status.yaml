@@ -40,7 +40,7 @@ development_status:
   0-0-commit-agent-tooling-scaffolding-tracked-fully: review
   0-1-initialize-monorepo-structure: done
   0-2-configure-tooling-baseline: done
-  0-3-create-shared-types-package: backlog
+  0-3-create-shared-types-package: ready-for-dev
   0-4-set-up-backend-api-skeleton: backlog
   0-5-set-up-database-connectivity-migration-harness: backlog
   0-6-set-up-baseline-ci-quality-gate: backlog
