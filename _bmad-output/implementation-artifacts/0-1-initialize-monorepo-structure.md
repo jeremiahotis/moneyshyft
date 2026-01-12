@@ -1,6 +1,6 @@
 # Story 0.1: Initialize Monorepo Structure
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -24,20 +24,20 @@ So that all applications and shared code are organized in a single repository wi
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Initialize root workspace (AC: Root package.json, pnpm-workspace.yaml)
-  - [ ] Create root `package.json` with workspace configuration
-  - [ ] Create `pnpm-workspace.yaml` file defining workspace packages
-  - [ ] Verify pnpm recognizes workspace (`pnpm -r list` works)
-- [ ] Task 2: Create directory structure (AC: apps/, packages/)
-  - [ ] Create `apps/` directory
-  - [ ] Create `packages/` directory
-  - [ ] Create placeholder directories: `apps/crisis/`, `apps/app/`, `apps/api/`, `packages/shared/`
-- [ ] Task 3: Add root-level script placeholders (AC: Root scripts)
-  - [ ] Add `dev` script placeholder to root `package.json`
-  - [ ] Add `build` script placeholder to root `package.json`
-  - [ ] Add `test` script placeholder to root `package.json`
-  - [ ] Add `lint` script placeholder to root `package.json`
-  - [ ] Note: Scripts will be implemented in Story 0.6 (CI)
+- [x] Task 1: Initialize root workspace (AC: Root package.json, pnpm-workspace.yaml)
+  - [x] Create root `package.json` with workspace configuration
+  - [x] Create `pnpm-workspace.yaml` file defining workspace packages
+  - [x] Verify pnpm recognizes workspace (`pnpm -r list` works)
+- [x] Task 2: Create directory structure (AC: apps/, packages/)
+  - [x] Create `apps/` directory
+  - [x] Create `packages/` directory
+  - [x] Create placeholder directories: `apps/crisis/`, `apps/app/`, `apps/api/`, `packages/shared/`
+- [x] Task 3: Add root-level script placeholders (AC: Root scripts)
+  - [x] Add `dev` script placeholder to root `package.json`
+  - [x] Add `build` script placeholder to root `package.json`
+  - [x] Add `test` script placeholder to root `package.json`
+  - [x] Add `lint` script placeholder to root `package.json`
+  - [x] Note: Scripts will be implemented in Story 0.6 (CI)
 
 ## Dev Notes
 
@@ -209,17 +209,30 @@ Since this is a structural rewrite with existing production code, use this appro
 
 ### Agent Model Used
 
-_To be filled by dev agent_
+GPT-5.2 (Cursor)
 
 ### Debug Log References
 
-_To be filled by dev agent_
+- `node --test scripts/monorepo-structure.test.js`
+- `pnpm -r list`
 
 ### Completion Notes List
 
-_To be filled by dev agent_
+- Implemented pnpm workspace root config (`package.json`, `pnpm-workspace.yaml`) and verified `pnpm -r list` works.
+- Added monorepo scaffold dirs via tracked `.gitkeep` files (so empty dirs exist after clone).
+- Added root scripts placeholders (`dev`, `build`, `test`, `lint`) with `test` wired to node:test.
 
 ### File List
 
-_To be filled by dev agent_
+- package.json
+- pnpm-workspace.yaml
+- scripts/monorepo-structure.test.js
+- apps/.gitkeep
+- apps/crisis/.gitkeep
+- apps/app/.gitkeep
+- apps/api/.gitkeep
+- packages/.gitkeep
+- packages/shared/.gitkeep
+- _bmad-output/implementation-artifacts/0-1-initialize-monorepo-structure.md
+- _bmad-output/implementation-artifacts/sprint-status.yaml
 

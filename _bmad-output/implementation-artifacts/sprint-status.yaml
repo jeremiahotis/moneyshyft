@@ -38,7 +38,7 @@ development_status:
   # Platform Enablement (Pre-Epic)
   epic-0: in-progress
   0-0-commit-agent-tooling-scaffolding-tracked-fully: review
-  0-1-initialize-monorepo-structure: ready-for-dev
+  0-1-initialize-monorepo-structure: review
   0-2-configure-tooling-baseline: backlog
   0-3-create-shared-types-package: backlog
   0-4-set-up-backend-api-skeleton: backlog
