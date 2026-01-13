@@ -14,13 +14,27 @@ const getDatabaseConfig = () => {
     };
   }
 
-  return {
+  const config: {
+    host: string;
+    port: number;
+    database: string;
+    user?: string;
+    password?: string;
+  } = {
     host: process.env.DB_HOST || 'localhost',
     port: parseInt(process.env.DB_PORT || '5432'),
     database: process.env.DB_NAME || 'moneyshyft',
-    user: process.env.DB_USER || 'jeremiahotis',
-    password: process.env.DB_PASSWORD || 'Oiurueu12',
   };
+
+  if (process.env.DB_USER) {
+    config.user = process.env.DB_USER;
+  }
+
+  if (process.env.DB_PASSWORD) {
+    config.password = process.env.DB_PASSWORD;
+  }
+
+  return config;
 };
 
 const pool = new Pool({

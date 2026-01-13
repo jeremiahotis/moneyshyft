@@ -6,10 +6,12 @@ const envPath = path.resolve(process.cwd(), '.env.test');
 
 if (fs.existsSync(envPath)) {
   dotenv.config({ path: envPath });
-} else {
-  dotenv.config();
 }
 
 if (!process.env.NODE_ENV) {
   process.env.NODE_ENV = 'test';
+}
+
+if (process.env.NODE_ENV === 'test' && process.env.DATABASE_URL === undefined) {
+  process.env.DATABASE_URL = '';
 }

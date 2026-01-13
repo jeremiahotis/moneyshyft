@@ -25,7 +25,7 @@ If you only need a local Postgres instance for tests, use the minimal test DB co
 docker compose -f docker-compose.test-db.yml up -d
 ```
 
-This starts a `moneyshyft_test` database on port `5432` with the same credentials as `src/src/knexfile.ts`.
+This starts a `moneyshyft_test` database on port `5432` with credentials defined in `docker-compose.test-db.yml` or `src/.env.test`.
 
 ### 2. Remote Server Deployment
 
@@ -42,6 +42,9 @@ The `.env` file in `src/` contains configuration. For production:
 - Never commit `.env` files to git
 
 For tests, copy `src/.env.test.example` to `src/.env.test` and adjust as needed. `.env.test` is ignored by git.
+
+Database env options (backend):
+- `DATABASE_URL` (preferred) or `DB_HOST`, `DB_PORT` (default `5432`), `DB_NAME`, `DB_USER`, `DB_PASSWORD`.
 
 ## Security Notes
 
