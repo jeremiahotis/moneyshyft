@@ -17,6 +17,16 @@ Then edit `docker-compose.yml` and update:
 
 **Important**: `docker-compose.yml` is in `.gitignore` and should NEVER be committed to git.
 
+### 1a. Optional: Start a standalone test database
+
+If you only need a local Postgres instance for tests, use the minimal test DB compose file:
+
+```bash
+docker compose -f docker-compose.test-db.yml up -d
+```
+
+This starts a `moneyshyft_test` database on port `5432` with the same credentials as `src/src/knexfile.ts`.
+
 ### 2. Remote Server Deployment
 
 On the remote server:
@@ -30,6 +40,8 @@ The `.env` file in `src/` contains configuration. For production:
 - Use strong, unique passwords
 - Generate secure JWT secrets: `openssl rand -base64 32`
 - Never commit `.env` files to git
+
+For tests, copy `src/.env.test.example` to `src/.env.test` and adjust as needed. `.env.test` is ignored by git.
 
 ## Security Notes
 

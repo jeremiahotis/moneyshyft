@@ -1,0 +1,14 @@
+services:
+  postgres:
+    image: postgres:15
+    container_name: moneyshyft-postgres-test
+    environment:
+      POSTGRES_USER: jeremiahotis
+      POSTGRES_PASSWORD: Oiurueu12
+      POSTGRES_DB: moneyshyft_test
+    ports:
+      - "5432:5432"
+    volumes:
+      - moneyshyft_test_data:/var/lib/postgresql/data
+volumes:
+  moneyshyft_test_data:

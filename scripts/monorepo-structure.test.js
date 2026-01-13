@@ -66,19 +66,26 @@ test('Story 0.1 - monorepo directory structure exists (apps/, packages/, placeho
   }
 });
 
-test('Story 0.1 - placeholder dirs are tracked via .gitkeep (dirs exist after clone)', () => {
-  const requiredKeepFiles = [
-    repoPath('apps', '.gitkeep'),
-    repoPath('apps', 'crisis', '.gitkeep'),
-    repoPath('apps', 'app', '.gitkeep'),
-    repoPath('apps', 'api', '.gitkeep'),
-    repoPath('packages', '.gitkeep'),
-    repoPath('packages', 'shared', '.gitkeep'),
+test('Story 0.1 - placeholder dirs are tracked (dirs exist after clone)', () => {
+  const placeholderDirs = [
+    repoPath('apps'),
+    repoPath('apps', 'crisis'),
+    repoPath('apps', 'app'),
+    repoPath('apps', 'api'),
+    repoPath('packages'),
+    repoPath('packages', 'shared'),
   ];
 
-  for (const filePath of requiredKeepFiles) {
-    assert.ok(fs.existsSync(filePath), `Expected .gitkeep to exist: ${filePath}`);
-    assert.ok(fs.statSync(filePath).isFile(), `Expected .gitkeep path to be a file: ${filePath}`);
+  for (const dirPath of placeholderDirs) {
+    const keepPath = path.join(dirPath, '.gitkeep');
+    if (fs.existsSync(keepPath)) {
+      assert.ok(fs.statSync(keepPath).isFile(), `Expected .gitkeep path to be a file: ${keepPath}`);
+      continue;
+    }
+
+    // Once a placeholder dir gains real tracked files in later stories, .gitkeep may be removed.
+    const entries = fs.readdirSync(dirPath);
+    assert.ok(entries.length > 0, `Expected ${dirPath} to contain files (or a .gitkeep) so it exists after clone`);
   }
 });
 

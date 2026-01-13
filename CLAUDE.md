@@ -5,11 +5,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Repository Location
 - GitHub: https://github.com/jeremiahotis/moneyshyft.git
 
-## GitHub Issues & Milestones Policy
-- Always use GitHub Issues and Milestones as the source of truth.
-- Always mark items done and add notes with status, plan, and current progress.
-- Do not start coding until issues/milestones are reviewed and notes are posted.
-
 ## Project Overview
 
 MoneyShyft is a family-focused budgeting application built with Vue 3 + TypeScript (frontend) and Node.js + Express + PostgreSQL (backend). It implements envelope budgeting with household-based multi-user support, debt tracking, goal management, and income planning.

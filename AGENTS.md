@@ -3,11 +3,6 @@
 ## Repository Location
 - GitHub: https://github.com/jeremiahotis/moneyshyft.git
 
-## GitHub Issues & Milestones Policy
-- Always use GitHub Issues and Milestones as the source of truth.
-- Always mark items done and add notes with status, plan, and current progress.
-- Do not start coding until issues/milestones are reviewed and notes are posted.
-
 ## Project Structure & Module Organization
 MoneyShyft is a full-stack app with a Vue 3 frontend and an Express/TypeScript backend.
 - `frontend/` houses the Vue app (`frontend/src/` for components, views, stores, and router).
