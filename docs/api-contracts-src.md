@@ -1002,4 +1002,4 @@ status? ('pending' | 'assigned' | 'ignored')
 ---
 
 ## Known Gaps
-- Frontend calls `/users/preferences` (GET/PATCH) for recurring preferences, but no backend route exists under `src/src/routes/api/v1`.
+- Frontend calls `/users/preferences` (GET/PATCH) for recurring preferences, but no backend route exists under `apps/api/src/routes/api/v1`.

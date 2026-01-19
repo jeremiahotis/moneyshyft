@@ -70,6 +70,131 @@ completed: "2026-01-09"
 
 ---
 
+## PRD Addendum — Ecosystem Constraints (ECO-* Binding)
+
+### Status
+
+Binding governance constraints.  
+These rules apply across the MoneyShyft / NeighborRoute ecosystem and supersede application-specific implementation choices unless an explicit exception is documented below.
+
+---
+
+### Ecosystem Constraints (ECO-*)
+
+#### ECO-1: Tenant Identity Resolution
+
+Tenant identity MUST be derived exclusively from:
+- the inbound Host header, and
+- authenticated JWT claims (tenant_id, aud, kid).
+
+Applications MUST NOT implement independent tenant registries or parallel tenant resolution services.
+
+Clarification:  
+Tenant lookup MAY resolve against the primary application database (e.g., organization / household tables) but MUST NOT introduce a separate tenant authority.
+
+---
+
+#### ECO-2: Application Boundary & Routing
+
+Each application MUST be served on a single logical origin.
+- Web UI and API MUST be same-origin per application.
+- Cross-application routing MUST NOT rely on path-based multiplexing.
+
+Explicit Exception (MoneyShyft — Crisis Mode):  
+MoneyShyft MAY serve Crisis Mode as static content under /crisis/* on the same origin to preserve:
+- offline capability,
+- safety guarantees,
+- and same-origin security assumptions.
+
+This exception is limited to Crisis Mode only.
+
+---
+
+#### ECO-3: Authentication Model (Ecosystem Default)
+
+The ecosystem default authentication model is:
+- one-time code exchange,
+- token-based authentication,
+- no cookie-based auth,
+- no tokens in URLs.
+
+JWTs MUST include:
+- kid
+- tenant_id
+- audience (aud)
+
+---
+
+#### ECO-3A: Authentication Migration Exception (MoneyShyft)
+
+MoneyShyft is granted a temporary exception to ECO-3.
+- MoneyShyft MAY use cookie-based authentication (HttpOnly cookies + CSRF defense).
+- This exception exists to preserve delivery velocity and stability during initial development.
+
+Migration Requirement:  
+MoneyShyft MUST migrate to the ecosystem authentication model in a future major version.
+- The migration MUST be planned explicitly.
+- The migration MUST NOT be silent or incremental without versioning.
+- New ecosystem applications MUST NOT rely on this exception.
+
+---
+
+#### ECO-4: Refusal Semantics
+
+Business-logic refusals MUST return:  
+200 OK  
+{ success: false, reason: "<machine-readable-code>" }
+
+Errors (4xx, 5xx) are reserved exclusively for:
+- authentication failures,
+- authorization failures,
+- validation errors,
+- system faults.
+
+Applications MUST NOT encode business refusal as transport-level failure.
+
+---
+
+#### ECO-5: Content Security Policy (CSP)
+
+CSP MUST be injected at the ingress / edge layer.
+- Applications MUST NOT set or modify CSP headers.
+- CSP violations MUST be treated as infrastructure issues, not application errors.
+
+---
+
+### Precedence Rule
+
+In case of conflict:
+1. Product Constitution
+2. Ecosystem Constraints (ECO-*)
+3. PRD
+4. Architecture
+5. Implementation
+
+Exceptions MUST be explicitly documented and time-bounded.
+
+---
+
+### Implementation Notes (Non-Normative)
+
+- MoneyShyft architecture, epics, and CI rules must reference ECO-* constraints explicitly.
+- Any future deviation requires Product Lead approval and documentation in this section.
+
+---
+
+### Why This Exists
+
+These constraints exist to ensure that every product in the ecosystem:
+- preserves user agency and dignity,
+- prevents architectural drift,
+- avoids surveillance creep,
+- and remains interoperable without coercion.
+
+They are governance rules, not technical preferences.
+
+---
+
 ## Success Criteria
 
 ### User Success

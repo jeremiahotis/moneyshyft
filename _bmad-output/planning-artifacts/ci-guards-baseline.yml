@@ -1,0 +1,162 @@
+name: Ecosystem Baseline Guards
+
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+
+jobs:
+  guards:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install ripgrep (if missing)
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! command -v rg >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y ripgrep
+          fi
+
+      - name: 1) Canonical drift guard (architecture copies)
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          CANONICAL="architecture.md"
+          if [[ ! -f "$CANONICAL" ]]; then
+            echo "::error::Missing canonical $CANONICAL at repo root."
+            exit 1
+          fi
+
+          # If derived copies exist, they must match canonical exactly.
+          # Add/remove paths here as your repo evolves.
+          DERIVED_FILES=(
+            "_bmad-output/planning-artifacts/architecture.md"
+            "_bmad-output/project-context.md"
+          )
+
+          drift=0
+          for f in "${DERIVED_FILES[@]}"; do
+            if [[ -f "$f" ]]; then
+              if ! diff -u "$CANONICAL" "$f" >/dev/null 2>&1; then
+                echo "::error::Drift detected: $f differs from $CANONICAL. Regenerate derived copies from canonical."
+                drift=1
+              fi
+            fi
+          done
+
+          if [[ "$drift" -ne 0 ]]; then
+            exit 1
+          fi
+
+      - name: 2) Tenant registry single-source guard
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          OK=0
+
+          if [[ -f "packages/db/prisma/schema.prisma" ]]; then
+            if rg -n --no-heading "schema\("platform"\)|@@schema\("platform"\)|platform\.tenants|@@map\("tenants"\)" packages/db/prisma/schema.prisma >/dev/null 2>&1; then
+              OK=1
+            fi
+          fi
+
+          if [[ "$OK" -eq 0 ]]; then
+            if rg -n --no-heading "CREATE\s+SCHEMA\s+platform|CREATE\s+TABLE\s+platform\.tenants" packages/db/prisma/migrations >/dev/null 2>&1; then
+              OK=1
+            fi
+          fi
+
+          if [[ "$OK" -eq 0 ]]; then
+            echo "::error::Tenant registry not found in expected canonical locations (packages/db/... platform.tenants)."
+            exit 1
+          fi
+
+          # Disallow shadow tenant registries elsewhere.
+          if rg -n --no-heading "CREATE\s+TABLE\s+(?!platform\.tenants)(\w+\.)?tenants\b" --glob='!packages/db/prisma/migrations/**' --glob='!**/*.snap' . >/dev/null 2>&1; then
+            echo "::error::Found CREATE TABLE tenants outside canonical migrations. Shadow tenant registries are forbidden."
+            rg -n "CREATE\s+TABLE\s+(?!platform\.tenants)(\w+\.)?tenants\b" --glob='!packages/db/prisma/migrations/**' .
+            exit 1
+          fi
+
+          # Prisma Tenant model should exist only in packages/db/prisma/schema.prisma
+          if rg -n --no-heading "model\s+Tenant\b" --glob='!packages/db/prisma/schema.prisma' --glob='!**/*.md' . >/dev/null 2>&1; then
+            echo "::error::Found Prisma model Tenant outside packages/db/prisma/schema.prisma. Single source-of-truth violated."
+            rg -n "model\s+Tenant\b" --glob='!packages/db/prisma/schema.prisma' --glob='!**/*.md' .
+            exit 1
+          fi
+
+      - name: 2b) Tenant resolution source guard (ECO-1)
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if rg -n --no-heading "req\.(query|body|params)\.(tenant|tenantId)" apps/api --glob='!**/*.md' >/dev/null 2>&1; then
+            echo "::error::Tenant identity must not be derived from query/body/params. Use Host header + JWT claims only."
+            rg -n "req\.(query|body|params)\.(tenant|tenantId)" apps/api --glob='!**/*.md'
+            exit 1
+          fi
+
+      - name: 3) CSP enforcement (ECO-5, no Next.js CSP logic)
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if ! rg -n --no-heading "ECO-5" architecture.md >/dev/null 2>&1; then
+            echo "::error::architecture.md must define ECO-5 (CSP injected at ingress)."
+            exit 1
+          fi
+
+          # Next.js must not set CSP (no middleware, no layout/headers, no next.config headers).
+          if rg -n --no-heading "Content-Security-Policy|content-security-policy" apps/web >/dev/null 2>&1; then
+            echo "::error::Next.js app (apps/web) must not set CSP headers. CSP is injected at ingress per ECO-5."
+            rg -n "Content-Security-Policy|content-security-policy" apps/web
+            exit 1
+          fi
+
+          # Ingress must own CSP. Prefer an nginx template/config in-repo.
+          FOUND=0
+          for p in infra/nginx ops/nginx nginx infra; do
+            if [[ -d "$p" ]]; then
+              if rg -n --no-heading "\bmap\b.*frame-ancestors|frame-ancestors.*\bmap\b" "$p" >/dev/null 2>&1; then
+                FOUND=1
+                break
+              fi
+            fi
+          done
+
+          if [[ "$FOUND" -eq 0 ]]; then
+            echo "::warning::No in-repo nginx map-based CSP injection found (map + frame-ancestors). If nginx lives outside this repo, document the canonical location + generation contract in architecture.md."
+          fi
+
+      - name: 4) Refusal vs error contract enforcement (baseline)
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if ! rg -n --no-heading "ECO-4" architecture.md >/dev/null 2>&1; then
+            echo "::error::architecture.md must define ECO-4 (business refusals => HTTP 200 success:false)."
+            exit 1
+          fi
+
+          # Hard block: returning 4xx/5xx with { success:false ... } is forbidden.
+          if rg -n --no-heading "reply\.code\((4\d\d|5\d\d)\)\.send\(\{[^}]*success:\s*false" apps/api >/dev/null 2>&1; then
+            echo "::error::Found 4xx/5xx responses sending business-refusal payload shape (success:false). Use HTTP 200 for business refusals."
+            rg -n "reply\.code\((4\d\d|5\d\d)\)\.send\(\{[^}]*success:\s*false" apps/api
+            exit 1
+          fi
+
+          # Hard block: CAPACITY_FULL / OVERRIDE_NOT_ALLOWED must not be sent with 4xx/5xx.
+          if rg -n --no-heading "(CAPACITY_FULL|OVERRIDE_NOT_ALLOWED)" apps/api >/dev/null 2>&1; then
+            if rg -n --no-heading "reply\.code\((4\d\d|5\d\d)\).*?(CAPACITY_FULL|OVERRIDE_NOT_ALLOWED)" -U apps/api >/dev/null 2>&1; then
+              echo "::error::CAPACITY_FULL / OVERRIDE_NOT_ALLOWED must be HTTP 200 + success:false (business refusal)."
+              rg -n "reply\.code\((4\d\d|5\d\d)\).*?(CAPACITY_FULL|OVERRIDE_NOT_ALLOWED)" -U apps/api
+              exit 1
+            fi
+          fi

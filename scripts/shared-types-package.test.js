@@ -91,47 +91,47 @@ test('Story 0.3 - shared package exports User type from @moneyshyft/shared', () 
   );
 });
 test('Story 0.3 - apps wire @moneyshyft/shared workspace dependency and include smoke imports', () => {
-  const frontendPkgPath = repoPath('frontend', 'package.json');
-  assert.ok(fs.existsSync(frontendPkgPath), 'Expected frontend/package.json to exist');
-  const frontendPkg = readJson(frontendPkgPath);
+  const appPkgPath = repoPath('apps', 'app', 'package.json');
+  assert.ok(fs.existsSync(appPkgPath), 'Expected apps/app/package.json to exist');
+  const appPkg = readJson(appPkgPath);
   assert.equal(
-    frontendPkg.dependencies?.['@moneyshyft/shared'],
+    appPkg.dependencies?.['@moneyshyft/shared'],
     'workspace:*',
-    'Expected frontend/package.json to depend on @moneyshyft/shared via workspace:*',
+    'Expected apps/app/package.json to depend on @moneyshyft/shared via workspace:*',
   );
 
-  const apiPkgPath = repoPath('src', 'package.json');
-  assert.ok(fs.existsSync(apiPkgPath), 'Expected src/package.json to exist');
+  const apiPkgPath = repoPath('apps', 'api', 'package.json');
+  assert.ok(fs.existsSync(apiPkgPath), 'Expected apps/api/package.json to exist');
   const apiPkg = readJson(apiPkgPath);
   assert.equal(
     apiPkg.dependencies?.['@moneyshyft/shared'],
     'workspace:*',
-    'Expected src/package.json to depend on @moneyshyft/shared via workspace:*',
+    'Expected apps/api/package.json to depend on @moneyshyft/shared via workspace:*',
   );
 
-  const frontendSmokePath = repoPath('frontend', 'src', 'types', 'shared-types.smoke.ts');
-  assert.ok(fs.existsSync(frontendSmokePath), 'Expected frontend/src/types/shared-types.smoke.ts to exist');
-  const frontendSmoke = fs.readFileSync(frontendSmokePath, 'utf8');
+  const appSmokePath = repoPath('apps', 'app', 'src', 'types', 'shared-types.smoke.ts');
+  assert.ok(fs.existsSync(appSmokePath), 'Expected apps/app/src/types/shared-types.smoke.ts to exist');
+  const appSmoke = fs.readFileSync(appSmokePath, 'utf8');
   assert.match(
-    frontendSmoke,
+    appSmoke,
     /import\s+type\s+\{\s*User\s*\}\s+from\s+['"]@moneyshyft\/shared['"]/,
-    'Expected frontend smoke file to import type User from @moneyshyft/shared',
+    'Expected apps/app smoke file to import type User from @moneyshyft/shared',
   );
 
-  const apiSmokePath = repoPath('src', 'src', 'types', 'shared-types.smoke.ts');
-  assert.ok(fs.existsSync(apiSmokePath), 'Expected src/src/types/shared-types.smoke.ts to exist');
+  const apiSmokePath = repoPath('apps', 'api', 'src', 'types', 'shared-types.smoke.ts');
+  assert.ok(fs.existsSync(apiSmokePath), 'Expected apps/api/src/types/shared-types.smoke.ts to exist');
   const apiSmoke = fs.readFileSync(apiSmokePath, 'utf8');
   assert.match(
     apiSmoke,
     /import\s+type\s+\{\s*User\s*\}\s+from\s+['"]@moneyshyft\/shared['"]/,
-    'Expected backend smoke file to import type User from @moneyshyft/shared',
+    'Expected apps/api smoke file to import type User from @moneyshyft/shared',
   );
 });
 
 if (shouldSkipBuilds) {
   test.skip('Story 0.3 - pnpm -C packages/shared build succeeds', () => {});
-  test.skip('Story 0.3 - pnpm -C src build succeeds with shared import', () => {});
-  test.skip('Story 0.3 - pnpm -C frontend build succeeds with shared import', () => {});
+  test.skip('Story 0.3 - pnpm -C apps/api build succeeds with shared import', () => {});
+  test.skip('Story 0.3 - pnpm -C apps/app build succeeds with shared import', () => {});
 } else {
   test(
     'Story 0.3 - pnpm -C packages/shared build succeeds',
@@ -155,7 +155,7 @@ if (shouldSkipBuilds) {
   );
 
   test(
-    'Story 0.3 - pnpm -C src build succeeds with shared import',
+    'Story 0.3 - pnpm -C apps/api build succeeds with shared import',
     { timeout: 120000 },
     () => {
       const sharedBuild = spawnSync('pnpm', ['-C', 'packages/shared', 'build'], {
@@ -169,7 +169,7 @@ if (shouldSkipBuilds) {
         `Expected pnpm -C packages/shared build to exit 0. stderr:\n${sharedBuild.stderr}`,
       );
 
-      const result = spawnSync('pnpm', ['-C', 'src', 'build'], {
+      const result = spawnSync('pnpm', ['-C', 'apps/api', 'build'], {
         cwd: repoPath(),
         encoding: 'utf8',
         stdio: 'pipe',
@@ -180,7 +180,7 @@ if (shouldSkipBuilds) {
   );
 
   test(
-    'Story 0.3 - pnpm -C frontend build succeeds with shared import',
+    'Story 0.3 - pnpm -C apps/app build succeeds with shared import',
     { timeout: 120000 },
     () => {
       const sharedBuild = spawnSync('pnpm', ['-C', 'packages/shared', 'build'], {
@@ -194,7 +194,7 @@ if (shouldSkipBuilds) {
         `Expected pnpm -C packages/shared build to exit 0. stderr:\n${sharedBuild.stderr}`,
       );
 
-      const result = spawnSync('pnpm', ['-C', 'frontend', 'build'], {
+      const result = spawnSync('pnpm', ['-C', 'apps/app', 'build'], {
         cwd: repoPath(),
         encoding: 'utf8',
         stdio: 'pipe',

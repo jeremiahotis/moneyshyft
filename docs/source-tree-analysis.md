@@ -3,12 +3,12 @@
 ## Repository Overview
 - **Type:** Monorepo with two primary parts
 - **Parts:**
-  - `frontend/` (Vue 3 + Vite SPA)
-  - `src/` (Node/Express API)
+  - `apps/app/` (Vue 3 + Vite SPA)
+  - `apps/api/` (Node/Express API)
 
-## Frontend (`frontend/`)
+## Frontend (`apps/app/`)
 ```
-frontend/
+apps/app/
 ├── index.html                # Vite entry HTML
 ├── vite.config.ts            # Vite configuration
 ├── tailwind.config.js        # Tailwind CSS config
@@ -28,9 +28,9 @@ frontend/
     └── assets/                # Global styles
 ```
 
-## Backend (`src/`)
+## Backend (`apps/api/`)
 ```
-src/
+apps/api/
 ├── Dockerfile*               # Docker build configurations
 ├── package.json              # API dependencies + scripts
 ├── knexfile.js               # Knex runtime config (compiled)
@@ -49,6 +49,6 @@ src/
 ```
 
 ## Integration Touchpoints
-- Frontend calls backend through `/api/v1` via axios client (`frontend/src/services/api.ts`).
-- Backend serves REST routes under `/api/v1` in `src/src/app.ts`.
+- Frontend calls backend through `/api/v1` via axios client (`apps/app/src/services/api.ts`).
+- Backend serves REST routes under `/api/v1` in `apps/api/src/app.ts`.
 - Environment variables tie frontend and backend (CORS origin, API base URL, auth cookies).

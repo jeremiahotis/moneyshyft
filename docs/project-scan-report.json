@@ -77,12 +77,12 @@
     "technology_stack": "frontend: Vue 3 + Vite + Pinia, backend: Express + Knex + PostgreSQL",
     "batches_completed": [
       {
-        "path": "frontend/",
+        "path": "apps/app/",
         "files_scanned": 88,
         "summary": "Frontend source and config scanned"
       },
       {
-        "path": "src/",
+        "path": "apps/api/",
         "files_scanned": 87,
         "summary": "Backend source, routes, and migrations scanned"
       }

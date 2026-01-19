@@ -838,6 +838,53 @@ So that the repository stays runnable and dependencies are properly managed.
 
 ---
 
+### Story 0.6a: Migrate to apps/* Layout (Compatibility Stage)
+
+As a developer,
+I want the repo to standardize on the `apps/app` and `apps/api` layout while keeping legacy paths working temporarily,
+So that we align with the monorepo architecture without breaking development or production during the transition.
+
+**Acceptance Criteria:**
+
+**Given** the repo currently runs from `frontend/` (Vue SPA) and `src/` (Express API)
+**When** I introduce the `apps/*` structure and migrate code
+**Then** the primary build/run entrypoints are under:
+- `apps/app` (replacing `frontend/`)
+- `apps/api` (replacing `src/`)
+**And** legacy paths remain working during the transition:
+- `frontend/` continues to run (by delegating to `apps/app` or otherwise kept in sync)
+- `src/` continues to run (by delegating to `apps/api` or otherwise kept in sync)
+**And** production deployment is updated to use the new paths (nginx, compose, Dockerfiles, build outputs)
+**And** workspace boundaries are enforced so apps do not import from each other directly (shared code only via `packages/shared`)
+
+**Technical Notes:**
+- This is a structural refactor only; no product behavior changes.
+- Prefer a “compatibility wrapper” approach for `frontend/` and `src/` during this stage (thin wrappers, redirects, or delegated scripts) so existing workflows keep working until cleanup.
+- Update documentation to reflect the new primary paths and the temporary compatibility layer.
+
+---
+
+### Story 0.6b: Remove Legacy frontend/src Paths (Cleanup Stage)
+
+As a developer,
+I want to remove the legacy `frontend/` and `src/` roots after the apps migration is stable,
+So that there is one authoritative repo layout and CI/deploy tooling is simplified.
+
+**Acceptance Criteria:**
+
+**Given** Story 0.6a has shipped and development + production run from `apps/app` and `apps/api`
+**When** I remove the legacy paths
+**Then**:
+- `frontend/` is removed (or reduced to docs-only if needed) and no longer referenced by scripts/docs/deploy
+- `src/` is removed (or reduced to docs-only if needed) and no longer referenced by scripts/docs/deploy
+- CI only targets `apps/app` and `apps/api` (and shared packages)
+- All docs and scripts use the new paths consistently
+
+**Technical Notes:**
+- Treat this as cleanup: delete wrappers, remove old scripts, update any remaining references.
+
+---
+
 ### Story 0.7: Set Up Frontend SPA Skeleton
 
 As a developer,

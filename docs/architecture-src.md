@@ -7,12 +7,12 @@
 - Middleware pipeline for auth, validation, error handling
 
 ## Structure
-- Entry: `src/src/server.ts`
-- App wiring: `src/src/app.ts`
-- Routes: `src/src/routes/api/v1/*`
-- Services: `src/src/services/*`
-- DB config: `src/src/config/*`
-- Migrations: `src/src/migrations/*`
+- Entry: `apps/api/src/server.ts`
+- App wiring: `apps/api/src/app.ts`
+- Routes: `apps/api/src/routes/api/v1/*`
+- Services: `apps/api/src/services/*`
+- DB config: `apps/api/src/config/*`
+- Migrations: `apps/api/src/migrations/*`
 
 ## Key Flows
 - Authentication: signup/login/refresh -> JWT/cookies -> `authenticateToken`

@@ -1,6 +1,6 @@
 # Data Models - Frontend (frontend)
 
-Source: `frontend/src/types/index.ts`
+Source: `apps/app/src/types/index.ts`
 
 ## Core Types
 - User, SignupData, LoginData

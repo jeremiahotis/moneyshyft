@@ -45,5 +45,5 @@
 - `analytics_events`
 
 ## Notes
-- Primary schema defined in `src/src/migrations/001_initial_schema.ts`; additional tables added in later numbered migrations.
+- Primary schema defined in `apps/api/src/migrations/001_initial_schema.ts`; additional tables added in later numbered migrations.
 - Foreign key relationships are enforced at the database level via Knex migrations.

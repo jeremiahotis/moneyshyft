@@ -1,5 +1,15 @@
 # MoneyShyft Task Backlog (Milestone-Based)
 
+## Epic 0 — Ecosystem Compliance (Blocking)
+- Enforce ECO-* canon across PRD, architecture, UX spec, integration, and security docs
+- Wire ecosystem guard workflow into CI and keep drift guard passing
+- Implement canonical tenant registry resolution (platform.tenants)
+- Enforce Host header + JWT claim tenant resolution at ingress/auth boundary
+- Align routing with ECO-2 (same-origin app+API; /crisis/* exception only)
+- Standardize refusal semantics (HTTP 200 + success:false) across API responses
+- Maintain ECO-3A exception freeze rule (no new cookie-based endpoints)
+- Deliver ECO-3A auth migration plan milestones and version boundary
+
 ## Milestone 0 — Launch (Now → Feb 1)
 - Core stability: accounts, transactions, budgets, debts, goals
 - Extra Money Plan: wizard, recommendations, settings, modal assignment

@@ -5,8 +5,9 @@ MoneyShyft is a budgeting app for people new to financial wellness, designed wit
 
 ## Repository Structure
 - **Type:** Monorepo with two parts
-- **Frontend:** `frontend/` (Vue 3 + Vite SPA)
-- **Backend:** `src/` (Node/Express API)
+- **Frontend:** `apps/app/` (Vue 3 + Vite SPA)
+- **Backend:** `apps/api/` (Node/Express API)
+- **Compatibility:** Legacy wrappers remain at `frontend/` and `src/` during Story 0.6a.
 
 ## Quick Reference
 | Area | Details |

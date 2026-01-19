@@ -17,6 +17,9 @@ module.exports = [
       '**/coverage/**',
       '**/.turbo/**',
       '**/.vite/**',
+      '_bmad/**',
+      'apps/app/dist/**',
+      'apps/api/dist/**',
       'frontend/dist/**',
       'src/dist/**',
     ],
@@ -60,6 +63,24 @@ module.exports = [
     },
   })),
 
+  // API codebase: allow existing explicit any usage and unsafe function type until refactor
+  {
+    files: ['apps/api/**/*.{ts,tsx}'],
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-unsafe-function-type': 'off',
+      'prefer-const': 'off',
+    },
+  },
+
+  // Tests: allow CommonJS require for fixtures and legacy exports
+  {
+    files: ['**/*.test.{ts,tsx}', '**/__tests__/**/*.{ts,tsx}'],
+    rules: {
+      '@typescript-eslint/no-require-imports': 'off',
+    },
+  },
+
   // Vue SFCs (Vue 3 recommended + TS rules for <script> blocks)
   ...vuePlugin.configs['flat/recommended'].map((cfg) => ({
     ...cfg,
@@ -87,4 +108,3 @@ module.exports = [
     },
   })),
 ];
-

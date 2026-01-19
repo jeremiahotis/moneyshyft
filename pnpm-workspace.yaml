@@ -1,6 +1,6 @@
 packages:
   - 'apps/*'
   - 'packages/*'
+  # Legacy compatibility wrappers (to be removed in 0.6b)
   - 'frontend'
   - 'src'
-

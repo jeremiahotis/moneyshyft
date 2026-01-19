@@ -25,7 +25,7 @@ If you only need a local Postgres instance for tests, use the minimal test DB co
 docker compose -f docker-compose.test-db.yml up -d
 ```
 
-This starts a `moneyshyft_test` database on port `5432` with credentials defined in `docker-compose.test-db.yml` or `src/.env.test`.
+This starts a `moneyshyft_test` database on port `5432` with credentials defined in `docker-compose.test-db.yml` or `apps/api/.env.test` (legacy `src/.env.test` remains during 0.6a).
 
 ### 2. Remote Server Deployment
 
@@ -36,12 +36,12 @@ On the remote server:
 
 ### 3. Environment Files
 
-The `.env` file in `src/` contains configuration. For production:
+The `.env` file in `apps/api/` contains configuration. For production:
 - Use strong, unique passwords
 - Generate secure JWT secrets: `openssl rand -base64 32`
 - Never commit `.env` files to git
 
-For tests, copy `src/.env.test.example` to `src/.env.test` and adjust as needed. `.env.test` is ignored by git.
+For tests, copy `apps/api/.env.test.example` to `apps/api/.env.test` and adjust as needed. `.env.test` is ignored by git.
 
 Database env options (backend):
 - `DATABASE_URL` (preferred) or `DB_HOST`, `DB_PORT` (default `5432`), `DB_NAME`, `DB_USER`, `DB_PASSWORD`.

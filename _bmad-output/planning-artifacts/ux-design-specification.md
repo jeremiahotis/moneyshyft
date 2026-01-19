@@ -5933,3 +5933,114 @@ If it doesn't answer one of those, it doesn't belong on mobile.
 **Crisis Mode:**
 - See: Architecture document for Crisis Mode static implementation
 - See: Journey 1: First-time Crisis (User Journey Flows) for mobile-first Crisis flow
+
+---
+
+## UX Specification Addendum — Ecosystem Compliance (Proposal 3.4)
+
+**Status:** Binding  
+**Scope:** All MoneyShyft UX surfaces (Crisis, Foundation, Builder)
+
+### Ecosystem Compliance Rules (UX)
+
+This section defines UX-level rules required to comply with ecosystem governance constraints (ECO-2, ECO-3A, ECO-4) and to preserve trauma-informed, person-first design guarantees.
+
+These rules are mandatory and supersede pattern-level discretion.
+
+---
+
+### UX-ECO-1: Refusal ≠ Error (ECO-4 Alignment)
+
+Business-logic refusals MUST NOT be presented as errors.
+
+**Rule**  
+When the system refuses an action for business reasons (eligibility, limits, boundaries, policy):
+- The UI MUST NOT:
+  - show error styling (red banners, alerts, warning icons),
+  - use error language ("error", "failed", "invalid", "not allowed"),
+  - imply user fault, wrongdoing, or misuse.
+- The UI MUST:
+  - use neutral, explanatory copy,
+  - frame the refusal as a system boundary, not a user failure,
+  - preserve user dignity and agency.
+
+**Example (Acceptable)**  
+"This option isn't available right now. You can continue without it."
+
+**Example (Forbidden)**  
+"Error: You are not eligible for this feature."
+
+---
+
+### UX-ECO-2: Authentication Gateway Neutrality (ECO-3A Alignment)
+
+Authentication gates MUST remain neutral and non-coercive.
+
+**Rule**  
+When authentication is required or offered:
+- The UI MUST NOT:
+  - frame authentication as a requirement to "continue safely" or "do the right thing,"
+  - imply ownership, surveillance, or loss of autonomy,
+  - suggest consequences for declining.
+- The UI MUST:
+  - present authentication as an optional capability boundary,
+  - clearly state what is gained and what remains available without it,
+  - allow decline without penalty, repetition, or degradation of tone.
+
+**Required Language Characteristics**
+- Informational, not persuasive
+- Descriptive, not evaluative
+- No urgency, countdowns, or progress framing
+
+---
+
+### UX-ECO-3: Hostname & Tenancy Transparency (ECO-2 Alignment)
+
+Tenant identity and application boundaries MUST NOT be surfaced as ownership cues.
+
+**Rule**  
+The UI MUST NOT:
+- display tenant identifiers (subdomains, org names) as ownership markers,
+- imply that organizations "own" user data or decisions,
+- expose hostnames or tenancy mechanics in user-facing copy.
+
+Tenant context may exist technically, but MUST remain invisible unless explicitly relevant to user action.
+
+---
+
+### UX-ECO-4: Crisis Mode Safety Override (Reaffirmation)
+
+Crisis Mode retains absolute priority over ecosystem progression.
+
+**Rule**  
+In Crisis Mode:
+- No authentication prompts are shown by default.
+- No mode promotion, upgrade, or persistence framing appears.
+- Return flows default to safety and immediacy, not continuity or conversion.
+
+This rule overrides all other UX patterns when Crisis Mode is active.
+
+---
+
+### Enforcement Note
+
+Any UX implementation that:
+- frames refusal as failure,
+- frames auth as obligation,
+- or frames tenancy as ownership
+
+violates canonical UX contracts and requires Product Lead approval to ship.
+
+---
+
+### Why This Exists
+
+These rules ensure that ecosystem-level constraints do not silently reintroduce:
+- shame framing,
+- coercive conversion pressure,
+- or power imbalance cues
+
+through UX copy, tone, or structure.
+
+They preserve the core promise of MoneyShyft:
+the system has boundaries; the person retains agency.

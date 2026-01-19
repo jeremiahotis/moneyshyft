@@ -1,0 +1,99 @@
+# NeighborRoute Ecosystem CI Guards
+# This workflow enforces the Ecosystem Rule Book and Architecture invariants.
+# It is intentionally strict. Violations fail the build.
+
+name: Ecosystem CI Guards
+
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+
+jobs:
+  ecosystem-guards:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # ------------------------------------------------------------------
+      # 1. Canonical Drift Guard
+      # ------------------------------------------------------------------
+      - name: Canonical document drift check
+        run: |
+          if [ -d "_bmad-output" ]; then
+            diff -rq architecture.md _bmad-output || (
+              echo "❌ Drift detected between architecture.md and derived copies"
+              exit 1
+            )
+          fi
+
+      # ------------------------------------------------------------------
+      # 2. CSP Location Guard (ECO-5)
+      # ------------------------------------------------------------------
+      - name: CSP must only exist in Nginx config
+        run: |
+          if grep -R "Content-Security-Policy" apps packages; then
+            echo "❌ CSP detected outside Nginx ingress"
+            exit 1
+          fi
+
+      # ------------------------------------------------------------------
+      # 3. Tenant Registry Guard
+      # ------------------------------------------------------------------
+      - name: Enforce single tenant registry
+        run: |
+          if grep -R "model Tenant" packages apps | grep -v platform; then
+            echo "❌ Shadow Tenant model detected"
+            exit 1
+          fi
+
+      # ------------------------------------------------------------------
+      # 4. Tenant Resolution Source Guard (ECO-1)
+      # ------------------------------------------------------------------
+      - name: Tenant resolution source guard
+        run: |
+          if grep -R -n -E "req\.(query|body|params)\.(tenant|tenantId)" apps/api; then
+            echo "❌ Tenant identity must not be derived from query/body/params"
+            exit 1
+          fi
+
+      # ------------------------------------------------------------------
+      # 5. Refusal vs Error Semantics Guard
+      # ------------------------------------------------------------------
+      - name: Refusal contract guard
+        run: |
+          if grep -R "res.status(4" apps/api; then
+            echo "❌ 4xx used for business refusal"
+            exit 1
+          fi
+
+      # ------------------------------------------------------------------
+      # 6. Forbidden Language Guard (NR-GUARD-*)
+      # ------------------------------------------------------------------
+      - name: Forbidden optimistic language
+        run: |
+          FORBIDDEN="confirmed|success!|you\'re all set|scheduled"
+          if grep -R -i "$FORBIDDEN" apps; then
+            echo "❌ Forbidden optimistic language detected"
+            exit 1
+          fi
+
+      # ------------------------------------------------------------------
+      # 7. App Boundary Guard
+      # ------------------------------------------------------------------
+      - name: App boundary enforcement
+        run: |
+          if grep -R "process.env.APP_ID" apps | wc -l | grep -q 0; then
+            echo "❌ APP_ID not declared in one or more apps"
+            exit 1
+          fi
+
+      - name: CI Guards Passed
+        run: echo "✅ Ecosystem CI Guards passed"

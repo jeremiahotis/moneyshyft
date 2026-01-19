@@ -38,5 +38,5 @@ npm test
 ```
 
 ## Notes
-- Env config is expected in `src/.env` (see `src/.env.example`).
-- API routes are mounted in `src/src/app.ts` under `/api/v1`.
+- Env config is expected in `apps/api/.env` (see `apps/api/.env.example`).
+- API routes are mounted in `apps/api/src/app.ts` under `/api/v1`.

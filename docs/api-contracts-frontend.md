@@ -1,6 +1,6 @@
 # API Contracts - Frontend (frontend)
 
-Base URL: `/api/v1` (configured in `frontend/src/services/api.ts`)
+Base URL: `/api/v1` (configured in `apps/app/src/services/api.ts`)
 
 The frontend consumes the backend contracts defined in `docs/api-contracts-src.md`. Request/response schemas below match the backend validators and route responses.
 
@@ -120,4 +120,4 @@ The frontend consumes the backend contracts defined in `docs/api-contracts-src.m
 - PATCH `/settings`
 
 ## Noted Usage Gaps
-- `frontend/src/stores/recurring.ts` calls `/users/preferences` (GET/PATCH), but no matching backend route was found in `src/src/routes/api/v1`.
+- `apps/app/src/stores/recurring.ts` calls `/users/preferences` (GET/PATCH), but no matching backend route was found in `apps/api/src/routes/api/v1`.

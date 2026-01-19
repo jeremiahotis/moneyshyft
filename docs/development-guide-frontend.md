@@ -27,5 +27,5 @@ npm run preview
 ```
 
 ## Notes
-- API base path is `/api/v1` (see `frontend/src/services/api.ts`).
+- API base path is `/api/v1` (see `apps/app/src/services/api.ts`).
 - Auth uses cookie-based sessions and a refresh flow.
