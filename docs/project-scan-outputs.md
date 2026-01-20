@@ -9,11 +9,11 @@
 
 ## project_parts_metadata
 - part_id: frontend
-  root_path: /Users/jeremiahotis/moneyshyft/frontend
+  root_path: /Users/jeremiahotis/moneyshyft/apps/app
   project_type_id: web
   display_name: Web
 - part_id: src
-  root_path: /Users/jeremiahotis/moneyshyft/src
+  root_path: /Users/jeremiahotis/moneyshyft/apps/api
   project_type_id: backend
   display_name: Backend
 

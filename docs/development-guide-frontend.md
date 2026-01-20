@@ -6,7 +6,7 @@
 
 ## Install
 ```
-cd frontend
+cd apps/app
 npm install
 ```
 

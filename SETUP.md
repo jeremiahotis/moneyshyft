@@ -25,7 +25,7 @@ If you only need a local Postgres instance for tests, use the minimal test DB co
 docker compose -f docker-compose.test-db.yml up -d
 ```
 
-This starts a `moneyshyft_test` database on port `5432` with credentials defined in `docker-compose.test-db.yml` or `apps/api/.env.test` (legacy `src/.env.test` remains during 0.6a).
+This starts a `moneyshyft_test` database on port `5432` with credentials defined in `docker-compose.test-db.yml` or `apps/api/.env.test`.
 
 ### 2. Remote Server Deployment
 

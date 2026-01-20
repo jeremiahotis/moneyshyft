@@ -20,8 +20,6 @@ module.exports = [
       '_bmad/**',
       'apps/app/dist/**',
       'apps/api/dist/**',
-      'frontend/dist/**',
-      'src/dist/**',
     ],
   },
 

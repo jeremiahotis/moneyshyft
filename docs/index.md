@@ -8,17 +8,17 @@
 
 ## Quick Reference
 
-### frontend (web)
+### app (web)
 - **Type:** Web
 - **Tech Stack:** Vue 3, Vite, Pinia, Tailwind, TypeScript
 - **Root:** `apps/app/`
 
-### src (backend)
+### api (backend)
 - **Type:** Backend
 - **Tech Stack:** Node.js, Express, Knex, PostgreSQL
 - **Root:** `apps/api/`
 
-**Compatibility:** Legacy wrappers remain at `frontend/` and `src/` during Story 0.6a.
+**Compatibility:** Legacy wrappers removed; use `apps/app` and `apps/api` only.
 
 ## Generated Documentation
 - [Project Overview](./project-overview.md)

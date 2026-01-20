@@ -87,7 +87,7 @@ test('Story 0.3 - shared package exports User type from @moneyshyft/shared', () 
   assert.match(
     indexContent,
     /export\s+\*\s+from\s+['"]\.\/types['"]/,
-    'Expected shared src/index.ts to re-export from ./types',
+    'Expected packages/shared/src/index.ts to re-export from ./types',
   );
 });
 test('Story 0.3 - apps wire @moneyshyft/shared workspace dependency and include smoke imports', () => {
@@ -175,7 +175,7 @@ if (shouldSkipBuilds) {
         stdio: 'pipe',
       });
 
-      assert.equal(result.status, 0, `Expected pnpm -C src build to exit 0. stderr:\n${result.stderr}`);
+      assert.equal(result.status, 0, `Expected pnpm -C apps/api build to exit 0. stderr:\n${result.stderr}`);
     },
   );
 
@@ -200,7 +200,7 @@ if (shouldSkipBuilds) {
         stdio: 'pipe',
       });
 
-      assert.equal(result.status, 0, `Expected pnpm -C frontend build to exit 0. stderr:\n${result.stderr}`);
+      assert.equal(result.status, 0, `Expected pnpm -C apps/app build to exit 0. stderr:\n${result.stderr}`);
     },
   );
 }

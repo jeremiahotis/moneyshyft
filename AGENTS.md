@@ -8,7 +8,7 @@ MoneyShyft is a full-stack app with a Vue 3 frontend and an Express/TypeScript b
 - `apps/app/` houses the Vue app (`apps/app/src/` for components, views, stores, and router).
 - `apps/api/` houses the Node/Express app; core code lives in `apps/api/src/` (routes, services, middleware).
 - Database migrations and seeds are in `apps/api/src/migrations/` and `apps/api/src/seeds/` with numeric prefixes like `001_initial_schema.ts`.
-- Temporary compatibility wrappers remain at `frontend/` and `src/` during Story 0.6a.
+- Authoritative paths are `apps/app/` and `apps/api/`.
 - Infra/config: `docker-compose.example.yml`, `nginx/nginx.conf`, and docs like `SETUP.md` and `PRODUCTION_DEPLOYMENT_GUIDE.md`.
 
 ## Build, Test, and Development Commands

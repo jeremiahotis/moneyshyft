@@ -45,7 +45,7 @@ development_status:
   0-5-set-up-database-connectivity-migration-harness: done
   0-6-set-up-baseline-ci-quality-gate: done
   0-6a-migrate-to-apps-layout-compatibility-stage: done
-  0-6b-remove-legacy-frontend-src-paths-cleanup-stage: backlog
+  0-6b-remove-legacy-frontend-src-paths-cleanup-stage: done
   0-7-set-up-frontend-spa-skeleton: backlog
   0-8-set-up-crisis-mode-11ty-skeleton-local-build: backlog
   0-9-deploy-crisis-mode-independently: backlog
