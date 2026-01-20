@@ -37,7 +37,7 @@ story_location: _bmad-output/implementation-artifacts
 development_status:
   # Platform Enablement (Pre-Epic)
   epic-0: in-progress
-  0-0-commit-agent-tooling-scaffolding-tracked-fully: review
+  0-0-commit-agent-tooling-scaffolding-tracked-fully: done
   0-1-initialize-monorepo-structure: done
   0-2-configure-tooling-baseline: done
   0-3-create-shared-types-package: done

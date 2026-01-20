@@ -1,6 +1,6 @@
 # Story 0.0: Commit Agent/Tooling Scaffolding (Tracked Fully)
 
-Status: review
+Status: done
 
 ## Story
 
@@ -66,3 +66,4 @@ GPT-5.2 (Cursor)
 
 - .gitignore
 - _bmad-output/implementation-artifacts/0-0-commit-agent-tooling-scaffolding-tracked-fully.md
+- _bmad-output/implementation-artifacts/sprint-status.yaml
