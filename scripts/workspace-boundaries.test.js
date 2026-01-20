@@ -6,7 +6,7 @@ const assert = require('node:assert/strict');
 const repoRoot = path.join(__dirname, '..');
 const appRoot = path.join(repoRoot, 'apps', 'app');
 const apiRoot = path.join(repoRoot, 'apps', 'api');
-const sharedSrcRoot = path.join(repoRoot, 'packages', 'shared', 'src');
+const sharedRoot = path.join(repoRoot, 'packages', 'shared');
 
 const shouldSkipDir = (dirName) =>
   [
@@ -52,8 +52,9 @@ const extractImports = (contents) => {
   const importRegex = /import\s+(?:[^'"]*?\s+from\s+)?['"]([^'"]+)['"]/g;
   const dynamicImportRegex = /import\(\s*['"]([^'"]+)['"]\s*\)/g;
   const requireRegex = /require\(\s*['"]([^'"]+)['"]\s*\)/g;
+  const exportRegex = /export\s+(?:\*|\{[^}]*\})\s+from\s+['"]([^'"]+)['"]/g;
 
-  for (const regex of [importRegex, dynamicImportRegex, requireRegex]) {
+  for (const regex of [importRegex, dynamicImportRegex, requireRegex, exportRegex]) {
     let match;
     while ((match = regex.exec(contents)) !== null) {
       imports.push(match[1]);
@@ -64,12 +65,11 @@ const extractImports = (contents) => {
 };
 
 const checkWorkspaceBoundaries = (workspaceName, workspaceRoot) => {
-  const srcRoot = path.join(workspaceRoot, 'src');
-  if (!fs.existsSync(srcRoot)) {
+  if (!fs.existsSync(workspaceRoot)) {
     return [];
   }
 
-  const files = listFiles(srcRoot);
+  const files = listFiles(workspaceRoot);
   const violations = [];
 
   for (const filePath of files) {
@@ -93,11 +93,11 @@ const checkWorkspaceBoundaries = (workspaceName, workspaceRoot) => {
 
       const resolvedPath = path.resolve(fileDir, importPath);
 
-      if (isWithin(sharedSrcRoot, resolvedPath)) {
+      if (isWithin(sharedRoot, resolvedPath)) {
         violations.push({
           filePath,
           importPath,
-          reason: 'Relative import into packages/shared/src is not allowed',
+          reason: 'Relative import into packages/shared is not allowed',
         });
       }
 

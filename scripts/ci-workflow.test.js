@@ -7,7 +7,11 @@ test('baseline CI workflow includes required quality gate steps', () => {
   const workflowPath = path.join(__dirname, '..', '.github', 'workflows', 'ci.yml');
   assert.ok(fs.existsSync(workflowPath), 'Expected .github/workflows/ci.yml to exist');
 
-  const workflow = fs.readFileSync(workflowPath, 'utf8');
+  const rawWorkflow = fs.readFileSync(workflowPath, 'utf8');
+  const workflow = rawWorkflow
+    .split('\n')
+    .filter((line) => !line.trim().startsWith('#'))
+    .join('\n');
   const requiredSnippets = [
     'pull_request:',
     'push:',

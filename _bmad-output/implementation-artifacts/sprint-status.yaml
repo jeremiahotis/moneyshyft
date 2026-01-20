@@ -43,7 +43,7 @@ development_status:
   0-3-create-shared-types-package: done
   0-4-set-up-backend-api-skeleton: done
   0-5-set-up-database-connectivity-migration-harness: done
-  0-6-set-up-baseline-ci-quality-gate: review
+  0-6-set-up-baseline-ci-quality-gate: done
   0-6a-migrate-to-apps-layout-compatibility-stage: done
   0-6b-remove-legacy-frontend-src-paths-cleanup-stage: backlog
   0-7-set-up-frontend-spa-skeleton: backlog
