@@ -51,6 +51,7 @@ coverage/
 .codex/auth.json
 .codex/history.jsonl
 .codex/sessions/
+.codex/rules/default.rules
 .claude/settings.local.json
 .codex/version.json
 
