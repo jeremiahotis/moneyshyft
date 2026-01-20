@@ -1,6 +1,6 @@
 # Story 0.6: Set Up Baseline CI / Quality Gate
 
-Status: ready-for-dev
+Status: review
 
 <!-- Note: Validation is optional. Run validate-create-story for quality check before dev-story. -->
 
@@ -32,39 +32,39 @@ so that the repository stays runnable and dependencies are properly managed.
 
 ## Tasks / Subtasks
 
-- [ ] Task 1: Add baseline CI workflow (AC: 1, 3, 4)
-  - [ ] Add `.github/workflows/ci.yml` triggered on `pull_request` + `push` to `main`
-  - [ ] Use Node 20 + pnpm (Corepack or `pnpm/action-setup`)
-  - [ ] Cache pnpm store (either `actions/setup-node` cache for pnpm or explicit `actions/cache`)
-  - [ ] Run `pnpm install --frozen-lockfile`
-  - [ ] Run `pnpm lint`, `pnpm typecheck`, `pnpm build`, `pnpm test`, and `pnpm -C apps/api test`
+- [x] Task 1: Add baseline CI workflow (AC: 1, 3, 4)
+  - [x] Add `.github/workflows/ci.yml` triggered on `pull_request` + `push` to `main`
+  - [x] Use Node 20 + pnpm (Corepack or `pnpm/action-setup`)
+  - [x] Cache pnpm store (either `actions/setup-node` cache for pnpm or explicit `actions/cache`)
+  - [x] Run `pnpm install --frozen-lockfile`
+  - [x] Run `pnpm lint`, `pnpm typecheck`, `pnpm build`, `pnpm test`, and `pnpm -C apps/api test`
 
-- [ ] Task 2: Implement root quality-gate scripts (AC: 1)
-  - [ ] Replace placeholder root scripts in `package.json` for `dev`, `build`, `lint`, `test`
-  - [ ] Add `typecheck` script at repo root that typechecks:
+- [x] Task 2: Implement root quality-gate scripts (AC: 1)
+  - [x] Replace placeholder root scripts in `package.json` for `dev`, `build`, `lint`, `test`
+  - [x] Add `typecheck` script at repo root that typechecks:
     - `packages/shared`: `pnpm -C packages/shared exec tsc --noEmit -p tsconfig.json`
     - `apps/api`: `pnpm -C apps/api exec tsc --noEmit`
     - `apps/app`: `pnpm -C apps/app exec vue-tsc --noEmit`
-  - [ ] Ensure scripts are runnable locally from repo root without extra setup beyond `pnpm install`
+  - [x] Ensure scripts are runnable locally from repo root without extra setup beyond `pnpm install`
 
-- [ ] Task 3: Enforce workspace boundary rules (AC: 2)
-  - [ ] Implement a boundary check as either:
+- [x] Task 3: Enforce workspace boundary rules (AC: 2)
+  - [x] Implement a boundary check as either:
     - ESLint rule(s) (preferred if sufficiently expressive), or
     - A Node test under `scripts/` wired into `pnpm test`
-  - [ ] If implementing via Node test, add `scripts/workspace-boundaries.test.js` using `node:test` that fails on:
+  - [x] If implementing via Node test, add `scripts/workspace-boundaries.test.js` using `node:test` that fails on:
     - Any relative import from `apps/app` that resolves into `apps/api` (and vice versa)
     - Any relative import that resolves into another workspace’s internal `src/` instead of a package import (e.g., `../../packages/shared/src/...`)
-  - [ ] Define the concrete boundaries for this repo:
+  - [x] Define the concrete boundaries for this repo:
     - `apps/app` must not import from `apps/api` via relative paths
     - `apps/api` must not import from `apps/app` via relative paths
     - Any workspace may import shared code only via `@moneyshyft/shared` (no deep paths)
-  - [ ] Ensure boundary check runs in CI and fails PRs on violation
+  - [x] Ensure boundary check runs in CI and fails PRs on violation
 
-- [ ] Task 4: Validate locally (AC: 1–3)
-  - [ ] Run `pnpm lint`
-  - [ ] Run `pnpm typecheck`
-  - [ ] Run `pnpm build`
-  - [ ] Run `pnpm test` and `pnpm -C apps/api test`
+- [x] Task 4: Validate locally (AC: 1–3)
+  - [x] Run `pnpm lint`
+  - [x] Run `pnpm typecheck`
+  - [x] Run `pnpm build`
+  - [x] Run `pnpm test` and `pnpm -C apps/api test`
 
 ## Dev Notes
 
@@ -143,10 +143,36 @@ GPT-5.2 (Codex CLI)
 
 ### Debug Log References
 
+ - `node --test scripts/ci-workflow.test.js`
+ - `node --test scripts/workspace-boundaries.test.js`
+ - `pnpm lint`
+ - `pnpm typecheck`
+ - `pnpm build`
+ - `pnpm test`
+ - `pnpm -C apps/api test`
+
+### Implementation Plan
+
+- Add a CI workflow assertion test, update workflow to include API test step, and keep pnpm cache behavior.
+- Centralize root scripts to run all node tests and explicit typecheck commands.
+- Add a workspace boundary test wired into root `pnpm test`.
+
 ### Completion Notes List
 
-- Ultimate context engine analysis completed - comprehensive developer guide created
+- Added CI workflow assertion test and ensured CI runs API tests.
+- Centralized root scripts for typecheck and node test suite.
+- Added workspace boundary test enforcing cross-app and deep-import rules.
+- Validation: `pnpm lint` (warnings only), `pnpm typecheck`, `pnpm build`, `pnpm test`, `pnpm -C apps/api test`.
 
 ### File List
 
+- .github/workflows/ci.yml
+- package.json
+- scripts/ci-workflow.test.js
+- scripts/workspace-boundaries.test.js
 - _bmad-output/implementation-artifacts/0-6-set-up-baseline-ci-quality-gate.md
+- _bmad-output/implementation-artifacts/sprint-status.yaml
+
+### Change Log
+
+- 2026-01-20: added baseline CI workflow checks, root quality gate scripts, and workspace boundary tests.

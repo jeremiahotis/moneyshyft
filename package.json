@@ -10,9 +10,9 @@
   "scripts": {
     "dev": "pnpm -C apps/api dev & pnpm -C apps/app dev",
     "build": "pnpm -C packages/shared build && pnpm -C apps/api build && pnpm -C apps/app build",
-    "test": "node --test scripts/monorepo-structure.test.js scripts/tooling-baseline.test.js scripts/apps-compat.test.js && pnpm -C apps/api test",
+    "test": "node --test scripts/*.test.js",
     "lint": "pnpm exec eslint .",
-    "typecheck": "pnpm -C packages/shared exec tsc --noEmit -p tsconfig.json && pnpm -C apps/api typecheck && pnpm -C apps/app typecheck"
+    "typecheck": "pnpm -C packages/shared exec tsc --noEmit -p tsconfig.json && pnpm -C apps/api exec tsc --noEmit && pnpm -C apps/app exec vue-tsc --noEmit"
   },
   "dependencies": {
     "uuid": "^8.3.2"

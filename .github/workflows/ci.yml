@@ -35,3 +35,6 @@ jobs:
 
       - name: Test
         run: pnpm test
+
+      - name: Test (API)
+        run: pnpm -C apps/api test
