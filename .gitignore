@@ -52,6 +52,7 @@ coverage/
 .codex/history.jsonl
 .codex/sessions/
 .claude/settings.local.json
+.codex/version.json
 
 # OS
 .DS_Store
