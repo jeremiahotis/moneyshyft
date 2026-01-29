@@ -557,12 +557,27 @@ export class AssignmentService {
 
       // 2. Validate total doesn't exceed available
       const totalRequested = categoryAssignments.reduce((sum, a) => sum + a.amount, 0);
-      const totalAvailable = pool.reduce((sum, t) => sum + t.available, 0);
+      const totalTransactionAvailable = pool.reduce((sum, t) => sum + t.available, 0);
 
-      if (totalRequested > totalAvailable) {
-        throw new BadRequestError(
-          `Insufficient funds: $${totalRequested.toFixed(2)} requested, $${totalAvailable.toFixed(2)} available`
-        );
+      // Check total available including Opening Balances (To Be Assigned)
+      // Note: We need to calculate this carefully. getToBeAssigned returns (Income + Starting Balances) - Total Assigned.
+      // Total Assigned includes assignments we are about to make? No, getToBeAssigned reads from DB.
+      // So current To Be Assigned represents valid money we can use.
+      const currentToBeAssigned = await BudgetService.getToBeAssigned(householdId, month);
+
+      // If we have enough transaction money, use that check (it's more specific).
+      // If not, check if we have enough TOTAL money (transactions + opening balances).
+      // Logic: If totalRequested > totalTransactionAvailable check if totalRequested <= currentToBeAssigned.
+      // However, currentToBeAssigned INCLUDES totalTransactionAvailable implicitly (as income).
+      // So comparing against currentToBeAssigned is the correct "Global" check.
+
+      if (totalRequested > currentToBeAssigned && totalRequested > totalTransactionAvailable) {
+        // Allow small floating point error margin
+        if (totalRequested - Math.max(currentToBeAssigned, totalTransactionAvailable) > 0.01) {
+          throw new BadRequestError(
+            `Insufficient funds: $${totalRequested.toFixed(2)} requested, $${Math.max(currentToBeAssigned, totalTransactionAvailable).toFixed(2)} available`
+          );
+        }
       }
 
       // 3. Assign to each category/section using FIFO
@@ -624,6 +639,35 @@ export class AssignmentService {
           // Update transaction available balance
           transaction.available -= toAssign;
           remaining -= toAssign;
+        }
+
+        // If remaining > 0, it means we ran out of Transaction money. 
+        // We must fund the rest from "Opening Balances" (loose cash) via assignAccountBalance logic.
+        if (remaining > 0.001) {
+          if (category_id) {
+            // Use BudgetService to assign loose balance
+            await BudgetService.assignAccountBalance(householdId, userId, {
+              category_id: category_id,
+              amount: remaining,
+              // We don't specify account_id, so it pulls from the general pool of starting balances
+            });
+
+            // We don't need to add to createdAssignments array because assignAccountBalance 
+            // does not create an income_assignment, it creates account_balance_assignment.
+            // However, for the frontend response, we might want to reflect success.
+            // But existing type IncomeAssignment might not match.
+            // For now, we proceed as this fulfills the financial movement.
+
+            remaining = 0;
+          } else {
+            // Fallback for Section assignments (Rollup) - currently BudgetService doesn't support assignAccountBalance for sections
+            // If we really need this, we'd need to update BudgetService. 
+            // For now, we error if we can't fund a Section assignment from transactions, 
+            // UNLESS we just force update the allocation without an assignment record? 
+            // No, that breaks audit.
+
+            // Proceed to error if still remaining
+          }
         }
 
         if (remaining > 0.01) {

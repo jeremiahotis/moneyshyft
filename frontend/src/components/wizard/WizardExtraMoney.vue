@@ -215,8 +215,8 @@ const emit = defineEmits<{
 
 const categoriesStore = useCategoriesStore();
 
-type ExtraMoneyKey = 'giving' | 'debt' | 'fun' | 'savings' | 'helping';
-type CategoryKey = 'giving' | 'helping';
+type ExtraMoneyKey = 'giving' | 'debt' | 'fun' | 'savings';
+type CategoryKey = 'giving';
 type SectionKey = 'debt' | 'fun';
 type SectionType = 'fixed' | 'flexible' | 'debt';
 type TargetType = 'category' | 'section' | 'reserve';
@@ -260,38 +260,23 @@ const defaultCategories: DefaultCategoryOption[] = [
     emoji: '🏦',
     description: 'Emergency fund, retirement, long-term savings goals',
     targetType: 'reserve'
-  },
-  {
-    key: 'helping',
-    name: 'Helping Friends/Family',
-    emoji: '👨‍👩‍👧',
-    description: 'Support loved ones, family gifts, helping others',
-    targetType: 'category'
   }
 ];
 
 const percentages = ref<Record<ExtraMoneyKey, number>>({
-  giving: 10,
-  debt: 10,
-  fun: 10,
-  savings: 60,
-  helping: 10
+  giving: 20,
+  debt: 20,
+  fun: 20,
+  savings: 40
 });
 
-const categoryMappings = ref<Record<ExtraMoneyKey, string>>({
-  giving: '',
-  helping: '',
-  debt: '',
-  fun: '',
-  savings: ''
+const categoryMappings = ref<Record<CategoryKey, string>>({
+  giving: ''
 });
 
-const sectionMappings = ref<Record<ExtraMoneyKey, string>>({
-  giving: '',
-  helping: '',
+const sectionMappings = ref<Record<SectionKey, string>>({
   debt: '',
-  fun: '',
-  savings: ''
+  fun: ''
 });
 
 const totalPercentage = computed(() => {
@@ -303,7 +288,7 @@ const totalValid = computed(() => {
 });
 
 const allCategoriesMapped = computed(() => {
-  const categoryTargets = ['giving', 'helping'] as CategoryKey[];
+  const categoryTargets = ['giving'] as CategoryKey[];
   return categoryTargets.every(key => categoryMappings.value[key] !== '');
 });
 
@@ -346,35 +331,31 @@ function validatePercentages() {
 function applyPreset(preset: 'balanced' | 'debtFocus' | 'savingsFocus' | 'givingFocus') {
   if (preset === 'balanced') {
     percentages.value = {
-      giving: 20,
-      debt: 20,
-      fun: 20,
-      savings: 20,
-      helping: 20
+      giving: 25,
+      debt: 25,
+      fun: 25,
+      savings: 25
     };
   } else if (preset === 'debtFocus') {
     percentages.value = {
       giving: 10,
-      debt: 50,
+      debt: 60,
       fun: 10,
-      savings: 20,
-      helping: 10
+      savings: 20
     };
   } else if (preset === 'savingsFocus') {
     percentages.value = {
       giving: 10,
       debt: 10,
       fun: 10,
-      savings: 60,
-      helping: 10
+      savings: 70
     };
   } else if (preset === 'givingFocus') {
     percentages.value = {
-      giving: 50,
+      giving: 60,
       debt: 20,
       fun: 10,
-      savings: 10,
-      helping: 10
+      savings: 10
     };
   }
 }
@@ -398,7 +379,7 @@ function handleNext() {
 
   // Build category_percentages mapping (category_id -> decimal)
   const categoryPercentages: Record<string, number> = {};
-  (['giving', 'helping'] as CategoryKey[]).forEach(key => {
+  (['giving'] as CategoryKey[]).forEach(key => {
     const categoryId = categoryMappings.value[key];
     if (categoryId) {
       categoryPercentages[categoryId] = percentages.value[key] / 100;
@@ -416,8 +397,7 @@ function handleNext() {
 
   // Build default_categories mapping
   const defaultCats = {
-    giving: categoryMappings.value.giving || undefined,
-    helping: categoryMappings.value.helping || undefined
+    giving: categoryMappings.value.giving || undefined
   };
 
   const defaultSections = {
@@ -440,13 +420,9 @@ onMounted(async () => {
   await categoriesStore.fetchCategories();
 
   if (!categoryMappings.value.giving) {
-    const donations = categoriesStore.categories.find(cat => cat.name === 'Donations');
-    if (donations) categoryMappings.value.giving = donations.id;
-  }
-
-  if (!categoryMappings.value.helping) {
-    const helping = categoriesStore.categories.find(cat => cat.name === 'Helping Friends/Family');
-    if (helping) categoryMappings.value.helping = helping.id;
+    // Try to find "Giving" or "Donations"
+    const giving = categoriesStore.categories.find(cat => cat.name === 'Giving' || cat.name === 'Donations');
+    if (giving) categoryMappings.value.giving = giving.id;
   }
 
   if (!sectionMappings.value.debt) {
