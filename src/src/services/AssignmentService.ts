@@ -560,10 +560,9 @@ export class AssignmentService {
       const totalTransactionAvailable = pool.reduce((sum, t) => sum + t.available, 0);
 
       // Check total available including Opening Balances (To Be Assigned)
-      // Note: We need to calculate this carefully. getToBeAssigned returns (Income + Starting Balances) - Total Assigned.
-      // Total Assigned includes assignments we are about to make? No, getToBeAssigned reads from DB.
-      // So current To Be Assigned represents valid money we can use.
-      const currentToBeAssigned = await BudgetService.getToBeAssigned(householdId, month);
+      const currentToBeAssigned = await AssignmentService.getToBeAssigned(householdId, month);
+
+      const totalAvailable = Math.max(currentToBeAssigned, totalTransactionAvailable);
 
       // If we have enough transaction money, use that check (it's more specific).
       // If not, check if we have enough TOTAL money (transactions + opening balances).
@@ -573,9 +572,9 @@ export class AssignmentService {
 
       if (totalRequested > currentToBeAssigned && totalRequested > totalTransactionAvailable) {
         // Allow small floating point error margin
-        if (totalRequested - Math.max(currentToBeAssigned, totalTransactionAvailable) > 0.01) {
+        if (totalRequested - totalAvailable > 0.01) {
           throw new BadRequestError(
-            `Insufficient funds: $${totalRequested.toFixed(2)} requested, $${Math.max(currentToBeAssigned, totalTransactionAvailable).toFixed(2)} available`
+            `Insufficient funds: $${totalRequested.toFixed(2)} requested, $${totalAvailable.toFixed(2)} available`
           );
         }
       }
