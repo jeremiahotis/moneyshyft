@@ -102,8 +102,25 @@
                  </select>
                </div>
                
-               <!-- TODO: Dropdowns for Sections/Categories (Simple Text input for now to save time, assume ID entry or enhance later) -->
-               <!-- Ideally we load categories/sections from store -->
+               <div v-if="newItem.scope === 'section'">
+                 <label class="block text-sm font-medium text-gray-700">Section</label>
+                 <select v-model="newItem.section_id" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                   <option :value="null" disabled>Select a section</option>
+                   <option v-for="section in categoriesStore.sections" :key="section.id" :value="section.id">
+                     {{ section.name }}
+                   </option>
+                 </select>
+               </div>
+
+               <div v-if="newItem.scope === 'category'">
+                 <label class="block text-sm font-medium text-gray-700">Category</label>
+                 <select v-model="newItem.category_id" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md">
+                   <option :value="null" disabled>Select a category</option>
+                   <option v-for="category in categoriesStore.categories" :key="category.id" :value="category.id">
+                     {{ category.name }}
+                   </option>
+                 </select>
+               </div>
                
                <div>
                   <label class="block text-sm font-medium text-gray-700">Amount</label>
@@ -143,25 +160,31 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue';
 import { useScenariosStore } from '@/stores/scenarios';
+import { useCategoriesStore } from '@/stores/categories';
 import { useRoute } from 'vue-router';
 
 const route = useRoute();
 const scenariosStore = useScenariosStore();
+const categoriesStore = useCategoriesStore();
 
 const showAddItemModal = ref(false);
 const newItem = reactive({
   type: 'expense_adjustment',
   scope: 'global',
-  category_id: null,
-  section_id: null,
+  category_id: null as string | null,
+  section_id: null as string | null,
   amount: 0,
   is_percentage: true
 });
 
-onMounted(() => {
+onMounted(async () => {
   const id = route.params.id as string;
   if (id) {
     scenariosStore.fetchScenarioById(id);
+  }
+  // Load categories for dropdowns
+  if (categoriesStore.sections.length === 0) {
+    await categoriesStore.fetchCategories();
   }
 });
 
@@ -171,17 +194,39 @@ function formatType(type: string) {
 
 function formatDetails(item: any) {
   if (item.scope === 'global') return 'Applied Globally';
-  // TODO: Resolve ID to Name using Categories Store
-  return `Applied to ${item.scope} (ID: ${item.category_id || item.section_id})`;
+  
+  if (item.scope === 'section') {
+    const section = categoriesStore.sections.find(s => s.id === item.section_id);
+    return `Applied to Section: ${section?.name || 'Unknown'} (ID: ${item.section_id})`;
+  }
+  
+  if (item.scope === 'category') {
+    const category = categoriesStore.categories.find(c => c.id === item.category_id);
+    return `Applied to Category: ${category?.name || 'Unknown'} (ID: ${item.category_id})`;
+  }
+  
+  return `Applied to ${item.scope}`;
 }
 
 async function addItem() {
   if (!scenariosStore.currentScenario) return;
   try {
+    // Clear unused IDs based on scope
+    if (newItem.scope === 'global') {
+      newItem.category_id = null;
+      newItem.section_id = null;
+    } else if (newItem.scope === 'section') {
+      newItem.category_id = null;
+    } else if (newItem.scope === 'category') {
+      newItem.section_id = null;
+    }
+
     await scenariosStore.addItem(scenariosStore.currentScenario.id, newItem);
     showAddItemModal.value = false;
     // Reset form defaults
     newItem.amount = 0;
+    newItem.category_id = null;
+    newItem.section_id = null;
   } catch (e) {
     console.error(e);
   }
