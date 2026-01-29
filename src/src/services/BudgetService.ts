@@ -233,6 +233,8 @@ export class BudgetService {
       }
 
       // Flexible sections SHOULD use section-level allocation (rollup mode)
+      // BUT we allow individual allocations for flexibility (e.g. Budget Setup Wizard uses individual categories)
+      /* 
       if (section.type === 'flexible') {
         if (data.rollup_mode === false && data.category_id) {
           throw new BadRequestError(
@@ -244,7 +246,8 @@ export class BudgetService {
             'Flexible sections require section_id when using rollup mode'
           );
         }
-      }
+      } 
+      */
     }
 
     // Check if allocation already exists
@@ -338,7 +341,7 @@ export class BudgetService {
       .where({ household_id: householdId })
       .whereBetween('transaction_date', [monthStart, monthEnd])
       .whereNotNull('category_id')
-      .whereNotIn('category_id', function() {
+      .whereNotIn('category_id', function () {
         this.select('id')
           .from('categories')
           .whereIn('section_id', incomeSectionIds);
@@ -378,95 +381,95 @@ export class BudgetService {
       .map(section => {
         const sectionCategories = categories.filter(cat => cat.section_id === section.id);
 
-      // Check if there's a section-level allocation (rollup mode)
-      const sectionAllocation = allocations.find(
-        alloc => alloc.section_id === section.id && alloc.rollup_mode
-      );
+        // Check if there's a section-level allocation (rollup mode)
+        const sectionAllocation = allocations.find(
+          alloc => alloc.section_id === section.id && alloc.rollup_mode
+        );
 
-      let sectionAllocated = 0;
-      let sectionSpent = 0;
-      const categorySummaries: CategorySummary[] = [];
+        let sectionAllocated = 0;
+        let sectionSpent = 0;
+        const categorySummaries: CategorySummary[] = [];
 
-      let sectionAssigned = 0; // Track assigned amount for section
+        let sectionAssigned = 0; // Track assigned amount for section
 
-      if (sectionAllocation) {
-        // Rollup mode: single allocation for entire section
-        sectionAllocated = Number(sectionAllocation.allocated_amount);
-        sectionAssigned = Number(sectionAllocation.assigned_amount || 0);
+        if (sectionAllocation) {
+          // Rollup mode: single allocation for entire section
+          sectionAllocated = Number(sectionAllocation.allocated_amount);
+          sectionAssigned = Number(sectionAllocation.assigned_amount || 0);
 
-        // Calculate total spending for all categories in section
-        sectionCategories.forEach(category => {
-          const spent = spendingMap.get(category.id) || 0;
-          sectionSpent += spent;
+          // Calculate total spending for all categories in section
+          sectionCategories.forEach(category => {
+            const spent = spendingMap.get(category.id) || 0;
+            sectionSpent += spent;
 
-          categorySummaries.push({
-            category_id: category.id,
-            category_name: category.name,
-            allocated: 0, // No individual allocation in rollup mode
-            assigned: 0,  // No individual assignment in rollup mode
-            spent,
-            remaining: 0,
-            available: 0,
-            need: 0,
-            activity: spent,
-            allocation_notes: null
+            categorySummaries.push({
+              category_id: category.id,
+              category_name: category.name,
+              allocated: 0, // No individual allocation in rollup mode
+              assigned: 0,  // No individual assignment in rollup mode
+              spent,
+              remaining: 0,
+              available: 0,
+              need: 0,
+              activity: spent,
+              allocation_notes: null
+            });
           });
-        });
-      } else {
-        // Category-level allocations
-        sectionCategories.forEach(category => {
-          const categoryAllocation = allocations.find(
-            alloc => alloc.category_id === category.id
-          );
+        } else {
+          // Category-level allocations
+          sectionCategories.forEach(category => {
+            const categoryAllocation = allocations.find(
+              alloc => alloc.category_id === category.id
+            );
 
-          const allocated = categoryAllocation
-            ? Number(categoryAllocation.allocated_amount)
-            : 0;
-          const assigned = categoryAllocation
-            ? Number(categoryAllocation.assigned_amount || 0)
-            : 0;
-          const spent = spendingMap.get(category.id) || 0;
-          const remaining = allocated - spent;
-          const available = assigned - spent;
-          const need = allocated - assigned;
+            const allocated = categoryAllocation
+              ? Number(categoryAllocation.allocated_amount)
+              : 0;
+            const assigned = categoryAllocation
+              ? Number(categoryAllocation.assigned_amount || 0)
+              : 0;
+            const spent = spendingMap.get(category.id) || 0;
+            const remaining = allocated - spent;
+            const available = assigned - spent;
+            const need = allocated - assigned;
 
-          sectionAllocated += allocated;
-          sectionAssigned += assigned;
-          sectionSpent += spent;
+            sectionAllocated += allocated;
+            sectionAssigned += assigned;
+            sectionSpent += spent;
 
-          categorySummaries.push({
-            category_id: category.id,
-            category_name: category.name,
-            allocated,
-            assigned,
-            spent,
-            remaining,
-            available,
-            need,
-            activity: spent,
-            allocation_notes: categoryAllocation?.notes || null
+            categorySummaries.push({
+              category_id: category.id,
+              category_name: category.name,
+              allocated,
+              assigned,
+              spent,
+              remaining,
+              available,
+              need,
+              activity: spent,
+              allocation_notes: categoryAllocation?.notes || null
+            });
           });
-        });
-      }
+        }
 
-      const extraSectionAssigned = extraMoneySectionMap.get(section.id) || 0;
-      sectionAssigned += extraSectionAssigned;
+        const extraSectionAssigned = extraMoneySectionMap.get(section.id) || 0;
+        sectionAssigned += extraSectionAssigned;
 
-      return {
-        section_id: section.id,
-        section_name: section.name,
-        section_type: section.type,
-        allocated: sectionAllocated,
-        assigned: sectionAssigned,
-        spent: sectionSpent,
-        remaining: sectionAllocated - sectionSpent,
-        available: sectionAssigned - sectionSpent,
-        need: sectionAllocated - sectionAssigned,
-        categories: categorySummaries,
-        rollup_mode: !!sectionAllocation,
-        allocation_notes: sectionAllocation?.notes || null
-      };
-    });
+        return {
+          section_id: section.id,
+          section_name: section.name,
+          section_type: section.type,
+          allocated: sectionAllocated,
+          assigned: sectionAssigned,
+          spent: sectionSpent,
+          remaining: sectionAllocated - sectionSpent,
+          available: sectionAssigned - sectionSpent,
+          need: sectionAllocated - sectionAssigned,
+          categories: categorySummaries,
+          rollup_mode: !!sectionAllocation,
+          allocation_notes: sectionAllocation?.notes || null
+        };
+      });
 
     // Calculate totals
     const totalAllocated = sectionSummaries.reduce((sum, sec) => sum + sec.allocated, 0);

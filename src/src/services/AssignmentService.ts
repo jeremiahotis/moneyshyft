@@ -365,7 +365,40 @@ export class AssignmentService {
 
     const totalAssigned = Number(assignedResult?.total || 0);
 
-    return totalIncome - totalAssigned;
+    // Get total account starting balances
+    const accountBalancesResult = await knex('accounts')
+      .where({ household_id: householdId, is_active: true })
+      .sum('starting_balance as total')
+      .first();
+
+    const totalAccountBalances = Number(accountBalancesResult?.total || 0);
+
+    // Get total account balance assignments
+    const assignedBalancesResult = await knex('account_balance_assignments')
+      .where({ household_id: householdId })
+      .sum('amount as total')
+      .first();
+
+    const totalAssignedBalances = Number(assignedBalancesResult?.total || 0);
+
+    // Get Savings Reserve assignments (they reduce available funds)
+    const savingsReserveResult = await knex('extra_money_entries')
+      .where({ household_id: householdId })
+      .whereBetween('received_date', [monthStart, monthEnd])
+      .sum('savings_reserve as total')
+      .first();
+
+    const totalSavingsReserve = Number(savingsReserveResult?.total || 0);
+
+    // Total Available = (Real Income + Account Balances) - (assigned to categories + assigned to reserve + assigned balances)
+    // Note: totalAssigned is from income_assignments.
+    // totalAssignedBalances is from account_balance_assignments (loose cash).
+    // Both reduce the pool.
+
+    // Wait: account_balance_assignments track assignments made via assignAccountBalance.
+    // So "To Be Assigned" = (Income + Starting Balances) - (Income Assignments + Balance Assignments + Savings Reserve)
+
+    return (totalIncome + totalAccountBalances) - (totalAssigned + totalAssignedBalances + totalSavingsReserve);
   }
 
   /**
