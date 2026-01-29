@@ -74,6 +74,24 @@ const routes: RouteRecordRaw[] = [
     name: 'settings',
     component: () => import('@/views/Settings/HouseholdSettingsView.vue'),
     meta: { requiresAuth: true }
+  },
+  {
+    path: '/scenarios',
+    name: 'scenarios',
+    component: () => import('@/views/Scenarios/ScenariosListView.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/scenarios/:id',
+    name: 'scenario-detail',
+    component: () => import('@/views/Scenarios/ScenarioDetailView.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/scenarios/:id/projection',
+    name: 'scenario-projection',
+    component: () => import('@/views/Scenarios/ScenarioComparisonView.vue'),
+    meta: { requiresAuth: true }
   }
 ];
 

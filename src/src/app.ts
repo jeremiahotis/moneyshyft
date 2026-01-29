@@ -66,6 +66,7 @@ import householdRoutes from './routes/api/v1/households';
 import recurringRoutes from './routes/api/v1/recurring-transactions';
 import extraMoneyRoutes from './routes/api/v1/extra-money';
 import settingsRoutes from './routes/api/v1/settings';
+import scenarioRoutes from './routes/api/v1/scenarios';
 
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/accounts', accountRoutes);
@@ -81,6 +82,7 @@ app.use('/api/v1/households', householdRoutes);
 app.use('/api/v1/recurring-transactions', recurringRoutes);
 app.use('/api/v1/extra-money', extraMoneyRoutes);
 app.use('/api/v1/settings', settingsRoutes);
+app.use('/api/v1/scenarios', scenarioRoutes);
 
 // 404 handler
 app.use((req: Request, res: Response) => {
