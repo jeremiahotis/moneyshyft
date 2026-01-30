@@ -12,6 +12,12 @@
             📅 Manage Recurring
           </button>
           <button
+            @click="showTransferModal = true"
+            class="px-4 py-2 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 rounded-lg font-medium"
+          >
+            Transfer Money
+          </button>
+          <button
             @click="showAddModal = true"
             class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium"
             data-testid="transactions-add-button"
@@ -382,8 +388,18 @@
       :entry="detectedExtraMoneyEntry"
       @update:modelValue="handleExtraMoneyModalUpdate"
     />
+
+    <!-- Transfer Modal -->
+    <TransferModal
+      v-if="showTransferModal"
+      :accounts="accounts"
+      @close="showTransferModal = false"
+      @success="handleTransferSuccess"
+    />
   </AppLayout>
 </template>
+
+
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue';
@@ -398,6 +414,7 @@ import AppLayout from '@/components/layout/AppLayout.vue';
 import SplitTransactionModal from '@/components/transactions/SplitTransactionModal.vue';
 import ExtraMoneyModal from '@/components/extraMoney/ExtraMoneyModal.vue';
 import TransactionSplitIndicator from '@/components/transactions/TransactionSplitIndicator.vue';
+import TransferModal from '@/components/Transfers/TransferModal.vue';
 import type { CreateTransactionData, Transaction, SplitData, ExtraMoneyWithAssignments } from '@/types';
 
 const route = useRoute();
@@ -409,6 +426,7 @@ const goalsStore = useGoalsStore();
 const debtsStore = useDebtsStore();
 
 const showAddModal = ref(false);
+const showTransferModal = ref(false);
 const showExtraMoneyModal = ref(false);
 const editingTransaction = ref<Transaction | null>(null);
 const transactionType = ref<'expense' | 'income'>('expense');
@@ -752,6 +770,14 @@ function formatCurrency(amount: number): string {
 function formatDate(dateString: string): string {
   const date = new Date(dateString);
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+async function handleTransferSuccess() {
+  // Refresh transactions and accounts
+  await Promise.all([
+    transactionsStore.fetchTransactions(route.query.account_id ? { account_id: route.query.account_id as string } : {}),
+    accountsStore.fetchAccounts()
+  ]);
 }
 
 function finalizeExtraMoneyFlow() {
