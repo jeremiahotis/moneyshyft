@@ -152,18 +152,5 @@ function formatCurrency(amount: number): string {
   }).format(amount);
 }
 
-function formatDate(dateString: string): string {
-  const date = new Date(dateString);
-  const today = new Date();
-  const daysDiff = Math.floor((today.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
-
-  if (daysDiff === 0) return 'Today';
-  if (daysDiff === 1) return 'Yesterday';
-  if (daysDiff <= 7) return `${daysDiff} days ago`;
-
-  return date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric'
-  });
-}
+import { formatDate } from '@/utils/dateUtils';
 </script>

@@ -275,15 +275,8 @@ watch(historyStatus, async (newStatus) => {
   }
 });
 
-function formatDate(dateString: string | null): string {
-  if (!dateString) return '';
-  const date = new Date(dateString);
-  return date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: date.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined
-  });
-}
+import { formatDate } from '@/utils/dateUtils';
+
 
 function formatCurrency(amount: number): string {
   return new Intl.NumberFormat('en-US', {

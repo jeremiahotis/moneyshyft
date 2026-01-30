@@ -101,8 +101,5 @@ function formatCurrency(amount: number): string {
   }).format(amount);
 }
 
-function formatDate(dateString: string): string {
-  const date = new Date(dateString);
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-}
+import { formatDate } from '@/utils/dateUtils';
 </script>

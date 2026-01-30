@@ -323,11 +323,8 @@ function formatAmount(amount: number): string {
   return Math.abs(amount).toFixed(2);
 }
 
-function formatDate(dateString: string): string {
-  if (!dateString) return '';
-  const date = new Date(dateString);
-  return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
-}
+import { formatDate } from '@/utils/dateUtils';
+
 
 function close() {
   emit('update:modelValue', false);

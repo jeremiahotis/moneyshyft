@@ -437,8 +437,5 @@ function formatCurrency(amount: number): string {
   return amount < 0 ? `-${formatted}` : formatted;
 }
 
-function formatDate(dateString: string): string {
-  const date = new Date(dateString);
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-}
+import { formatDate } from '@/utils/dateUtils';
 </script>

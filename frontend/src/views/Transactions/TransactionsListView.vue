@@ -415,6 +415,7 @@ import SplitTransactionModal from '@/components/transactions/SplitTransactionMod
 import ExtraMoneyModal from '@/components/extraMoney/ExtraMoneyModal.vue';
 import TransactionSplitIndicator from '@/components/transactions/TransactionSplitIndicator.vue';
 import TransferModal from '@/components/Transfers/TransferModal.vue';
+import { formatDate } from '@/utils/dateUtils';
 import type { CreateTransactionData, Transaction, SplitData, ExtraMoneyWithAssignments } from '@/types';
 
 const route = useRoute();
@@ -767,10 +768,7 @@ function formatCurrency(amount: number): string {
   return amount < 0 ? `-${formatted}` : formatted;
 }
 
-function formatDate(dateString: string): string {
-  const date = new Date(dateString);
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-}
+
 
 async function handleTransferSuccess() {
   // Refresh transactions and accounts

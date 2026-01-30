@@ -428,12 +428,6 @@ function formatCurrency(amount: number): string {
   }).format(Number(amount));
 }
 
-function formatDate(dateString: string): string {
-  const date = new Date(dateString);
-  return date.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric'
-  });
-}
+import { formatDate } from '@/utils/dateUtils';
+
 </script>

@@ -73,27 +73,8 @@ const badgeClasses = computed(() => {
   return colorMap[props.badgeColor];
 });
 
-function formatDate(dateString: string): string {
-  const date = new Date(dateString);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  const dueDate = new Date(date);
-  dueDate.setHours(0, 0, 0, 0);
+import { formatDate } from '@/utils/dateUtils';
 
-  if (dueDate.getTime() === today.getTime()) {
-    return 'Today';
-  } else if (dueDate.getTime() === tomorrow.getTime()) {
-    return 'Tomorrow';
-  } else if (dueDate < today) {
-    const daysAgo = Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
-    return `${daysAgo} day${daysAgo > 1 ? 's' : ''} ago`;
-  } else {
-    const options: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' };
-    return date.toLocaleDateString(undefined, options);
-  }
-}
 
 function formatCurrency(amount: number): string {
   const formatter = new Intl.NumberFormat('en-US', {

@@ -94,6 +94,7 @@ export function addMonths(monthStr: string, delta: number): string {
   return `${newYear}-${String(newMonth).padStart(2, '0')}`;
 }
 
+
 /**
  * Format a month string for display
  *
@@ -102,10 +103,37 @@ export function addMonths(monthStr: string, delta: number): string {
  */
 export function formatMonthDisplay(monthStr: string): string {
   const [year, month] = monthStr.split('-');
-  const date = new Date(parseInt(year), parseInt(month) - 1, 1);
+  const date = new Date(Date.UTC(parseInt(year), parseInt(month) - 1, 1));
 
   return date.toLocaleDateString('en-US', {
     month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC'
+  });
+}
+
+/**
+ * Format a date string (YYYY-MM-DD or ISO) for display, interpreting it as a UTC date
+ * to prevent timezone shifts (e.g. showing "Jan 28" for "2026-01-29").
+ * 
+ * @param date - Date string or Date object
+ * @param options - Intl.DateTimeFormatOptions (defaults to short month, numeric day/year)
+ */
+export function formatDate(date: string | Date | null | undefined, options?: Intl.DateTimeFormatOptions): string {
+  if (!date) return '';
+
+  const d = typeof date === 'string' ? new Date(date) : date;
+
+  // Default options if not provided
+  const formatOptions: Intl.DateTimeFormatOptions = options || {
+    month: 'short',
+    day: 'numeric',
     year: 'numeric'
+  };
+
+  // Force UTC timezone to prevent off-by-one errors
+  return d.toLocaleDateString('en-US', {
+    ...formatOptions,
+    timeZone: 'UTC'
   });
 }
