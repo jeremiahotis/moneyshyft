@@ -324,7 +324,9 @@ export class TransactionService {
       const outflowId = uuidv4();
       const inflowId = uuidv4();
 
-      // 1. Create Outflow (From Account)
+      // 1. Create Outflow (From Account) - INITIALLY NULL LINK
+      // We must leave transfer_transaction_id null initially to avoid FK constraint error
+      // because the inflow record doesn't exist yet.
       const [outflow] = await trx('transactions')
         .insert({
           id: outflowId,
@@ -336,13 +338,13 @@ export class TransactionService {
           transaction_date: normalizedDate,
           notes: notes,
           created_by_user_id: userId,
-          transfer_transaction_id: inflowId,
+          transfer_transaction_id: null, // Set to null first
           is_cleared: false,
           is_reconciled: false
         })
         .returning('*');
 
-      // 2. Create Inflow (To Account)
+      // 2. Create Inflow (To Account) - LINK TO OUTFLOW
       const [inflow] = await trx('transactions')
         .insert({
           id: inflowId,
@@ -354,13 +356,21 @@ export class TransactionService {
           transaction_date: normalizedDate,
           notes: notes,
           created_by_user_id: userId,
-          transfer_transaction_id: outflowId,
+          transfer_transaction_id: outflowId, // Link to existing outflow
           is_cleared: false,
           is_reconciled: false
         })
         .returning('*');
 
-      // 3. Update balances
+      // 3. Update Outflow to link to Inflow
+      await trx('transactions')
+        .where({ id: outflowId })
+        .update({ transfer_transaction_id: inflowId });
+
+      // Update the returned object so the UI sees the link
+      outflow.transfer_transaction_id = inflowId;
+
+      // 4. Update balances
       await AccountService.recalculateBalance(from_account_id, householdId, trx);
       await AccountService.recalculateBalance(to_account_id, householdId, trx);
 
