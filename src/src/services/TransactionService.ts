@@ -75,7 +75,11 @@ export class TransactionService {
       end_date?: Date;
       limit?: number;
       offset?: number;
-      include_split_children?: boolean; // Optional flag to include split children
+      include_split_children?: boolean;
+      min_amount?: number;
+      max_amount?: number;
+      search?: string;
+      type?: 'income' | 'expense' | 'transfer';
     }
   ): Promise<Transaction[]> {
     let query = knex('transactions')
@@ -83,7 +87,6 @@ export class TransactionService {
       .orderBy('transaction_date', 'desc');
 
     // By default, exclude split children from the list (only show parent transactions)
-    // This prevents double-counting and keeps the UI cleaner
     if (!filters?.include_split_children) {
       query = query.where({ is_split_child: false });
     }
@@ -103,6 +106,36 @@ export class TransactionService {
 
     if (filters?.end_date) {
       query = query.where('transaction_date', '<=', filters.end_date);
+    }
+
+    if (filters?.min_amount !== undefined) {
+      // Handle absolute comparison for amounts if user wants 'transactions > $50' 
+      // regardless of inflow/outflow, filtering by magnitude usually makes more sense for "Amount" filters
+      // But typically "Min Amount" in banking means strictly mathematical implication.
+      // Let's assume standard range: amount >= min
+      query = query.where('amount', '>=', filters.min_amount);
+    }
+
+    if (filters?.max_amount !== undefined) {
+      query = query.where('amount', '<=', filters.max_amount);
+    }
+
+    if (filters?.search) {
+      const searchTerm = `%${filters.search}%`;
+      query = query.where((builder) => {
+        builder.where('payee', 'ilike', searchTerm)
+          .orWhere('notes', 'ilike', searchTerm);
+      });
+    }
+
+    if (filters?.type) {
+      if (filters.type === 'income') {
+        query = query.where('amount', '>', 0).whereNull('transfer_transaction_id');
+      } else if (filters.type === 'expense') {
+        query = query.where('amount', '<', 0).whereNull('transfer_transaction_id');
+      } else if (filters.type === 'transfer') {
+        query = query.whereNotNull('transfer_transaction_id');
+      }
     }
 
     // Pagination

@@ -15,6 +15,10 @@ export const useTransactionsStore = defineStore('transactions', () => {
     category_id?: string;
     start_date?: string;
     end_date?: string;
+    min_amount?: number;
+    max_amount?: number;
+    search?: string;
+    type?: string;
   }): Promise<void> {
     isLoading.value = true;
     error.value = null;

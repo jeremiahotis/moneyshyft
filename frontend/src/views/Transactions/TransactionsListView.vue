@@ -32,8 +32,10 @@
         <p class="text-gray-500">Loading transactions...</p>
       </div>
 
+      <TransactionFilters @update:filters="handleFilterUpdate" />
+
       <!-- Transactions List -->
-      <div v-else-if="transactions.length > 0" class="bg-white rounded-lg shadow">
+      <div v-if="transactions.length > 0 && !transactionsStore.isLoading" class="bg-white rounded-lg shadow">
         <div
           v-for="transaction in transactions"
           :key="transaction.id"
@@ -128,7 +130,7 @@
       </div>
 
       <!-- Empty State -->
-      <div v-else class="text-center py-12">
+      <div v-else-if="!transactionsStore.isLoading" class="text-center py-12">
         <p class="text-gray-500 mb-4">No transactions yet. Add your first transaction!</p>
         <button
           @click="showAddModal = true"
@@ -415,6 +417,7 @@ import SplitTransactionModal from '@/components/transactions/SplitTransactionMod
 import ExtraMoneyModal from '@/components/extraMoney/ExtraMoneyModal.vue';
 import TransactionSplitIndicator from '@/components/transactions/TransactionSplitIndicator.vue';
 import TransferModal from '@/components/Transfers/TransferModal.vue';
+import TransactionFilters from '@/components/transactions/TransactionFilters.vue';
 import { formatDate } from '@/utils/dateUtils';
 import type { CreateTransactionData, Transaction, SplitData, ExtraMoneyWithAssignments } from '@/types';
 
@@ -434,6 +437,22 @@ const transactionType = ref<'expense' | 'income'>('expense');
 const formAmount = ref(0);
 const detectedExtraMoneyEntry = ref<ExtraMoneyWithAssignments | null>(null);
 const pendingTransactionClose = ref(false);
+
+// Filter state
+const activeFilters = ref({});
+
+function handleFilterUpdate(filters: any) {
+  activeFilters.value = filters;
+  fetchTransactions();
+}
+
+async function fetchTransactions() {
+  const params: any = { ...activeFilters.value };
+  if (route.query.account_id) {
+    params.account_id = route.query.account_id as string;
+  }
+  await transactionsStore.fetchTransactions(params);
+}
 
 // Category creation state
 const showAddCategory = ref(false);
@@ -505,7 +524,7 @@ const allCategories = computed(() => {
 
 onMounted(async () => {
   await Promise.all([
-    transactionsStore.fetchTransactions(route.query.account_id ? { account_id: route.query.account_id as string } : {}),
+    fetchTransactions(),
     accountsStore.fetchAccounts(),
     categoriesStore.fetchCategories(),
     goalsStore.fetchGoals(),
@@ -773,7 +792,7 @@ function formatCurrency(amount: number): string {
 async function handleTransferSuccess() {
   // Refresh transactions and accounts
   await Promise.all([
-    transactionsStore.fetchTransactions(route.query.account_id ? { account_id: route.query.account_id as string } : {}),
+    fetchTransactions(),
     accountsStore.fetchAccounts()
   ]);
 }

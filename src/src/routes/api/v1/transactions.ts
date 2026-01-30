@@ -29,7 +29,11 @@ router.get('/', asyncHandler(async (req: Request, res: Response) => {
     start_date: req.query.start_date ? new Date(req.query.start_date as string) : undefined,
     end_date: req.query.end_date ? new Date(req.query.end_date as string) : undefined,
     limit: req.query.limit ? parseInt(req.query.limit as string) : undefined,
-    offset: req.query.offset ? parseInt(req.query.offset as string) : undefined
+    offset: req.query.offset ? parseInt(req.query.offset as string) : undefined,
+    min_amount: req.query.min_amount ? parseFloat(req.query.min_amount as string) : undefined,
+    max_amount: req.query.max_amount ? parseFloat(req.query.max_amount as string) : undefined,
+    search: req.query.search as string | undefined,
+    type: req.query.type as 'income' | 'expense' | 'transfer' | undefined
   };
 
   const transactions = await TransactionService.getAllTransactions(householdId, filters);
