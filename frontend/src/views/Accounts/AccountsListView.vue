@@ -4,12 +4,20 @@
       <!-- Header -->
       <div class="flex items-center justify-between mb-6">
         <h1 class="text-2xl font-bold text-gray-900">Accounts</h1>
-        <button
-          @click="showAddModal = true"
-          class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium"
-        >
-          + Add Account
-        </button>
+        <div class="flex space-x-3">
+          <button
+            @click="showTransferModal = true"
+            class="px-4 py-2 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 rounded-lg font-medium"
+          >
+            Transfer Money
+          </button>
+          <button
+            @click="showAddModal = true"
+            class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium"
+          >
+            + Add Account
+          </button>
+        </div>
       </div>
 
       <!-- Loading State -->
@@ -123,6 +131,13 @@
         @close="closeBalanceAssignmentModal"
         @assigned="handleBalanceAssigned"
       />
+      <!-- Transfer Modal -->
+      <TransferModal
+        v-if="showTransferModal"
+        :accounts="accounts"
+        @close="showTransferModal = false"
+        @success="handleTransferSuccess"
+      />
     </div>
   </AppLayout>
 </template>
@@ -136,6 +151,7 @@ import AppLayout from '@/components/layout/AppLayout.vue';
 import AccountCard from '@/components/accounts/AccountCard.vue';
 import CreditCardStatusCard from '@/components/accounts/CreditCardStatusCard.vue';
 import AccountBalanceAssignmentModal from '@/components/accounts/AccountBalanceAssignmentModal.vue';
+import TransferModal from '@/components/Transfers/TransferModal.vue';
 import type { Account, CreateAccountData, CreditCardStatus } from '@/types';
 
 const router = useRouter();
@@ -143,6 +159,7 @@ const accountsStore = useAccountsStore();
 const budgetsStore = useBudgetsStore();
 
 const showAddModal = ref(false);
+const showTransferModal = ref(false);
 const editingAccount = ref<Account | null>(null);
 const showCreditStatus = ref(false);
 const creditStatus = ref<CreditCardStatus | null>(null);
@@ -228,5 +245,10 @@ async function handleBalanceAssigned() {
   // Refresh budget to show updated assignments
   const currentMonth = new Date().toISOString().slice(0, 7);
   await budgetsStore.fetchBudgetSummary(currentMonth);
+}
+
+async function handleTransferSuccess() {
+  // Refresh accounts to show updated balances
+  await accountsStore.fetchAccounts();
 }
 </script>

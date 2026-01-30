@@ -62,6 +62,28 @@ router.get('/:id', asyncHandler(async (req: Request, res: Response) => {
 }));
 
 /**
+ * POST /api/v1/transactions/transfer
+ * Create a transfer between accounts
+ */
+router.post('/transfer', asyncHandler(async (req: Request, res: Response) => {
+  const householdId = req.user!.householdId;
+  const userId = req.user!.userId;
+  const transferData = req.body;
+
+  if (!householdId) {
+    return res.status(403).json({ error: 'User must belong to a household to create transfers' });
+  }
+
+  const { outflow, inflow } = await TransactionService.createTransfer(householdId, userId, transferData);
+
+  res.status(201).json({
+    success: true,
+    data: { outflow, inflow },
+    message: 'Transfer created successfully'
+  });
+}));
+
+/**
  * POST /api/v1/transactions
  * Create a new transaction
  */
