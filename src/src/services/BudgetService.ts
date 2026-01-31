@@ -486,6 +486,7 @@ export class BudgetService {
       .first();
 
     const totalSavingsReserve = Number(savingsReserveResult?.total || 0);
+    const totalAssignedWithReserve = totalAssigned + totalSavingsReserve;
 
     // Get total monthly PLANNED income from income sources
     const totalPlannedIncome = await IncomeService.getTotalMonthlyIncome(householdId);
