@@ -678,7 +678,8 @@ export class BudgetService {
     householdId: string,
     userId: string,
     data: {
-      category_id: string;
+      category_id?: string;
+      section_id?: string;
       account_id?: string | null;
       amount: number;
     }
@@ -686,22 +687,42 @@ export class BudgetService {
     const currentMonth = new Date();
     const budgetMonth = await this.getOrCreateBudgetMonth(householdId, currentMonth);
 
+    if (!data.category_id && !data.section_id) {
+      throw new BadRequestError('Either category_id or section_id is required');
+    }
+    if (data.category_id && data.section_id) {
+      throw new BadRequestError('Cannot assign to both category and section');
+    }
+
+    if (data.category_id) {
+      await CategoryService.getCategoryById(data.category_id, householdId);
+    }
+    if (data.section_id) {
+      await CategoryService.getSectionById(data.section_id, householdId);
+    }
+
     // 1. Create account_balance_assignment record
     await knex('account_balance_assignments').insert({
       id: uuidv4(),
       household_id: householdId,
       account_id: data.account_id || null,
-      category_id: data.category_id,
+      category_id: data.category_id || null,
+      section_id: data.section_id || null,
       amount: data.amount,
       assigned_by_user_id: userId
     });
 
     // 2. Find or create budget allocation for this category
+    const whereClause: any = { budget_month_id: budgetMonth.id };
+    if (data.category_id) {
+      whereClause.category_id = data.category_id;
+    } else {
+      whereClause.section_id = data.section_id;
+      whereClause.category_id = null;
+    }
+
     let allocation = await knex('budget_allocations')
-      .where({
-        budget_month_id: budgetMonth.id,
-        category_id: data.category_id
-      })
+      .where(whereClause)
       .first();
 
     if (!allocation) {
@@ -709,16 +730,16 @@ export class BudgetService {
       [allocation] = await knex('budget_allocations')
         .insert({
           budget_month_id: budgetMonth.id,
-          category_id: data.category_id,
-          section_id: null,
+          category_id: data.category_id || null,
+          section_id: data.section_id || null,
           allocated_amount: 0,
           assigned_amount: data.amount,
-          rollup_mode: false,
+          rollup_mode: !!data.section_id,
           notes: null
         })
         .returning('*');
 
-      logger.info(`Created new allocation for category ${data.category_id} with assigned amount ${data.amount}`);
+      logger.info(`Created new allocation for ${data.category_id ? 'category' : 'section'} ${data.category_id || data.section_id} with assigned amount ${data.amount}`);
     } else {
       // Update existing allocation - increment assigned_amount
       [allocation] = await knex('budget_allocations')

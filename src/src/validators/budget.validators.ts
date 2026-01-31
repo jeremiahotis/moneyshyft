@@ -109,10 +109,13 @@ export const bulkSetAllocationsSchema = Joi.object({
  * Used during wizard setup when user assigns their existing account balances
  */
 export const assignAccountBalanceSchema = Joi.object({
-  category_id: Joi.string().uuid().required()
+  category_id: Joi.string().uuid().optional().allow(null)
     .messages({
-      'any.required': 'Category ID is required',
       'string.guid': 'Category ID must be a valid UUID'
+    }),
+  section_id: Joi.string().uuid().optional().allow(null)
+    .messages({
+      'string.guid': 'Section ID must be a valid UUID'
     }),
   account_id: Joi.string().uuid().optional().allow(null)
     .messages({
@@ -124,4 +127,17 @@ export const assignAccountBalanceSchema = Joi.object({
       'number.base': 'Amount must be a number',
       'number.min': 'Amount must be greater than 0'
     })
+}).custom((value, helpers) => {
+  const hasCategoryId = !!value.category_id;
+  const hasSectionId = !!value.section_id;
+
+  if (!hasCategoryId && !hasSectionId) {
+    return helpers.error('any.invalid', { message: 'Either category_id or section_id must be provided' });
+  }
+
+  if (hasCategoryId && hasSectionId) {
+    return helpers.error('any.invalid', { message: 'Cannot set both category_id and section_id' });
+  }
+
+  return value;
 });

@@ -183,8 +183,22 @@ export class AssignmentService {
       query.where({ section_id: sectionId });
     }
 
-    const result = await query.first();
-    const totalAssigned = Number(result?.total || 0);
+    const incomeAssignedResult = await query.first();
+    const incomeAssigned = Number(incomeAssignedResult?.total || 0);
+
+    const balanceAssignedResult = await knex('account_balance_assignments')
+      .where({ household_id: householdId })
+      .modify(qb => {
+        if (categoryId) {
+          qb.where({ category_id: categoryId });
+        } else {
+          qb.where({ section_id: sectionId });
+        }
+      })
+      .sum('amount as total')
+      .first();
+    const balanceAssigned = Number(balanceAssignedResult?.total || 0);
+    const totalAssigned = incomeAssigned + balanceAssigned;
 
     // Get or create budget allocation
     // Convert month string (YYYY-MM) to Date object
@@ -691,14 +705,13 @@ export class AssignmentService {
             // For now, we proceed as this fulfills the financial movement.
 
             remaining = 0;
-          } else {
-            // Fallback for Section assignments (Rollup) - currently BudgetService doesn't support assignAccountBalance for sections
-            // If we really need this, we'd need to update BudgetService. 
-            // For now, we error if we can't fund a Section assignment from transactions, 
-            // UNLESS we just force update the allocation without an assignment record? 
-            // No, that breaks audit.
+          } else if (section_id) {
+            await BudgetService.assignAccountBalance(householdId, userId, {
+              section_id: section_id,
+              amount: remaining,
+            });
 
-            // Proceed to error if still remaining
+            remaining = 0;
           }
         }
 
@@ -725,8 +738,22 @@ export class AssignmentService {
           query.where({ section_id });
         }
 
-        const result = await query.sum('amount as total').first();
-        const totalAssigned = Number(result?.total || 0);
+        const incomeAssignedResult = await query.sum('amount as total').first();
+        const incomeAssigned = Number(incomeAssignedResult?.total || 0);
+
+        const balanceAssignedResult = await trx('account_balance_assignments')
+          .where({ household_id: householdId })
+          .modify(qb => {
+            if (category_id) {
+              qb.where({ category_id });
+            } else {
+              qb.where({ section_id });
+            }
+          })
+          .sum('amount as total')
+          .first();
+        const balanceAssigned = Number(balanceAssignedResult?.total || 0);
+        const totalAssigned = incomeAssigned + balanceAssigned;
 
         // Get budget month
         const monthDate = new Date(`${month}-01`);
