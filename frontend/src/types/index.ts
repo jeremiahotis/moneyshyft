@@ -252,13 +252,24 @@ export interface WizardAnswers {
     minimum_payment: number;
   }>;
 
-  // Flexible spending step
+  // Variable expenses step
   groceries_estimate?: number;
+  gas_transportation_estimate?: number;
+  personal_care_estimate?: number;
+  charitable_giving_estimate?: number;
+  home_improvement_estimate?: number;
+  healthcare_medical_estimate?: number;
+  pet_care_estimate?: number;
+
+  // Flexible spending step
   dining_out_estimate?: number;
   entertainment_estimate?: number;
-  gas_transportation_estimate?: number;
   shopping_estimate?: number;
-  personal_care_estimate?: number;
+  unplanned_expenses_estimate?: number;
+  gifts_estimate?: number;
+  fun_money_estimate?: number;
+  bank_fees_charges_estimate?: number;
+  subscriptions_estimate?: number;
 
   // Balance assignment step (NEW)
   balance_assignments?: Record<string, number>; // category_id -> amount

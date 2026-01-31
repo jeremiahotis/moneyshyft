@@ -153,7 +153,7 @@
     <!-- Helper text -->
     <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
       <p class="text-sm text-blue-900">
-        💡 <strong>No car?</strong> That's fine! You can add costs for public transit, gas, or ride-sharing in the flexible spending section later.
+        💡 <strong>No car?</strong> That's fine! You can add costs for public transit, gas, or ride-sharing in the variable expenses section later.
       </p>
     </div>
 

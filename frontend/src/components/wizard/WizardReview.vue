@@ -74,6 +74,10 @@
           <span class="text-gray-700"><span class="mr-2">💳</span>Debt Payments</span>
           <span class="font-medium">{{ formatCurrency(totalDebtPayments) }}</span>
         </div>
+        <div v-if="totalVariableExpenses > 0" class="flex justify-between">
+          <span class="text-gray-700"><span class="mr-2">🧾</span>Variable Expenses</span>
+          <span class="font-medium">{{ formatCurrency(totalVariableExpenses) }}</span>
+        </div>
         <div v-if="totalFlexibleSpending > 0" class="flex justify-between">
           <span class="text-gray-700"><span class="mr-2">🛒</span>Flexible Spending</span>
           <span class="font-medium">{{ formatCurrency(totalFlexibleSpending) }}</span>
@@ -155,13 +159,25 @@ const totalDebtPayments = computed(() => {
   return ccPayments + otherPayments;
 });
 
-const totalFlexibleSpending = computed(() => {
+const totalVariableExpenses = computed(() => {
   return (props.answers.groceries_estimate || 0) +
-         (props.answers.dining_out_estimate || 0) +
-         (props.answers.entertainment_estimate || 0) +
          (props.answers.gas_transportation_estimate || 0) +
+         (props.answers.personal_care_estimate || 0) +
+         (props.answers.charitable_giving_estimate || 0) +
+         (props.answers.home_improvement_estimate || 0) +
+         (props.answers.healthcare_medical_estimate || 0) +
+         (props.answers.pet_care_estimate || 0);
+});
+
+const totalFlexibleSpending = computed(() => {
+  return (props.answers.dining_out_estimate || 0) +
+         (props.answers.entertainment_estimate || 0) +
          (props.answers.shopping_estimate || 0) +
-         (props.answers.personal_care_estimate || 0);
+         (props.answers.unplanned_expenses_estimate || 0) +
+         (props.answers.gifts_estimate || 0) +
+         (props.answers.fun_money_estimate || 0) +
+         (props.answers.bank_fees_charges_estimate || 0) +
+         (props.answers.subscriptions_estimate || 0);
 });
 
 const utilitiesBreakdown = computed(() => {
@@ -192,6 +208,7 @@ const totalExpenses = computed(() => {
          (carInsurance || props.answers.car_insurance_amount || 0) +
          utilitiesTotal.value +
          totalDebtPayments.value +
+         totalVariableExpenses.value +
          totalFlexibleSpending.value;
 });
 

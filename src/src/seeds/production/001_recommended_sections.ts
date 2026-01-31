@@ -5,7 +5,8 @@ import { Knex } from 'knex';
  *
  * Creates recommended section structure for new households:
  * - Fixed Expenses: Essential bills that stay consistent
- * - Flexible Spending: Variable spending that can be adjusted
+ * - Variable Expenses: Essential spending that varies month-to-month
+ * - Flexible Spending: Discretionary spending that can be adjusted
  * - Debt Payments: Track debt payment progress
  *
  * Note: These are NOT system records (is_system = false),
@@ -60,24 +61,60 @@ export async function createRecommendedSections(
     }))
   );
 
-  // 2. Flexible Spending Section
-  const [flexibleSection] = await knex('category_sections')
+  // 2. Variable Expenses Section
+  const [variableSection] = await knex('category_sections')
     .insert({
       household_id: householdId,
-      name: 'Flexible Spending',
+      name: 'Variable Expenses',
       type: 'flexible',
       sort_order: 2,
       is_system: false
     })
     .returning('*');
 
-  const flexibleCategories = [
+  const variableCategories = [
     { name: 'Groceries', sort_order: 1 },
-    { name: 'Dining Out', sort_order: 2 },
-    { name: 'Entertainment', sort_order: 3 },
-    { name: 'Shopping', sort_order: 4 },
-    { name: 'Personal Care', sort_order: 5 },
-    { name: 'Gas & Transportation', sort_order: 6 }
+    { name: 'Gas & Transportation', sort_order: 2 },
+    { name: 'Personal Care', sort_order: 3 },
+    { name: 'Charitable Giving', sort_order: 4 },
+    { name: 'Home Improvement / Maintenance', sort_order: 5 },
+    { name: 'Healthcare / Medical Expenses', sort_order: 6 },
+    { name: 'Pet Care', sort_order: 7 }
+  ];
+
+  await knex('categories').insert(
+    variableCategories.map(cat => ({
+      household_id: householdId,
+      section_id: variableSection.id,
+      name: cat.name,
+      sort_order: cat.sort_order,
+      is_system: false,
+      parent_category_id: null,
+      color: null,
+      icon: null
+    }))
+  );
+
+  // 3. Flexible Spending Section
+  const [flexibleSection] = await knex('category_sections')
+    .insert({
+      household_id: householdId,
+      name: 'Flexible Spending',
+      type: 'flexible',
+      sort_order: 3,
+      is_system: false
+    })
+    .returning('*');
+
+  const flexibleCategories = [
+    { name: 'Dining Out', sort_order: 1 },
+    { name: 'Entertainment & Recreation', sort_order: 2 },
+    { name: 'Shopping', sort_order: 3 },
+    { name: 'Unplanned Expenses', sort_order: 4 },
+    { name: 'Gifts', sort_order: 5 },
+    { name: 'Fun Money', sort_order: 6 },
+    { name: 'Bank Fees / Charges', sort_order: 7 },
+    { name: 'Subscriptions', sort_order: 8 }
   ];
 
   await knex('categories').insert(
@@ -93,45 +130,13 @@ export async function createRecommendedSections(
     }))
   );
 
-  // Giving parent category with child categories
-  const [givingParent] = await knex('categories')
-    .insert({
-      household_id: householdId,
-      section_id: flexibleSection.id,
-      name: 'Giving',
-      sort_order: 7,
-      is_system: false,
-      parent_category_id: null,
-      color: null,
-      icon: null
-    })
-    .returning('*');
-
-  const givingChildren = [
-    { name: 'Donations', sort_order: 8 },
-    { name: 'Helping Friends/Family', sort_order: 9 }
-  ];
-
-  await knex('categories').insert(
-    givingChildren.map(cat => ({
-      household_id: householdId,
-      section_id: flexibleSection.id,
-      name: cat.name,
-      sort_order: cat.sort_order,
-      is_system: false,
-      parent_category_id: givingParent.id,
-      color: null,
-      icon: null
-    }))
-  );
-
-  // 3. Debt Payments Section
+  // 4. Debt Payments Section
   const [debtSection] = await knex('category_sections')
     .insert({
       household_id: householdId,
       name: 'Debt Payments',
       type: 'debt',
-      sort_order: 3,
+      sort_order: 4,
       is_system: false
     })
     .returning('*');
@@ -157,6 +162,7 @@ export async function createRecommendedSections(
 
   console.log(`✅ Recommended sections created for household ${householdId}`);
   console.log(`   - Fixed Expenses (${fixedCategories.length} categories)`);
-  console.log(`   - Flexible Spending (${flexibleCategories.length + givingChildren.length + 1} categories)`);
+  console.log(`   - Variable Expenses (${variableCategories.length} categories)`);
+  console.log(`   - Flexible Spending (${flexibleCategories.length} categories)`);
   console.log(`   - Debt Payments (${debtCategories.length} categories)`);
 }

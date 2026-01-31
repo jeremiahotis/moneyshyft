@@ -195,7 +195,7 @@
         <div v-if="allSections.length === 0" class="text-center py-12 bg-white rounded-lg shadow">
           <p class="text-gray-600 mb-4">No budget sections yet. Let's get started!</p>
           <p class="text-sm text-gray-500">
-            Tip: Create sections for Fixed Expenses, Flexible Spending, and Debt Payments
+            Tip: Create sections for Fixed Expenses, Variable Expenses, Flexible Spending, and Debt Payments
           </p>
         </div>
 

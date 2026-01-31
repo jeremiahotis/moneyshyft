@@ -321,8 +321,10 @@ onMounted(async () => {
   await categoriesStore.fetchCategories();
 
   if (!categoryMappings.value.giving) {
-    const donations = categoriesStore.categories.find(cat => cat.name === 'Donations');
-    if (donations) categoryMappings.value.giving = donations.id;
+    const giving = categoriesStore.categories.find(cat =>
+      cat.name === 'Charitable Giving' || cat.name === 'Donations' || cat.name === 'Giving'
+    );
+    if (giving) categoryMappings.value.giving = giving.id;
   }
 
   if (!categoryMappings.value.helping) {
@@ -335,7 +337,9 @@ onMounted(async () => {
     if (debtSection) sectionMappings.value.debt = debtSection.id;
   }
   if (!sectionMappings.value.fun) {
-    const flexibleSection = availableSections('flexible')[0];
+    const flexibleSection =
+      availableSections('flexible').find(section => section.name === 'Flexible Spending') ||
+      availableSections('flexible')[0];
     if (flexibleSection) sectionMappings.value.fun = flexibleSection.id;
   }
 

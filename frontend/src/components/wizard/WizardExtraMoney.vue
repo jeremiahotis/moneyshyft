@@ -420,8 +420,10 @@ onMounted(async () => {
   await categoriesStore.fetchCategories();
 
   if (!categoryMappings.value.giving) {
-    // Try to find "Giving" or "Donations"
-    const giving = categoriesStore.categories.find(cat => cat.name === 'Giving' || cat.name === 'Donations');
+    // Try to find "Charitable Giving", "Giving", or "Donations"
+    const giving = categoriesStore.categories.find(cat =>
+      cat.name === 'Charitable Giving' || cat.name === 'Giving' || cat.name === 'Donations'
+    );
     if (giving) categoryMappings.value.giving = giving.id;
   }
 
@@ -430,7 +432,9 @@ onMounted(async () => {
     if (debtSection) sectionMappings.value.debt = debtSection.id;
   }
   if (!sectionMappings.value.fun) {
-    const flexibleSection = availableSections('flexible')[0];
+    const flexibleSection =
+      availableSections('flexible').find(section => section.name === 'Flexible Spending') ||
+      availableSections('flexible')[0];
     if (flexibleSection) sectionMappings.value.fun = flexibleSection.id;
   }
 });

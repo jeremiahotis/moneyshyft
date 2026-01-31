@@ -250,9 +250,19 @@ function getBudgetAmount(categoryName: string): number {
   if (categoryName === 'Groceries') return answers.groceries_estimate || 0
   if (categoryName === 'Dining Out') return answers.dining_out_estimate || 0
   if (categoryName === 'Entertainment') return answers.entertainment_estimate || 0
+  if (categoryName === 'Entertainment & Recreation') return answers.entertainment_estimate || 0
   if (categoryName === 'Gas & Transportation') return answers.gas_transportation_estimate || 0
   if (categoryName === 'Shopping') return answers.shopping_estimate || 0
   if (categoryName === 'Personal Care') return answers.personal_care_estimate || 0
+  if (categoryName === 'Charitable Giving') return answers.charitable_giving_estimate || 0
+  if (categoryName === 'Home Improvement / Maintenance') return answers.home_improvement_estimate || 0
+  if (categoryName === 'Healthcare / Medical Expenses') return answers.healthcare_medical_estimate || 0
+  if (categoryName === 'Pet Care') return answers.pet_care_estimate || 0
+  if (categoryName === 'Unplanned Expenses') return answers.unplanned_expenses_estimate || 0
+  if (categoryName === 'Gifts') return answers.gifts_estimate || 0
+  if (categoryName === 'Fun Money') return answers.fun_money_estimate || 0
+  if (categoryName === 'Bank Fees / Charges') return answers.bank_fees_charges_estimate || 0
+  if (categoryName === 'Subscriptions') return answers.subscriptions_estimate || 0
 
   return 0
 }

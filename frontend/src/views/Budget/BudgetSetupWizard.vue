@@ -392,45 +392,86 @@ async function createBudgetFromWizard() {
       });
     }
 
-    // 4. Create Flexible Spending section
+    // 4. Create Variable Expenses section
+    const variableSection = await ensureSection('Variable Expenses', 'flexible');
+    const variableCategories = [
+      'Groceries',
+      'Gas & Transportation',
+      'Personal Care',
+      'Charitable Giving',
+      'Home Improvement / Maintenance',
+      'Healthcare / Medical Expenses',
+      'Pet Care'
+    ];
+
+    for (const name of variableCategories) {
+      await ensureCategory(variableSection.id, name);
+    }
+
+    // 5. Create Flexible Spending section
     const flexSection = await ensureSection('Flexible Spending', 'flexible');
+    const flexibleCategories = [
+      'Dining Out',
+      'Entertainment & Recreation',
+      'Shopping',
+      'Unplanned Expenses',
+      'Gifts',
+      'Fun Money',
+      'Bank Fees / Charges',
+      'Subscriptions'
+    ];
 
-    // Create categories for tracking
-    await ensureCategory(flexSection.id, 'Groceries');
-    await ensureCategory(flexSection.id, 'Dining Out');
-    await ensureCategory(flexSection.id, 'Entertainment');
-    await ensureCategory(flexSection.id, 'Gas & Transportation');
-    await ensureCategory(flexSection.id, 'Shopping');
-    await ensureCategory(flexSection.id, 'Personal Care');
+    for (const name of flexibleCategories) {
+      await ensureCategory(flexSection.id, name);
+    }
 
-    const flexAllocations = [
+    const variableAllocations = [
       { name: 'Groceries', amount: answers.groceries_estimate || 0 },
-      { name: 'Dining Out', amount: answers.dining_out_estimate || 0 },
-      { name: 'Entertainment', amount: answers.entertainment_estimate || 0 },
       { name: 'Gas & Transportation', amount: answers.gas_transportation_estimate || 0 },
+      { name: 'Personal Care', amount: answers.personal_care_estimate || 0 },
+      { name: 'Charitable Giving', amount: answers.charitable_giving_estimate || 0 },
+      { name: 'Home Improvement / Maintenance', amount: answers.home_improvement_estimate || 0 },
+      { name: 'Healthcare / Medical Expenses', amount: answers.healthcare_medical_estimate || 0 },
+      { name: 'Pet Care', amount: answers.pet_care_estimate || 0 }
+    ];
+
+    const flexibleAllocations = [
+      { name: 'Dining Out', amount: answers.dining_out_estimate || 0 },
+      { name: 'Entertainment & Recreation', amount: answers.entertainment_estimate || 0 },
       { name: 'Shopping', amount: answers.shopping_estimate || 0 },
-      { name: 'Personal Care', amount: answers.personal_care_estimate || 0 }
+      { name: 'Unplanned Expenses', amount: answers.unplanned_expenses_estimate || 0 },
+      { name: 'Gifts', amount: answers.gifts_estimate || 0 },
+      { name: 'Fun Money', amount: answers.fun_money_estimate || 0 },
+      { name: 'Bank Fees / Charges', amount: answers.bank_fees_charges_estimate || 0 },
+      { name: 'Subscriptions', amount: answers.subscriptions_estimate || 0 }
     ];
 
     if (answers.first_wins) {
       await ensureCategory(fixedSection.id, 'Rent/Mortgage');
       await ensureCategory(fixedSection.id, 'Utilities');
       await ensureCategory(fixedSection.id, 'Transportation');
-      await ensureCategory(flexSection.id, 'Groceries');
+      await ensureCategory(variableSection.id, 'Groceries');
     }
 
-    for (const allocation of flexAllocations) {
-      if (allocation.amount > 0) {
-        const category = await ensureCategory(flexSection.id, allocation.name);
-        await budgetsStore.setAllocation(currentMonth, {
-          category_id: category.id,
-          allocated_amount: allocation.amount,
-          rollup_mode: false,
-        });
-      }
+    const variableTotal = variableAllocations.reduce((sum, item) => sum + item.amount, 0);
+    if (variableTotal > 0) {
+      await budgetsStore.setAllocation(currentMonth, {
+        section_id: variableSection.id,
+        allocated_amount: variableTotal,
+        rollup_mode: true,
+      });
     }
 
-    // 5. Save Extra Money preferences (if provided)
+    const flexibleTotal = flexibleAllocations.reduce((sum, item) => sum + item.amount, 0);
+    if (flexibleTotal > 0) {
+      await budgetsStore.setAllocation(currentMonth, {
+        section_id: flexSection.id,
+        allocated_amount: flexibleTotal,
+        rollup_mode: true,
+      });
+    }
+
+    // 6. Save Extra Money preferences (if provided)
     if (answers.extra_money_percentages) {
       try {
         await api.post('/extra-money/preferences', answers.extra_money_percentages);
