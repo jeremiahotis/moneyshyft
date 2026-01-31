@@ -245,6 +245,9 @@ function quickFillCategory(item: AssignableItem) {
 
 // Manually assign to categories/sections
 async function handleAssignToCategories() {
+  if (isLoading.value) return;
+  isLoading.value = true;
+
   // Build assignments array (only non-zero amounts)
   const assignments = Object.entries(categoryAssignments.value)
     .filter(([_, amount]) => amount > 0)
@@ -265,15 +268,16 @@ async function handleAssignToCategories() {
 
   if (assignments.length === 0) {
     alert('Please enter at least one assignment');
+    isLoading.value = false;
     return;
   }
 
   if (remainingBalance.value < 0) {
     alert('Cannot assign more than available balance');
+    isLoading.value = false;
     return;
   }
 
-  isLoading.value = true;
   try {
     await assignmentsStore.assignToCategories(
       budgetsStore.currentMonth,
@@ -296,6 +300,7 @@ async function handleAssignToCategories() {
 
 // Auto-assign all available money
 async function handleAutoAssignAll() {
+  if (isLoading.value) return;
   if (!confirm('Automatically distribute all available money to underfunded categories?\n\nThis will assign money based on each category\'s need.')) {
     return;
   }
