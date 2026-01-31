@@ -12,6 +12,11 @@ export const createTransactionSchema = Joi.object({
       'string.guid': 'Category ID must be a valid UUID'
     }),
 
+  tag_id: Joi.string().uuid().allow(null).optional()
+    .messages({
+      'string.guid': 'Tag ID must be a valid UUID'
+    }),
+
   payee: Joi.string().min(1).max(255).required()
     .messages({
       'string.empty': 'Payee is required',
@@ -44,6 +49,11 @@ export const updateTransactionSchema = Joi.object({
   category_id: Joi.string().uuid().allow(null).optional()
     .messages({
       'string.guid': 'Category ID must be a valid UUID'
+    }),
+
+  tag_id: Joi.string().uuid().allow(null).optional()
+    .messages({
+      'string.guid': 'Tag ID must be a valid UUID'
     }),
 
   payee: Joi.string().min(1).max(255)

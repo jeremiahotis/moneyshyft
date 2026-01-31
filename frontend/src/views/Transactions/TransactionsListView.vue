@@ -56,6 +56,15 @@
               <p class="text-sm text-gray-500 mt-1">
                 {{ formatDate(transaction.transaction_date) }}
               </p>
+              <p class="text-xs text-gray-500 mt-1">
+                <span>Account: {{ getAccountName(transaction.account_id) }}</span>
+                <span class="mx-1">•</span>
+                <span>Category: {{ getCategoryName(transaction.category_id) }}</span>
+                <template v-if="getTagLabel(transaction.tag_id)">
+                  <span class="mx-1">•</span>
+                  <span>Tag: {{ getTagLabel(transaction.tag_id) }}</span>
+                </template>
+              </p>
               <p v-if="transaction.notes" class="text-sm text-gray-600 mt-1">
                 {{ transaction.notes }}
               </p>
@@ -298,6 +307,23 @@
                 </div>
               </div>
             </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Tag (optional)</label>
+              <select
+                v-model="formData.tag_id"
+                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+              >
+                <option :value="null">No tag</option>
+                <option
+                  v-for="option in tagOptions"
+                  :key="option.id"
+                  :value="option.id"
+                  :class="option.isParent ? 'tag-option-parent' : ''"
+                >
+                  {{ option.label }}
+                </option>
+              </select>
+            </div>
             <div v-if="activeGoals.length > 0">
               <label class="block text-sm font-medium text-gray-700 mb-1">
                 Link to Goal (optional)
@@ -412,6 +438,7 @@ import { useAccountsStore } from '@/stores/accounts';
 import { useCategoriesStore } from '@/stores/categories';
 import { useGoalsStore } from '@/stores/goals';
 import { useDebtsStore } from '@/stores/debts';
+import { useTagsStore } from '@/stores/tags';
 import AppLayout from '@/components/layout/AppLayout.vue';
 import SplitTransactionModal from '@/components/transactions/SplitTransactionModal.vue';
 import ExtraMoneyModal from '@/components/extraMoney/ExtraMoneyModal.vue';
@@ -428,6 +455,7 @@ const accountsStore = useAccountsStore();
 const categoriesStore = useCategoriesStore();
 const goalsStore = useGoalsStore();
 const debtsStore = useDebtsStore();
+const tagsStore = useTagsStore();
 
 const showAddModal = ref(false);
 const showTransferModal = ref(false);
@@ -480,6 +508,7 @@ const formData = ref<CreateTransactionData>({
   amount: 0,
   transaction_date: new Date().toISOString().split('T')[0],
   category_id: null,
+  tag_id: null,
   debt_id: null,  // NEW: Debt link
   notes: '',
 });
@@ -487,6 +516,7 @@ const formData = ref<CreateTransactionData>({
 const transactions = computed(() => transactionsStore.transactions);
 const accounts = computed(() => accountsStore.accounts);
 const sections = computed(() => categoriesStore.sections);
+const tags = computed(() => tagsStore.tags);
 const activeGoals = computed(() => goalsStore.goals.filter(g => !g.is_completed));
 const activeDebts = computed(() => debtsStore.activeDebts);
 
@@ -518,6 +548,35 @@ const categoriesBySection = computed(() => {
   }));
 });
 
+const tagOptions = computed(() => {
+  const parents = tags.value.filter(tag => !tag.parent_tag_id);
+  const children = tags.value.filter(tag => tag.parent_tag_id);
+  const childrenByParent = new Map<string, typeof children>();
+
+  children.forEach(tag => {
+    if (!tag.parent_tag_id) return;
+    if (!childrenByParent.has(tag.parent_tag_id)) {
+      childrenByParent.set(tag.parent_tag_id, []);
+    }
+    childrenByParent.get(tag.parent_tag_id)!.push(tag);
+  });
+
+  const options: Array<{ id: string; label: string; isParent: boolean }> = [];
+  parents.forEach(parent => {
+    options.push({ id: parent.id, label: parent.name, isParent: true });
+    const kids = childrenByParent.get(parent.id) || [];
+    kids.forEach(child => {
+      options.push({
+        id: child.id,
+        label: `${parent.name} / ${child.name}`,
+        isParent: false
+      });
+    });
+  });
+
+  return options;
+});
+
 const allCategories = computed(() => {
   return sections.value.flatMap(section => section.categories || []);
 });
@@ -527,6 +586,7 @@ onMounted(async () => {
     fetchTransactions(),
     accountsStore.fetchAccounts(),
     categoriesStore.fetchCategories(),
+    tagsStore.fetchTags(),
     goalsStore.fetchGoals(),
     debtsStore.fetchDebts(),  // NEW: Load debts
   ]);
@@ -555,6 +615,7 @@ function closeModal() {
     amount: 0,
     transaction_date: new Date().toISOString().split('T')[0],
     category_id: null,
+    tag_id: null,
     debt_id: null,  // NEW: Reset debt link
     notes: '',
   };
@@ -661,6 +722,7 @@ function editTransaction(transaction: Transaction) {
     amount: Math.abs(transaction.amount),
     transaction_date: transaction.transaction_date,
     category_id: transaction.category_id,
+    tag_id: transaction.tag_id ?? null,
     notes: transaction.notes || '',
   };
 
@@ -787,6 +849,28 @@ function formatCurrency(amount: number): string {
   return amount < 0 ? `-${formatted}` : formatted;
 }
 
+function getAccountName(accountId: string): string {
+  return accounts.value.find(account => account.id === accountId)?.name || 'Unknown Account';
+}
+
+function getCategoryName(categoryId: string | null): string {
+  if (!categoryId) return 'Uncategorized';
+  for (const section of sections.value) {
+    const category = section.categories?.find(c => c.id === categoryId);
+    if (category) return category.name;
+  }
+  return 'Uncategorized';
+}
+
+function getTagLabel(tagId?: string | null): string | null {
+  if (!tagId) return null;
+  const tag = tags.value.find(t => t.id === tagId);
+  if (!tag) return null;
+  if (!tag.parent_tag_id) return tag.name;
+  const parent = tags.value.find(t => t.id === tag.parent_tag_id);
+  return parent ? `${parent.name} / ${tag.name}` : tag.name;
+}
+
 
 
 async function handleTransferSuccess() {
@@ -812,3 +896,9 @@ function handleExtraMoneyModalUpdate(value: boolean) {
   }
 }
 </script>
+
+<style scoped>
+.tag-option-parent {
+  font-weight: 600;
+}
+</style>

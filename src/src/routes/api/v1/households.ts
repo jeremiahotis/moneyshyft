@@ -127,7 +127,9 @@ router.post('/reset', asyncHandler(async (req: Request, res: Response) => {
     await trx('budget_allocations').whereIn('budget_month_id', budgetMonthsQuery).del();
     await trx('budget_months').where({ household_id: householdId }).del();
 
+    await trx('transaction_tags').whereIn('transaction_id', trx('transactions').select('id').where({ household_id: householdId })).del();
     await trx('transactions').where({ household_id: householdId }).del();
+    await trx('tags').where({ household_id: householdId }).del();
     await trx('categories').where({ household_id: householdId }).del();
     await trx('category_sections').where({ household_id: householdId }).del();
     await trx('accounts').where({ household_id: householdId }).del();

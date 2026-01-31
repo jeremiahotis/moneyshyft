@@ -4,6 +4,7 @@ import { generateAccessToken, generateRefreshToken, JWTPayload } from '../utils/
 import { generateInvitationCode } from '../utils/invitationCode';
 import logger from '../utils/logger';
 import { createRecommendedSections } from '../seeds/production/001_recommended_sections';
+import { createRecommendedTags } from '../seeds/production/002_recommended_tags';
 import { AnalyticsService } from './AnalyticsService';
 
 const BCRYPT_ROUNDS = 12;
@@ -139,6 +140,7 @@ class AuthService {
 
         if (householdId) {
           await createRecommendedSections(trx, householdId);
+          await createRecommendedTags(trx, householdId);
         }
 
         logger.info(`Created default Income category for household: ${householdId}`);

@@ -67,6 +67,7 @@ import recurringRoutes from './routes/api/v1/recurring-transactions';
 import extraMoneyRoutes from './routes/api/v1/extra-money';
 import settingsRoutes from './routes/api/v1/settings';
 import scenarioRoutes from './routes/api/v1/scenarios';
+import tagRoutes from './routes/api/v1/tags';
 
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/accounts', accountRoutes);
@@ -83,6 +84,7 @@ app.use('/api/v1/recurring-transactions', recurringRoutes);
 app.use('/api/v1/extra-money', extraMoneyRoutes);
 app.use('/api/v1/settings', settingsRoutes);
 app.use('/api/v1/scenarios', scenarioRoutes);
+app.use('/api/v1/tags', tagRoutes);
 
 // 404 handler
 app.use((req: Request, res: Response) => {

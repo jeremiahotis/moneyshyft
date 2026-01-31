@@ -65,6 +65,7 @@ export interface Transaction {
   household_id: string;
   account_id: string;
   category_id: string | null;
+  tag_id?: string | null;
   debt_id?: string | null;  // NEW: Optional debt link
   payee: string;
   amount: number;
@@ -88,12 +89,26 @@ export interface TransactionCreateResult {
 export interface CreateTransactionData {
   account_id: string;
   category_id?: string | null;
+  tag_id?: string | null;
   debt_id?: string | null;  // NEW: Optional debt link
   payee: string;
   amount: number;
   transaction_date: string;
   notes?: string;
   is_cleared?: boolean;
+}
+
+export interface Tag {
+  id: string;
+  household_id: string;
+  name: string;
+  parent_tag_id: string | null;
+  sort_order: number;
+  color: string | null;
+  icon: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Category {

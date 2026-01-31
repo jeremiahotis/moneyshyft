@@ -8,6 +8,7 @@ interface Transaction {
   household_id: string;
   account_id: string;
   category_id: string | null;
+  tag_id?: string | null;
   payee: string;
   amount: number;
   transaction_date: Date;
@@ -128,6 +129,11 @@ export class SplitTransactionService {
         })
         .returning('*');
 
+      const parentTag = await trx('transaction_tags')
+        .where({ transaction_id: transactionId })
+        .first();
+      updatedParent.tag_id = parentTag?.tag_id || null;
+
       // Create split child transactions
       const splitTransactions: Transaction[] = [];
       for (const split of splits) {
@@ -182,6 +188,11 @@ export class SplitTransactionService {
     const splits = await knex('transactions')
       .where({ parent_transaction_id: transactionId, household_id: householdId })
       .orderBy('created_at', 'asc');
+
+    const parentTag = await knex('transaction_tags')
+      .where({ transaction_id: transactionId })
+      .first();
+    parent.tag_id = parentTag?.tag_id || null;
 
     return {
       parent,
@@ -258,6 +269,11 @@ export class SplitTransactionService {
         .update({ updated_at: trx.fn.now() })
         .returning('*');
 
+      const parentTag = await trx('transaction_tags')
+        .where({ transaction_id: transactionId })
+        .first();
+      updatedParent.tag_id = parentTag?.tag_id || null;
+
       logger.info(
         `Transaction ${transactionId} splits updated to ${splits.length} children`
       );
@@ -321,6 +337,11 @@ export class SplitTransactionService {
           updated_at: trx.fn.now()
         })
         .returning('*');
+
+      const parentTag = await trx('transaction_tags')
+        .where({ transaction_id: transactionId })
+        .first();
+      unsplitTransaction.tag_id = parentTag?.tag_id || null;
 
       logger.info(`Transaction ${transactionId} unsplit and restored`);
 

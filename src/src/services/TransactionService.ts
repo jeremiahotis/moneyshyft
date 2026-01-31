@@ -12,6 +12,7 @@ interface Transaction {
   household_id: string;
   account_id: string;
   category_id: string | null;
+  tag_id?: string | null;
   debt_id: string | null;
   transfer_transaction_id: string | null; // NEW: Link to other side of transfer
   payee: string;
@@ -43,6 +44,7 @@ interface TransactionCreateResult extends Transaction {
 interface CreateTransactionData {
   account_id: string;
   category_id?: string | null;
+  tag_id?: string | null;
   debt_id?: string | null;  // NEW: Optional debt link
   payee: string;
   amount: number;
@@ -54,6 +56,7 @@ interface CreateTransactionData {
 
 interface UpdateTransactionData {
   category_id?: string | null;
+  tag_id?: string | null;
   payee?: string;
   amount?: number;
   transaction_date?: Date | string;
@@ -83,21 +86,23 @@ export class TransactionService {
     }
   ): Promise<Transaction[]> {
     let query = knex('transactions')
-      .where({ household_id: householdId })
+      .leftJoin('transaction_tags as tt', 'transactions.id', 'tt.transaction_id')
+      .where({ 'transactions.household_id': householdId })
+      .select('transactions.*', 'tt.tag_id as tag_id')
       .orderBy('transaction_date', 'desc');
 
     // By default, exclude split children from the list (only show parent transactions)
     if (!filters?.include_split_children) {
-      query = query.where({ is_split_child: false });
+      query = query.where({ 'transactions.is_split_child': false });
     }
 
     // Apply filters
     if (filters?.account_id) {
-      query = query.where({ account_id: filters.account_id });
+      query = query.where({ 'transactions.account_id': filters.account_id });
     }
 
     if (filters?.category_id) {
-      query = query.where({ category_id: filters.category_id });
+      query = query.where({ 'transactions.category_id': filters.category_id });
     }
 
     if (filters?.start_date) {
@@ -152,7 +157,9 @@ export class TransactionService {
    */
   static async getTransactionById(transactionId: string, householdId: string): Promise<Transaction> {
     const transaction = await knex('transactions')
-      .where({ id: transactionId, household_id: householdId })
+      .leftJoin('transaction_tags as tt', 'transactions.id', 'tt.transaction_id')
+      .where({ 'transactions.id': transactionId, 'transactions.household_id': householdId })
+      .select('transactions.*', 'tt.tag_id as tag_id')
       .first();
 
     if (!transaction) {
@@ -173,7 +180,7 @@ export class TransactionService {
     data: CreateTransactionData,
     trx?: Knex | Knex.Transaction
   ): Promise<TransactionCreateResult> {
-    const { account_id, category_id, debt_id, payee, amount, transaction_date, notes, is_cleared = false, is_reconciled = false } = data;
+    const { account_id, category_id, tag_id, debt_id, payee, amount, transaction_date, notes, is_cleared = false, is_reconciled = false } = data;
     const normalizedDate = typeof transaction_date === 'string'
       ? transaction_date
       : transaction_date.toISOString().split('T')[0];
@@ -190,6 +197,17 @@ export class TransactionService {
 
         if (!category) {
           throw new BadRequestError('Category not found or does not belong to this household');
+        }
+      }
+
+      // If tag provided, verify it belongs to household
+      if (tag_id) {
+        const tag = await t('tags')
+          .where({ id: tag_id, household_id: householdId })
+          .first();
+
+        if (!tag) {
+          throw new BadRequestError('Tag not found or does not belong to this household');
         }
       }
 
@@ -222,6 +240,16 @@ export class TransactionService {
           is_split_child: false,
         })
         .returning('*');
+
+      if (tag_id) {
+        await t('transaction_tags').insert({
+          transaction_id: transaction.id,
+          tag_id
+        });
+        transaction.tag_id = tag_id;
+      } else {
+        transaction.tag_id = null;
+      }
 
       await AnalyticsService.recordEvent(
         'transaction_created',
@@ -421,6 +449,8 @@ export class TransactionService {
     householdId: string,
     data: UpdateTransactionData
   ): Promise<Transaction> {
+    const { tag_id, ...transactionData } = data;
+
     // Check if transaction exists and belongs to household
     const existingTransaction = await this.getTransactionById(transactionId, householdId);
 
@@ -447,9 +477,9 @@ export class TransactionService {
     }
 
     // If category is being updated, verify it belongs to household
-    if (data.category_id !== undefined && data.category_id !== null) {
+    if (transactionData.category_id !== undefined && transactionData.category_id !== null) {
       const category = await knex('categories')
-        .where({ id: data.category_id, household_id: householdId })
+        .where({ id: transactionData.category_id, household_id: householdId })
         .first();
 
       if (!category) {
@@ -457,14 +487,47 @@ export class TransactionService {
       }
     }
 
+    if (tag_id !== undefined && tag_id !== null) {
+      const tag = await knex('tags')
+        .where({ id: tag_id, household_id: householdId })
+        .first();
+
+      if (!tag) {
+        throw new BadRequestError('Tag not found or does not belong to this household');
+      }
+    }
+
     // Update transaction
     const [updatedTransaction] = await knex('transactions')
       .where({ id: transactionId, household_id: householdId })
       .update({
-        ...data,
+        ...transactionData,
         updated_at: knex.fn.now()
       })
       .returning('*');
+
+    if (tag_id !== undefined) {
+      if (tag_id === null) {
+        await knex('transaction_tags')
+          .where({ transaction_id: transactionId })
+          .del();
+        updatedTransaction.tag_id = null;
+      } else {
+        await knex('transaction_tags')
+          .insert({
+            transaction_id: transactionId,
+            tag_id
+          })
+          .onConflict('transaction_id')
+          .merge({ tag_id, updated_at: knex.fn.now() });
+        updatedTransaction.tag_id = tag_id;
+      }
+    } else {
+      const existingTag = await knex('transaction_tags')
+        .where({ transaction_id: transactionId })
+        .first();
+      updatedTransaction.tag_id = existingTag?.tag_id || null;
+    }
 
     // Recalculate account balance (amount or account may have changed)
     await AccountService.recalculateBalance(existingTransaction.account_id, householdId);
@@ -619,11 +682,12 @@ export class TransactionService {
     const monthEnd = `${month}-${String(lastDay).padStart(2, '0')}`;
 
     const transactions = await knex('transactions')
-      .where({ household_id: householdId })
+      .leftJoin('transaction_tags as tt', 'transactions.id', 'tt.transaction_id')
+      .where({ 'transactions.household_id': householdId })
       .whereBetween('transaction_date', [monthStart, monthEnd])
       .where('amount', '>', 0) // Income only (positive amounts)
       .orderBy('transaction_date', 'desc')
-      .select('*');
+      .select('transactions.*', 'tt.tag_id as tag_id');
 
     return transactions.map((t) => ({
       ...t,
