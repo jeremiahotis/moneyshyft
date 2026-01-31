@@ -509,19 +509,25 @@ export class BudgetService {
 
     const totalAccountBalances = Number(accountBalancesResult?.total || 0);
 
-    // Get total account balance assignments
+    const monthString = `${month.getUTCFullYear()}-${String(month.getUTCMonth() + 1).padStart(2, '0')}`;
+
+    const incomeAssignedResult = await knex('income_assignments')
+      .where({ household_id: householdId, month: monthString })
+      .sum('amount as total')
+      .first();
+    const totalIncomeAssigned = Number(incomeAssignedResult?.total || 0);
+
+    // Account balance assignments are a one-time pool; subtract all-time to avoid reappearing each month
     const assignedBalancesResult = await knex('account_balance_assignments')
       .where({ household_id: householdId })
       .sum('amount as total')
       .first();
-
     const totalAssignedBalances = Number(assignedBalancesResult?.total || 0);
 
     // Calculate income variance and "To Be Assigned"
-    // Include both real income and unassigned account balances
+    // Available = (Real Income + Opening Balances) - (Income Assigned this month + Opening Balance Assigned all-time + Savings Reserve this month)
     const incomeVariance = totalRealIncome - totalPlannedIncome;
-    const totalAssignedWithReserve = totalAssigned + totalSavingsReserve;
-    const toBeAssigned = (totalRealIncome + totalAccountBalances) - totalAssignedWithReserve;
+    const toBeAssigned = (totalRealIncome + totalAccountBalances) - (totalIncomeAssigned + totalAssignedBalances + totalSavingsReserve);
 
     // Calculate Goals summary (virtual section)
     const goalsContributionsResult = await knex('goal_contributions')
