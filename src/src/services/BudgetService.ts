@@ -40,6 +40,7 @@ interface AllocationInput {
 interface CategorySummary {
   category_id: string;
   category_name: string;
+  is_archived: boolean;
   allocated: number;      // Budgeted amount (the plan)
   assigned: number;       // Assigned amount (reality - actual cash)
   spent: number;          // Actual spending
@@ -405,6 +406,7 @@ export class BudgetService {
             categorySummaries.push({
               category_id: category.id,
               category_name: category.name,
+              is_archived: !!category.is_archived,
               allocated: 0, // No individual allocation in rollup mode
               assigned: 0,  // No individual assignment in rollup mode
               spent,
@@ -440,6 +442,7 @@ export class BudgetService {
             categorySummaries.push({
               category_id: category.id,
               category_name: category.name,
+              is_archived: !!category.is_archived,
               allocated,
               assigned,
               spent,

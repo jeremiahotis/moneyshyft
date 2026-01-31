@@ -239,7 +239,7 @@
                 data-testid="transaction-category"
               >
                 <option :value="null">Uncategorized</option>
-                <optgroup v-for="section in sections" :key="section.id" :label="section.name">
+                <optgroup v-for="section in activeSections" :key="section.id" :label="section.name">
                   <option
                     v-for="category in section.categories"
                     :key="category.id"
@@ -516,6 +516,12 @@ const formData = ref<CreateTransactionData>({
 const transactions = computed(() => transactionsStore.transactions);
 const accounts = computed(() => accountsStore.accounts);
 const sections = computed(() => categoriesStore.sections);
+const activeSections = computed(() => {
+  return sections.value.map(section => ({
+    ...section,
+    categories: (section.categories || []).filter(category => !category.is_archived)
+  }));
+});
 const tags = computed(() => tagsStore.tags);
 const activeGoals = computed(() => goalsStore.goals.filter(g => !g.is_completed));
 const activeDebts = computed(() => debtsStore.activeDebts);
@@ -541,7 +547,7 @@ const selectedCategorySectionName = computed(() => {
 
 // Computed properties for split components
 const categoriesBySection = computed(() => {
-  return sections.value.map(section => ({
+  return activeSections.value.map(section => ({
     id: section.id,
     name: section.name,
     categories: section.categories || []

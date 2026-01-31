@@ -267,7 +267,7 @@ const categoriesStore = useCategoriesStore();
 const recurringStore = useRecurringStore();
 
 const accounts = computed(() => accountsStore.accounts);
-const categories = computed(() => categoriesStore.categories);
+const categories = computed(() => categoriesStore.activeCategories);
 
 const isEdit = computed(() => !!props.recurringTransaction);
 const isLoading = ref(false);

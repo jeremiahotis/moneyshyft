@@ -23,6 +23,7 @@ interface Category {
   icon: string | null;
   sort_order: number;
   is_system: boolean;
+  is_archived: boolean;
   created_at: Date;
   updated_at: Date;
 }
@@ -211,7 +212,8 @@ export class CategoryService {
         color: color || null,
         icon: icon || null,
         sort_order,
-        is_system: false
+        is_system: false,
+        is_archived: false
       })
       .returning('*');
 
@@ -232,12 +234,17 @@ export class CategoryService {
       color?: string | null;
       icon?: string | null;
       sort_order?: number;
+      is_archived?: boolean;
     }
   ): Promise<Category> {
     const category = await this.getCategoryById(categoryId, householdId);
 
     if (category.is_system) {
       throw new BadRequestError('System categories cannot be modified');
+    }
+
+    if (data.is_archived === true && category.is_system) {
+      throw new BadRequestError('System categories cannot be archived');
     }
 
     // If updating parent, verify it belongs to same section
@@ -283,6 +290,87 @@ export class CategoryService {
 
     if (transactionCount && Number(transactionCount.count) > 0) {
       throw new BadRequestError('Cannot delete category with existing transactions. Set category to null on transactions first.');
+    }
+
+    const allocationCount = await knex('budget_allocations')
+      .where({ category_id: categoryId })
+      .count('id as count')
+      .first();
+
+    if (allocationCount && Number(allocationCount.count) > 0) {
+      throw new BadRequestError('Cannot delete category with existing budget allocations.');
+    }
+
+    const assignmentCount = await knex('income_assignments')
+      .where({ category_id: categoryId })
+      .count('id as count')
+      .first();
+
+    if (assignmentCount && Number(assignmentCount.count) > 0) {
+      throw new BadRequestError('Cannot delete category with existing income assignments.');
+    }
+
+    const balanceAssignmentCount = await knex('account_balance_assignments')
+      .where({ category_id: categoryId })
+      .count('id as count')
+      .first();
+
+    if (balanceAssignmentCount && Number(balanceAssignmentCount.count) > 0) {
+      throw new BadRequestError('Cannot delete category with existing balance assignments.');
+    }
+
+    const recurringCount = await knex('recurring_transactions')
+      .where({ category_id: categoryId })
+      .count('id as count')
+      .first();
+
+    if (recurringCount && Number(recurringCount.count) > 0) {
+      throw new BadRequestError('Cannot delete category with existing recurring transactions.');
+    }
+
+    const recurringInstanceCount = await knex('recurring_transaction_instances')
+      .where({ category_id: categoryId })
+      .count('id as count')
+      .first();
+
+    if (recurringInstanceCount && Number(recurringInstanceCount.count) > 0) {
+      throw new BadRequestError('Cannot delete category with existing recurring instances.');
+    }
+
+    const goalCount = await knex('goals')
+      .where({ category_id: categoryId })
+      .count('id as count')
+      .first();
+
+    if (goalCount && Number(goalCount.count) > 0) {
+      throw new BadRequestError('Cannot delete category with existing goals.');
+    }
+
+    const debtCount = await knex('debts')
+      .where({ category_id: categoryId })
+      .count('id as count')
+      .first();
+
+    if (debtCount && Number(debtCount.count) > 0) {
+      throw new BadRequestError('Cannot delete category with existing debts.');
+    }
+
+    const extraMoneyCount = await knex('extra_money_assignments')
+      .where({ category_id: categoryId })
+      .count('id as count')
+      .first();
+
+    if (extraMoneyCount && Number(extraMoneyCount.count) > 0) {
+      throw new BadRequestError('Cannot delete category with existing extra money assignments.');
+    }
+
+    const scenarioCount = await knex('scenario_items')
+      .where({ category_id: categoryId })
+      .count('id as count')
+      .first();
+
+    if (scenarioCount && Number(scenarioCount.count) > 0) {
+      throw new BadRequestError('Cannot delete category with existing scenario items.');
     }
 
     // Check if category has child categories

@@ -111,6 +111,8 @@
 
         <TransactionTagsSettings />
 
+        <CategorySettings />
+
         <!-- Household Members Card (optional - can be added later) -->
         <!-- Future enhancement: List all household members with their roles -->
       </div>
@@ -123,6 +125,7 @@ import { ref, onMounted } from 'vue';
 import api from '@/services/api';
 import ExtraMoneyPlanSettings from '@/components/settings/ExtraMoneyPlanSettings.vue';
 import TransactionTagsSettings from '@/components/settings/TransactionTagsSettings.vue';
+import CategorySettings from '@/components/settings/CategorySettings.vue';
 
 interface HouseholdData {
   name: string;

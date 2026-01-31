@@ -353,7 +353,7 @@ const goalAllocations = ref<GoalAllocation[]>([
 ]);
 
 const categorySections = computed(() => {
-  return categoriesStore.sections.map(section => ({
+  return categoriesStore.activeSections.map(section => ({
     name: section.name,
     categories: section.categories || []
   }));

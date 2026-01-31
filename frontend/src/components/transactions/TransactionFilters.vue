@@ -119,7 +119,7 @@ import { storeToRefs } from 'pinia';
 
 // Initialize categories store
 const categoriesStore = useCategoriesStore();
-const { sections: categorySections } = storeToRefs(categoriesStore);
+const { activeSections: categorySections } = storeToRefs(categoriesStore);
 
 // Load categories if not already loaded
 if (categorySections.value.length === 0) {

@@ -214,7 +214,7 @@ const isLoadingCategories = ref(false)
 const isSaving = ref(false)
 const assignments = ref<Record<string, number>>({})
 
-const sections = computed(() => categoriesStore.sections)
+const sections = computed(() => categoriesStore.activeSections)
 
 const totalAssigned = computed(() => {
   return Object.values(assignments.value).reduce((sum, val) => sum + (val || 0), 0)

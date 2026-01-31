@@ -218,7 +218,7 @@ const canProceed = computed(() => {
 });
 
 const availableCategories = computed(() => {
-  return categoriesStore.categories;
+  return categoriesStore.activeCategories;
 });
 
 function availableSections(type?: SectionType) {

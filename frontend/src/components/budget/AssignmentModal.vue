@@ -194,7 +194,7 @@ const underfundedCategories = computed<AssignableItem[]>(() => {
     // Add individual categories that need money (if not rollup)
     if (!section.rollup_mode) {
       for (const category of section.categories) {
-        if (category.need > 0) {
+        if (!category.is_archived && category.need > 0) {
           items.push({
             id: category.category_id,
             name: `${section.section_name} → ${category.category_name}`,

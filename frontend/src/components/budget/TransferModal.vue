@@ -46,7 +46,7 @@
             >
               <option value="">Select category...</option>
               <optgroup
-                v-for="section in categoriesStore.sections"
+                v-for="section in categoriesStore.activeSections"
                 :key="section.id"
                 :label="section.name"
               >
@@ -183,7 +183,7 @@ const isValid = computed(() => {
 });
 
 function getCategoriesForSection(sectionId: string) {
-  const section = categoriesStore.sections.find(s => s.id === sectionId);
+  const section = categoriesStore.activeSections.find(s => s.id === sectionId);
   return section?.categories || [];
 }
 
@@ -203,7 +203,7 @@ function getTargetName(): string {
   const [type, id] = formData.value.targetId.split(':');
 
   if (type === 'category') {
-    for (const section of categoriesStore.sections) {
+    for (const section of categoriesStore.activeSections) {
       const category = section.categories?.find((c: any) => c.id === id);
       if (category) return category.name;
     }

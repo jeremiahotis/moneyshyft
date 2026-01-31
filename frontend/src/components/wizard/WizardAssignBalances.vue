@@ -200,7 +200,7 @@ const balanceAssignments = ref<Record<string, number>>({})
 const isLoading = ref(true)
 
 // Computed values
-const sections = computed(() => categoriesStore.sections)
+const sections = computed(() => categoriesStore.activeSections)
 
 const totalAccountBalance = computed(() => {
   if (!props.answers.accounts || props.answers.accounts.length === 0) {

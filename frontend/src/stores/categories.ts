@@ -14,6 +14,17 @@ export const useCategoriesStore = defineStore('categories', () => {
     return sections.value.flatMap(section => section.categories || []);
   });
 
+  const activeSections = computed(() => {
+    return sections.value.map(section => ({
+      ...section,
+      categories: (section.categories || []).filter(category => !category.is_archived)
+    }));
+  });
+
+  const activeCategories = computed(() => {
+    return activeSections.value.flatMap(section => section.categories || []);
+  });
+
   // Actions
   async function fetchCategories(): Promise<void> {
     isLoading.value = true;
@@ -121,6 +132,7 @@ export const useCategoriesStore = defineStore('categories', () => {
     name?: string;
     color?: string | null;
     icon?: string | null;
+    is_archived?: boolean;
   }): Promise<any> {
     isLoading.value = true;
     error.value = null;
@@ -180,6 +192,8 @@ export const useCategoriesStore = defineStore('categories', () => {
     // State
     sections,
     categories,  // Flat list of all categories
+    activeSections,
+    activeCategories,
     isLoading,
     error,
     // Actions

@@ -93,7 +93,9 @@ export const updateCategorySchema = Joi.object({
       'string.max': 'Icon must be less than 50 characters'
     }),
 
-  sort_order: Joi.number().integer().min(0)
+  sort_order: Joi.number().integer().min(0),
+
+  is_archived: Joi.boolean()
 }).min(1).messages({
   'object.min': 'At least one field must be provided for update'
 });

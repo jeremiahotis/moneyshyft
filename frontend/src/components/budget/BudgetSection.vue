@@ -104,7 +104,7 @@
                 <button
                   @click="deleteCategory(category)"
                   class="p-1 text-red-600 hover:bg-red-50 rounded transition text-xs"
-                  title="Delete category"
+                  title="Archive category"
                 >
                   🗑️
                 </button>
@@ -403,7 +403,7 @@ const showTransferModal = ref(false);
 const editingCategoryData = ref<CategorySummary | null>(null);
 const transferSourceCategory = ref<CategorySummary | null>(null);
 
-const categories = computed(() => props.summary?.categories || []);
+const categories = computed(() => (props.summary?.categories || []).filter(category => !category.is_archived));
 
 const sectionIcon = computed(() => {
   // If we have summary data, show envelope status
@@ -616,22 +616,22 @@ function editCategory(category: CategorySummary) {
 }
 
 async function deleteCategory(category: CategorySummary) {
-  if (!confirm(`Are you sure you want to delete "${category.category_name}"? This action cannot be undone.`)) {
+  if (!confirm(`Archive "${category.category_name}"? You can restore it later in Settings.`)) {
     return;
   }
 
   const categoryId = category.category_id;
   const categoryName = category.category_name;
   undoStore.schedule({
-    message: `Deleting "${categoryName}"...`,
+    message: `Archiving "${categoryName}"...`,
     timeoutMs: 5000,
     onCommit: async () => {
       try {
-        await categoriesStore.deleteCategory(categoryId);
+        await categoriesStore.updateCategory(categoryId, { is_archived: true });
         emit('refresh');
-      } catch (error) {
-        console.error('Failed to delete category:', error);
-        alert('Failed to delete category. Please try again.');
+      } catch (error: any) {
+        console.error('Failed to archive category:', error);
+        alert(error.response?.data?.error || error.message || 'Failed to archive category. Please try again.');
       }
     },
   });

@@ -121,6 +121,7 @@ export interface Category {
   icon: string | null;
   sort_order: number;
   is_system: boolean;
+  is_archived: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -311,6 +312,7 @@ export interface SectionSummary {
 export interface CategorySummary {
   category_id: string;
   category_name: string;
+  is_archived: boolean;
   allocated: number;      // Budgeted amount (the plan)
   assigned: number;       // Assigned amount (reality - actual cash)
   spent: number;          // Actual spending
