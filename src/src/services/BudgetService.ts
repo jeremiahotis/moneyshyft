@@ -685,10 +685,12 @@ export class BudgetService {
       section_id?: string;
       account_id?: string | null;
       amount: number;
+      month?: string;
     }
   ): Promise<BudgetAllocation> {
-    const currentMonth = new Date();
-    const budgetMonth = await this.getOrCreateBudgetMonth(householdId, currentMonth);
+    const monthDate = data.month ? new Date(`${data.month}-01`) : new Date();
+    const budgetMonth = await this.getOrCreateBudgetMonth(householdId, monthDate);
+    const monthString = data.month || new Date(budgetMonth.month).toISOString().slice(0, 7);
 
     if (!data.category_id && !data.section_id) {
       throw new BadRequestError('Either category_id or section_id is required');
@@ -712,6 +714,7 @@ export class BudgetService {
       category_id: data.category_id || null,
       section_id: data.section_id || null,
       amount: data.amount,
+      month: monthString,
       assigned_by_user_id: userId
     });
 

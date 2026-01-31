@@ -187,7 +187,7 @@ export class AssignmentService {
     const incomeAssigned = Number(incomeAssignedResult?.total || 0);
 
     const balanceAssignedResult = await knex('account_balance_assignments')
-      .where({ household_id: householdId })
+      .where({ household_id: householdId, month })
       .modify(qb => {
         if (categoryId) {
           qb.where({ category_id: categoryId });
@@ -684,6 +684,7 @@ export class AssignmentService {
             await BudgetService.assignAccountBalance(householdId, userId, {
               category_id: category_id,
               amount: remaining,
+              month,
               // We don't specify account_id, so it pulls from the general pool of starting balances
             });
 
@@ -698,6 +699,7 @@ export class AssignmentService {
             await BudgetService.assignAccountBalance(householdId, userId, {
               section_id: section_id,
               amount: remaining,
+              month,
             });
 
             remaining = 0;
@@ -731,7 +733,7 @@ export class AssignmentService {
         const incomeAssigned = Number(incomeAssignedResult?.total || 0);
 
         const balanceAssignedResult = await trx('account_balance_assignments')
-          .where({ household_id: householdId })
+          .where({ household_id: householdId, month })
           .modify(qb => {
             if (category_id) {
               qb.where({ category_id });

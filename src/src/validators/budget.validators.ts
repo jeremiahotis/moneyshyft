@@ -121,6 +121,10 @@ export const assignAccountBalanceSchema = Joi.object({
     .messages({
       'string.guid': 'Account ID must be a valid UUID'
     }),
+  month: Joi.string().pattern(/^\d{4}-\d{2}$/).optional()
+    .messages({
+      'string.pattern.base': 'Month must be in YYYY-MM format'
+    }),
   amount: Joi.number().min(0.01).required()
     .messages({
       'any.required': 'Amount is required',

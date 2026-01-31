@@ -153,7 +153,7 @@ router.delete('/allocations/:id', asyncHandler(async (req: Request, res: Respons
 router.post('/assign-account-balance', validateRequest(assignAccountBalanceSchema), asyncHandler(async (req: Request, res: Response) => {
   const householdId = req.user!.householdId!;
   const userId = req.user!.userId!;
-  const { category_id, section_id, account_id, amount } = req.body;
+  const { category_id, section_id, account_id, amount, month } = req.body;
 
   const allocation = await BudgetService.assignAccountBalance(
     householdId,
@@ -162,7 +162,8 @@ router.post('/assign-account-balance', validateRequest(assignAccountBalanceSchem
       category_id,
       section_id,
       account_id,
-      amount
+      amount,
+      month
     }
   );
 
