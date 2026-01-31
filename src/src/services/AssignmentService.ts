@@ -350,7 +350,6 @@ export class AssignmentService {
     householdId: string,
     month: string
   ): Promise<number> {
-    // Get all income transactions for the month
     // Use UTC to avoid timezone issues
     const [year, monthPart] = month.split('-');
     const monthNum = parseInt(monthPart) - 1; // Convert to 0-based
@@ -362,6 +361,7 @@ export class AssignmentService {
     const monthStart = startDate.toISOString().split('T')[0];
     const monthEnd = endDate.toISOString().split('T')[0];
 
+    // Get all income transactions for the month
     const incomeResult = await knex('transactions')
       .where({ household_id: householdId })
       .whereBetween('transaction_date', [monthStart, monthEnd])
@@ -371,14 +371,6 @@ export class AssignmentService {
 
     const totalIncome = Number(incomeResult?.total || 0);
 
-    // Get all assignments for the month
-    const assignedResult = await knex('income_assignments')
-      .where({ household_id: householdId, month })
-      .sum('amount as total')
-      .first();
-
-    const totalAssigned = Number(assignedResult?.total || 0);
-
     // Get total account starting balances
     const accountBalancesResult = await knex('accounts')
       .where({ household_id: householdId, is_active: true })
@@ -387,13 +379,16 @@ export class AssignmentService {
 
     const totalAccountBalances = Number(accountBalancesResult?.total || 0);
 
-    // Get total account balance assignments
-    const assignedBalancesResult = await knex('account_balance_assignments')
-      .where({ household_id: householdId })
-      .sum('amount as total')
+    // Get total assigned for the budget month (includes income + balance assignments)
+    const monthDate = new Date(`${month}-01`);
+    const budgetMonth = await BudgetService.getOrCreateBudgetMonth(householdId, monthDate);
+
+    const assignedResult = await knex('budget_allocations')
+      .where({ budget_month_id: budgetMonth.id })
+      .sum('assigned_amount as total')
       .first();
 
-    const totalAssignedBalances = Number(assignedBalancesResult?.total || 0);
+    const totalAssigned = Number(assignedResult?.total || 0);
 
     // Get Savings Reserve assignments (they reduce available funds)
     const savingsReserveResult = await knex('extra_money_entries')
@@ -404,15 +399,9 @@ export class AssignmentService {
 
     const totalSavingsReserve = Number(savingsReserveResult?.total || 0);
 
-    // Total Available = (Real Income + Account Balances) - (assigned to categories + assigned to reserve + assigned balances)
-    // Note: totalAssigned is from income_assignments.
-    // totalAssignedBalances is from account_balance_assignments (loose cash).
-    // Both reduce the pool.
-
-    // Wait: account_balance_assignments track assignments made via assignAccountBalance.
-    // So "To Be Assigned" = (Income + Starting Balances) - (Income Assignments + Balance Assignments + Savings Reserve)
-
-    return (totalIncome + totalAccountBalances) - (totalAssigned + totalAssignedBalances + totalSavingsReserve);
+    // Total Available = (Real Income + Account Balances) - (Assigned + Savings Reserve)
+    // Assigned comes from budget_allocations so it's consistent with BudgetService summary.
+    return (totalIncome + totalAccountBalances) - (totalAssigned + totalSavingsReserve);
   }
 
   /**
